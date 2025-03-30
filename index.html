@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,14 +14,50 @@
       align-items: center;
       height: 100vh;
     }
+
     h1 {
       color: #333;
     }
   </style>
 </head>
+
 <body>
   <h1>Hello, World! 👋</h1>
-</body>
-</html>
-git clone https://github.com/ledkarlsson/ledkarlsson.github.io
 
+  <style>
+    .clickable-box {
+      width: 200px;
+      height: 100px;
+      background-color: #4CAF50;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      text-align: center;
+      transition: background-color 0.2s ease;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .clickable-box:hover {
+      background-color: #45a049;
+    }
+  </style>
+  </head>
+
+  <body>
+    <div class="clickable-box" onclick="boxClicked()">
+      Click Me!
+    </div>
+
+    <script>
+      function boxClicked() {
+        alert("You clicked the box!");
+        // You can do more here — like change the page, open a link, etc.
+      }
+    </script>
+  </body>
+
+</html>
