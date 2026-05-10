@@ -4,60 +4,274 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
+  <title>Daniel Karlsson's Toolbox</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    :root {
+      color-scheme: light;
+      --bg: #f6f3ee;
+      --panel: #ffffff;
+      --ink: #172026;
+      --muted: #66717a;
+      --line: #d9d2c7;
+      --accent: #237a78;
+      --accent-strong: #175a58;
+      --warm: #d87c35;
+      --shadow: 0 18px 45px rgba(23, 32, 38, 0.12);
     }
 
-    h1 {
-      color: #333;
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        linear-gradient(135deg, rgba(35, 122, 120, 0.12), transparent 34%),
+        linear-gradient(315deg, rgba(216, 124, 53, 0.12), transparent 30%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 12px 0 48px;
+    }
+
+    .brand {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .nav {
+      display: flex;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 44px;
+      align-items: center;
+      padding-bottom: 56px;
+    }
+
+    .hero h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(2.6rem, 6vw, 5.6rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 1.18rem;
+      line-height: 1.65;
+    }
+
+    .tool-preview {
+      min-height: 300px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(23, 32, 38, 0.06) 1px, transparent 1px),
+        linear-gradient(rgba(23, 32, 38, 0.06) 1px, transparent 1px),
+        #fffaf3;
+      background-size: 28px 28px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tool-preview::before,
+    .tool-preview::after {
+      content: "";
+      position: absolute;
+      border: 3px solid var(--accent);
+      border-radius: 999px;
+    }
+
+    .tool-preview::before {
+      width: 150px;
+      height: 150px;
+      left: 42px;
+      top: 42px;
+      border-color: var(--accent);
+    }
+
+    .tool-preview::after {
+      width: 180px;
+      height: 96px;
+      right: 34px;
+      bottom: 44px;
+      border-color: var(--warm);
+      transform: rotate(-18deg);
+    }
+
+    .pin {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-strong);
+      box-shadow: 0 0 0 8px rgba(35, 122, 120, 0.18);
+      left: 54%;
+      top: 38%;
+    }
+
+    .section-title {
+      margin: 0 0 18px;
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .tool-card {
+      display: block;
+      min-height: 210px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 10px 30px rgba(23, 32, 38, 0.08);
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    .tool-card:hover,
+    .tool-card:focus-visible {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: var(--shadow);
+      outline: none;
+    }
+
+    .tool-card span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(35, 122, 120, 0.12);
+      color: var(--accent-strong);
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .tool-card h2 {
+      margin: 28px 0 12px;
+      font-size: 1.65rem;
+      letter-spacing: 0;
+    }
+
+    .tool-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status {
+      display: inline-block;
+      margin-top: 22px;
+      color: var(--accent-strong);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 24px, 1120px);
+        padding-top: 20px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 36px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.5rem, 14vw, 4rem);
+      }
+
+      .tool-preview {
+        min-height: 230px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <h1>Hello, World! 👋</h1>
+  <main class="page">
+    <header class="topbar" aria-label="Site header">
+      <a class="brand" href="./">Daniel Karlsson</a>
+      <nav class="nav" aria-label="Projects">
+        <a href="#kartgenerator">Projects</a>
+        <a href="#kartgenerator">Kartgenerator</a>
+      </nav>
+    </header>
 
-  <style>
-    .clickable-box {
-      width: 200px;
-      height: 100px;
-      background-color: #4CAF50;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 18px;
-      text-align: center;
-      transition: background-color 0.2s ease;
-      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-    }
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <h1 id="page-title">A toolbox for ongoing projects.</h1>
+        <p>
+          This page collects experiments, utilities, and practical tools in one place.
+          Each project gets its own section so it is easy to return, test, and build further.
+        </p>
+      </div>
+      <div class="tool-preview" aria-hidden="true">
+        <span class="pin"></span>
+      </div>
+    </section>
 
-    .clickable-box:hover {
-      background-color: #45a049;
-    }
-  </style>
-  </head>
-
-  <body>
-    <div class="clickable-box" onclick="boxClicked()">
-      Click Me!
-    </div>
-
-    <script>
-      function boxClicked() {
-        alert("You clicked the box!");
-        // You can do more here — like change the page, open a link, etc.
-      }
-    </script>
-  </body>
+    <section id="kartgenerator" aria-labelledby="tools-title">
+      <h2 class="section-title" id="tools-title">Tools</h2>
+      <div class="tools-grid">
+        <a class="tool-card" href="#kartgenerator" aria-label="Open kartgenerator section">
+          <span aria-hidden="true">K</span>
+          <h2>kartgenerator</h2>
+          <p>
+            (Swedish) En kartgenerator, som kan generera kartor från data relevant för båtklubbar.
+          </p>
+          <strong class="status">First project section</strong>
+        </a>
+      </div>
+    </section>
+  </main>
+</body>
 
 </html>
