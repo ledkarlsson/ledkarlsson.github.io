@@ -252,6 +252,58 @@
       line-height: 1.5;
     }
 
+    .table-panel {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .table-panel h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .table-meta {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .table-wrap {
+      max-height: 360px;
+      margin-top: 14px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .selected-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .selected-table th,
+    .selected-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    .selected-table th {
+      position: sticky;
+      top: 0;
+      background: #f7fbfa;
+      color: var(--accent-strong);
+      font-weight: 700;
+    }
+
     .workspace {
       min-height: 360px;
       padding: 22px;
@@ -370,6 +422,13 @@
           <ul class="columns-list" id="columns-list"></ul>
           <p class="selected-columns" id="selected-columns">No columns selected.</p>
         </section>
+        <section class="table-panel" aria-labelledby="table-title">
+          <h2 id="table-title">Selected data</h2>
+          <p class="table-meta" id="table-meta">Select columns to build a table.</p>
+          <div class="table-wrap" id="table-wrap" hidden>
+            <table class="selected-table" id="selected-table"></table>
+          </div>
+        </section>
         <div class="actions" aria-label="Project actions">
           <a class="button secondary" href="../../index.html">Back to toolbox</a>
         </div>
@@ -398,29 +457,88 @@
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsList = document.querySelector("#columns-list");
     const selectedColumnsStatus = document.querySelector("#selected-columns");
+    const tableMeta = document.querySelector("#table-meta");
+    const tableWrap = document.querySelector("#table-wrap");
+    const selectedTable = document.querySelector("#selected-table");
     const excelTypes = [".xls", ".xlsx"];
-    let selectedColumns = [];
+    let selectedColumnIndexes = [];
+    let excelColumns = [];
+    let excelRows = [];
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
       columnsList.replaceChildren();
-      selectedColumns = [];
+      selectedColumnIndexes = [];
+      excelColumns = [];
+      excelRows = [];
       selectedColumnsStatus.textContent = "No columns selected.";
+      renderSelectedTable();
     }
 
     function updateSelectedColumnsStatus() {
-      if (selectedColumns.length === 0) {
+      if (selectedColumnIndexes.length === 0) {
         selectedColumnsStatus.textContent = "No columns selected.";
         return;
       }
 
-      selectedColumnsStatus.textContent = `${selectedColumns.length} selected: ${selectedColumns.join(", ")}`;
+      const selectedNames = selectedColumnIndexes.map((columnIndex) => excelColumns[columnIndex].name);
+      selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} selected: ${selectedNames.join(", ")}`;
+    }
+
+    function renderSelectedTable() {
+      selectedTable.replaceChildren();
+
+      if (selectedColumnIndexes.length === 0) {
+        tableMeta.textContent = "Select columns to build a table.";
+        tableWrap.hidden = true;
+        return;
+      }
+
+      if (excelRows.length === 0) {
+        tableMeta.textContent = "No data rows found under the header row.";
+        tableWrap.hidden = true;
+        return;
+      }
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      selectedColumnIndexes.forEach((columnIndex) => {
+        const headerCell = document.createElement("th");
+        headerCell.textContent = excelColumns[columnIndex].name;
+        headerRow.append(headerCell);
+      });
+
+      thead.append(headerRow);
+
+      const tbody = document.createElement("tbody");
+      const bodyFragment = document.createDocumentFragment();
+
+      excelRows.forEach((row) => {
+        const tableRow = document.createElement("tr");
+
+        selectedColumnIndexes.forEach((columnIndex) => {
+          const cell = document.createElement("td");
+          const value = row[columnIndex];
+          cell.textContent = value === null || value === undefined ? "" : String(value);
+          tableRow.append(cell);
+        });
+
+        bodyFragment.append(tableRow);
+      });
+
+      tbody.append(bodyFragment);
+      selectedTable.append(thead, tbody);
+      tableMeta.textContent = `${excelRows.length} row${excelRows.length === 1 ? "" : "s"} shown with ${selectedColumnIndexes.length} selected column${selectedColumnIndexes.length === 1 ? "" : "s"}.`;
+      tableWrap.hidden = false;
     }
 
     function renderColumns(columns, sheetName) {
       columnsList.replaceChildren();
-      selectedColumns = [];
+      selectedColumnIndexes = [];
+      excelColumns = columns;
       updateSelectedColumnsStatus();
+      renderSelectedTable();
 
       if (columns.length === 0) {
         columnsMeta.textContent = `No columns found in "${sheetName}".`;
@@ -432,10 +550,11 @@
       columns.forEach((columnName) => {
         const item = document.createElement("li");
         const button = document.createElement("button");
+        const columnIndex = columnName.index;
 
         button.className = "column-button";
         button.type = "button";
-        button.textContent = columnName;
+        button.textContent = columnName.name;
         button.setAttribute("aria-pressed", "false");
 
         button.addEventListener("click", () => {
@@ -444,12 +563,13 @@
           button.setAttribute("aria-pressed", String(isSelected));
 
           if (isSelected) {
-            selectedColumns.push(columnName);
+            selectedColumnIndexes.push(columnIndex);
           } else {
-            selectedColumns = selectedColumns.filter((selectedColumn) => selectedColumn !== columnName);
+            selectedColumnIndexes = selectedColumnIndexes.filter((selectedColumnIndex) => selectedColumnIndex !== columnIndex);
           }
 
           updateSelectedColumnsStatus();
+          renderSelectedTable();
         });
 
         item.append(button);
@@ -479,13 +599,18 @@
 
           const worksheet = workbook.Sheets[firstSheetName];
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
-          const headerRow = rows.find((row) => row.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""));
-          const columns = (headerRow || [])
-            .map((cell, index) => {
+          const headerRowIndex = rows.findIndex((row) => row.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""));
+          const headerRow = rows[headerRowIndex] || [];
+          const columns = Array.from({ length: headerRow.length }, (_, index) => {
+              const cell = headerRow[index];
               const value = cell === null || cell === undefined ? "" : String(cell).trim();
-              return value || `Column ${index + 1}`;
+              return {
+                index,
+                name: value || `Column ${index + 1}`
+              };
             });
 
+          excelRows = rows.slice(headerRowIndex + 1);
           renderColumns(columns, firstSheetName);
         } catch (error) {
           fileStatus.textContent = "Could not read this Excel file.";
