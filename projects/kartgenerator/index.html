@@ -368,6 +368,15 @@
       color: #a13e20;
     }
 
+    .drawio-empty.has-file {
+      min-height: 64px;
+      padding: 14px 18px;
+      border-style: solid;
+      border-color: var(--accent);
+      background: rgba(35, 122, 120, 0.08);
+      color: var(--accent-strong);
+    }
+
     @media (max-width: 760px) {
       .page {
         width: min(100% - 24px, 1120px);
@@ -653,7 +662,7 @@
       const fileName = file.name.toLowerCase();
       const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
 
-      drawioUploadZone.classList.remove("has-error");
+      drawioUploadZone.classList.remove("has-error", "has-file");
 
       if (!isDrawioFile) {
         drawioUploadZone.textContent = "Choose a draw.io file ending in .drawio or .drawio.xml.";
@@ -665,12 +674,14 @@
         return;
       }
 
+      drawioUploadZone.textContent = file.name;
+      drawioUploadZone.classList.add("has-file");
+      drawioUploadZone.append(drawioUpload);
       readDrawioFile(file);
     }
 
     function loadDrawioViewer(xml) {
       pendingDrawioXml = xml;
-      drawioUploadZone.hidden = true;
       drawioViewer.hidden = false;
 
       drawioFrame.contentWindow.postMessage(JSON.stringify({
