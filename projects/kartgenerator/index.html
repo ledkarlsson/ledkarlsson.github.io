@@ -321,6 +321,10 @@
       cursor: pointer;
     }
 
+    .generated-options {
+      margin-top: 14px;
+    }
+
     .table-panel {
       margin-top: 22px;
       padding: 18px;
@@ -587,6 +591,10 @@
 
     <section class="generated-panel" aria-labelledby="generated-title">
       <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
+      <label class="generated-options">
+        <input type="checkbox" id="show-place-number" checked />
+        Show place number in generated boxes
+      </label>
       <div class="generated-empty" id="generated-empty">
         Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
       </div>
@@ -619,6 +627,7 @@
     const selectedColumnsStatus = document.querySelector("#selected-columns");
     const parseControls = document.querySelector("#parse-controls");
     const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
+    const showPlaceNumberInput = document.querySelector("#show-place-number");
     const tableMeta = document.querySelector("#table-meta");
     const tableWrap = document.querySelector("#table-wrap");
     const selectedTable = document.querySelector("#selected-table");
@@ -965,10 +974,14 @@
           }
 
           if (columnIndex === parsedOmradePlatsColumnIndex) {
+            if (!showPlaceNumberInput.checked) {
+              return "";
+            }
+
             return String(value).trim();
           }
 
-          return `${excelColumns[columnIndex].name}: ${String(value).trim()}`;
+          return String(value).trim();
         })
         .filter(Boolean);
 
@@ -1082,6 +1095,8 @@
     parseSourceInputs.forEach((input) => {
       input.addEventListener("change", reparseRows);
     });
+
+    showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
 
     ["dragenter", "dragover"].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
