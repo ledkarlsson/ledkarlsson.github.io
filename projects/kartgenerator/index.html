@@ -801,7 +801,32 @@
       });
     }
 
+    function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
+      const mapPlaces = getMapPlaceLabels(sourceDrawioXml);
+      const matchedPlaces = new Set();
+
+      rows.forEach((row) => {
+        const place = parseOmradePlatsValue(row[omradePlatsColumnIndex], source);
+
+        if (place && mapPlaces.has(place)) {
+          matchedPlaces.add(place);
+        }
+      });
+
+      return matchedPlaces.size;
+    }
+
     function detectParseSource(rows, omradePlatsColumnIndex) {
+      if (sourceDrawioXml) {
+        const varvsomradeMatches = countMatchingMapPlaces(rows, omradePlatsColumnIndex, "varvsomrade");
+        const bryggaMatches = countMatchingMapPlaces(rows, omradePlatsColumnIndex, "brygga");
+
+        if (varvsomradeMatches !== bryggaMatches) {
+          setSelectedParseSource(varvsomradeMatches > bryggaMatches ? "varvsomrade" : "brygga");
+          return;
+        }
+      }
+
       const sampleValues = rows
         .slice(0, 50)
         .map((row) => String(row[omradePlatsColumnIndex] || ""));
@@ -813,7 +838,7 @@
       }
     }
 
-    function parseRows(columns, rows) {
+    function parseRows(columns, rows, shouldDetectParseSource = true) {
       const omradePlatsColumn = columns.find((column) => normalizeColumnName(column.name) === "omrade/plats");
 
       if (!omradePlatsColumn) {
@@ -822,7 +847,10 @@
       }
 
       parsedOmradePlatsColumnIndex = omradePlatsColumn.index;
-      detectParseSource(rows, omradePlatsColumn.index);
+
+      if (shouldDetectParseSource) {
+        detectParseSource(rows, omradePlatsColumn.index);
+      }
 
       return rows.map((row) => {
         const parsedRow = [...row];
@@ -831,12 +859,12 @@
       });
     }
 
-    function reparseRows() {
+    function reparseRows(shouldDetectParseSource = false) {
       if (excelColumns.length === 0 || rawExcelRows.length === 0) {
         return;
       }
 
-      excelRows = parseRows(excelColumns, rawExcelRows);
+      excelRows = parseRows(excelColumns, rawExcelRows, shouldDetectParseSource);
       renderSelectedTable();
     }
 
@@ -1536,8 +1564,12 @@
 
         sourceDrawioXml = xml;
         loadDrawioViewer(xml);
-        updateMissingPeopleList();
-        updateGeneratedDiagram();
+        if (excelColumns.length > 0 && rawExcelRows.length > 0) {
+          reparseRows(true);
+        } else {
+          updateMissingPeopleList();
+          updateGeneratedDiagram();
+        }
       });
 
       reader.addEventListener("error", () => {
