@@ -188,6 +188,70 @@
       color: #a13e20;
     }
 
+    .columns-panel {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .columns-panel h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .columns-meta {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .columns-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .column-button {
+      max-width: 100%;
+      padding: 7px 10px;
+      border: 1px solid rgba(35, 122, 120, 0.22);
+      border-radius: 8px;
+      background: rgba(35, 122, 120, 0.08);
+      color: var(--accent-strong);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.92rem;
+      overflow-wrap: anywhere;
+      text-align: left;
+      transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .column-button:hover,
+    .column-button:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .column-button.is-selected {
+      border-color: var(--accent-strong);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .selected-columns {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
     .workspace {
       min-height: 360px;
       padding: 22px;
@@ -300,6 +364,12 @@
           <span class="file-status" id="file-status">No file selected</span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
+        <section class="columns-panel" aria-labelledby="columns-title">
+          <h2 id="columns-title">Excel columns</h2>
+          <p class="columns-meta" id="columns-meta">Upload an Excel file to list its columns.</p>
+          <ul class="columns-list" id="columns-list"></ul>
+          <p class="selected-columns" id="selected-columns">No columns selected.</p>
+        </section>
         <div class="actions" aria-label="Project actions">
           <a class="button secondary" href="../../index.html">Back to toolbox</a>
         </div>
@@ -320,11 +390,112 @@
       </div>
     </section>
   </main>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
     const uploadZone = document.querySelector("#upload-zone");
     const excelUpload = document.querySelector("#excel-upload");
     const fileStatus = document.querySelector("#file-status");
+    const columnsMeta = document.querySelector("#columns-meta");
+    const columnsList = document.querySelector("#columns-list");
+    const selectedColumnsStatus = document.querySelector("#selected-columns");
     const excelTypes = [".xls", ".xlsx"];
+    let selectedColumns = [];
+
+    function clearColumns(message) {
+      columnsMeta.textContent = message;
+      columnsList.replaceChildren();
+      selectedColumns = [];
+      selectedColumnsStatus.textContent = "No columns selected.";
+    }
+
+    function updateSelectedColumnsStatus() {
+      if (selectedColumns.length === 0) {
+        selectedColumnsStatus.textContent = "No columns selected.";
+        return;
+      }
+
+      selectedColumnsStatus.textContent = `${selectedColumns.length} selected: ${selectedColumns.join(", ")}`;
+    }
+
+    function renderColumns(columns, sheetName) {
+      columnsList.replaceChildren();
+      selectedColumns = [];
+      updateSelectedColumnsStatus();
+
+      if (columns.length === 0) {
+        columnsMeta.textContent = `No columns found in "${sheetName}".`;
+        return;
+      }
+
+      columnsMeta.textContent = `${columns.length} column${columns.length === 1 ? "" : "s"} found in "${sheetName}".`;
+
+      columns.forEach((columnName) => {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+
+        button.className = "column-button";
+        button.type = "button";
+        button.textContent = columnName;
+        button.setAttribute("aria-pressed", "false");
+
+        button.addEventListener("click", () => {
+          const isSelected = button.classList.toggle("is-selected");
+
+          button.setAttribute("aria-pressed", String(isSelected));
+
+          if (isSelected) {
+            selectedColumns.push(columnName);
+          } else {
+            selectedColumns = selectedColumns.filter((selectedColumn) => selectedColumn !== columnName);
+          }
+
+          updateSelectedColumnsStatus();
+        });
+
+        item.append(button);
+        columnsList.append(item);
+      });
+    }
+
+    function readColumns(file) {
+      if (!window.XLSX) {
+        fileStatus.textContent = "Excel reader could not load. Check your internet connection and refresh.";
+        fileStatus.classList.add("has-error");
+        clearColumns("Excel reader is not available.");
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.addEventListener("load", (event) => {
+        try {
+          const workbook = XLSX.read(event.target.result, { type: "array" });
+          const [firstSheetName] = workbook.SheetNames;
+
+          if (!firstSheetName) {
+            clearColumns("No sheets found in this workbook.");
+            return;
+          }
+
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+          const headerRow = rows.find((row) => row.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""));
+          const columns = (headerRow || [])
+            .map((cell, index) => {
+              const value = cell === null || cell === undefined ? "" : String(cell).trim();
+              return value || `Column ${index + 1}`;
+            });
+
+          renderColumns(columns, firstSheetName);
+        } catch (error) {
+          fileStatus.textContent = "Could not read this Excel file.";
+          fileStatus.classList.add("has-error");
+          clearColumns("Try another .xls or .xlsx file.");
+        }
+      });
+
+      reader.readAsArrayBuffer(file);
+    }
 
     function showFile(file) {
       const fileName = file.name.toLowerCase();
@@ -336,11 +507,14 @@
         fileStatus.textContent = "Choose an Excel file ending in .xls or .xlsx.";
         fileStatus.classList.add("has-error");
         excelUpload.value = "";
+        clearColumns("Upload an Excel file to list its columns.");
         return;
       }
 
       fileStatus.textContent = file.name;
       fileStatus.classList.add("has-file");
+      clearColumns("Reading columns...");
+      readColumns(file);
     }
 
     excelUpload.addEventListener("change", () => {
