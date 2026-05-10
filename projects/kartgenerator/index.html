@@ -154,6 +154,11 @@
       color: var(--accent-strong);
     }
 
+    .button[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     .file-input {
       position: absolute;
       inline-size: 1px;
@@ -408,6 +413,13 @@
       box-shadow: var(--shadow);
     }
 
+    .generated-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
     .generated-empty {
       display: grid;
       min-height: 180px;
@@ -591,7 +603,10 @@
     </section>
 
     <section class="generated-panel" aria-labelledby="generated-title">
-      <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
+      <div class="generated-header">
+        <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
+        <button class="button" id="download-generated" type="button" disabled>Ladda ner</button>
+      </div>
       <label class="generated-options">
         <input type="checkbox" id="show-place-number" checked />
         Show place number in generated boxes
@@ -623,6 +638,7 @@
     const generatedEmpty = document.querySelector("#generated-empty");
     const generatedViewer = document.querySelector("#generated-viewer");
     const generatedFrame = document.querySelector("#generated-frame");
+    const downloadGeneratedButton = document.querySelector("#download-generated");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsPanel = document.querySelector("#columns-panel");
     const columnsList = document.querySelector("#columns-list");
@@ -642,6 +658,7 @@
     let rawExcelRows = [];
     let parsedOmradePlatsColumnIndex = null;
     let sourceDrawioXml = "";
+    let sourceDrawioFileName = "";
     let pendingDrawioXml = "";
     let pendingGeneratedDrawioXml = "";
 
@@ -931,6 +948,7 @@
         drawioUploadZone.append(drawioUpload);
         drawioUpload.value = "";
         sourceDrawioXml = "";
+        sourceDrawioFileName = "";
         drawioViewer.hidden = true;
         drawioUploadZone.hidden = false;
         updateGeneratedDiagram();
@@ -938,6 +956,7 @@
       }
 
       drawioPanelTitle.textContent = file.name;
+      sourceDrawioFileName = file.name;
       drawioUploadZone.textContent = "";
       drawioUploadZone.classList.add("has-file");
       drawioUploadZone.append(drawioUpload);
@@ -964,6 +983,7 @@
       pendingGeneratedDrawioXml = xml;
       generatedEmpty.hidden = true;
       generatedViewer.hidden = false;
+      downloadGeneratedButton.disabled = false;
       loadDrawioXml(generatedFrame, xml);
     }
 
@@ -972,6 +992,40 @@
       generatedViewer.hidden = true;
       generatedEmpty.hidden = false;
       generatedEmpty.textContent = message;
+      downloadGeneratedButton.disabled = true;
+    }
+
+    function downloadGeneratedDiagram() {
+      if (!pendingGeneratedDrawioXml) {
+        return;
+      }
+
+      const blob = new Blob([pendingGeneratedDrawioXml], { type: "application/xml" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = getGeneratedDrawioFileName();
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function getGeneratedDrawioFileName() {
+      const fallbackName = "genererad_karta.drawio";
+      const fileName = sourceDrawioFileName || fallbackName;
+      const drawioXmlSuffix = ".drawio.xml";
+
+      if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
+        return `${fileName.slice(0, -drawioXmlSuffix.length)}-genererad${drawioXmlSuffix}`;
+      }
+
+      const dotIndex = fileName.lastIndexOf(".");
+
+      if (dotIndex > 0) {
+        return `${fileName.slice(0, dotIndex)}-genererad${fileName.slice(dotIndex)}`;
+      }
+
+      return `${fileName}-genererad.drawio`;
     }
 
     function drawioLabelToText(value) {
@@ -1119,6 +1173,7 @@
           drawioUploadZone.classList.add("has-error");
           drawioUploadZone.append(drawioUpload);
           sourceDrawioXml = "";
+          sourceDrawioFileName = "";
           drawioViewer.hidden = true;
           drawioUploadZone.hidden = false;
           updateGeneratedDiagram();
@@ -1135,6 +1190,7 @@
         drawioUploadZone.classList.add("has-error");
         drawioUploadZone.append(drawioUpload);
         sourceDrawioXml = "";
+        sourceDrawioFileName = "";
         updateGeneratedDiagram();
       });
 
@@ -1162,6 +1218,7 @@
     });
 
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
+    downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
 
     ["dragenter", "dragover"].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
