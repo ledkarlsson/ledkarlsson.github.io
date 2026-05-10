@@ -522,6 +522,7 @@
     let selectedColumnIndexes = [];
     let excelColumns = [];
     let excelRows = [];
+    let parsedOmradePlatsColumnIndex = null;
     let pendingDrawioXml = "";
 
     function clearColumns(message) {
@@ -530,6 +531,7 @@
       selectedColumnIndexes = [];
       excelColumns = [];
       excelRows = [];
+      parsedOmradePlatsColumnIndex = null;
       selectedColumnsStatus.textContent = "No columns selected.";
       renderSelectedTable();
     }
@@ -544,6 +546,38 @@
       selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} selected: ${selectedNames.join(", ")}`;
     }
 
+    function normalizeColumnName(columnName) {
+      return String(columnName)
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function parseOmradePlatsValue(value) {
+      const text = value === null || value === undefined ? "" : String(value);
+      const varvsomradeMatch = text.match(/varvsomr(?:a|å)de[\s\S]*?plats\s*:\s*([0-9A-Za-zÅÄÖåäö-]+)/i);
+
+      return varvsomradeMatch ? varvsomradeMatch[1] : "";
+    }
+
+    function parseRows(columns, rows) {
+      const omradePlatsColumn = columns.find((column) => normalizeColumnName(column.name) === "omrade/plats");
+
+      if (!omradePlatsColumn) {
+        parsedOmradePlatsColumnIndex = null;
+        return rows;
+      }
+
+      parsedOmradePlatsColumnIndex = omradePlatsColumn.index;
+
+      return rows.map((row) => {
+        const parsedRow = [...row];
+        parsedRow[omradePlatsColumn.index] = parseOmradePlatsValue(row[omradePlatsColumn.index]);
+        return parsedRow;
+      });
+    }
+
     function renderSelectedTable() {
       selectedTable.replaceChildren();
 
@@ -553,7 +587,14 @@
         return;
       }
 
-      if (excelRows.length === 0) {
+      const visibleRows = selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
+        ? excelRows.filter((row) => {
+          const value = row[parsedOmradePlatsColumnIndex];
+          return value !== null && value !== undefined && String(value).trim() !== "";
+        })
+        : excelRows;
+
+      if (visibleRows.length === 0) {
         tableMeta.textContent = "No data rows found under the header row.";
         tableWrap.hidden = true;
         return;
@@ -573,7 +614,7 @@
       const tbody = document.createElement("tbody");
       const bodyFragment = document.createDocumentFragment();
 
-      excelRows.forEach((row) => {
+      visibleRows.forEach((row) => {
         const tableRow = document.createElement("tr");
 
         selectedColumnIndexes.forEach((columnIndex) => {
@@ -588,7 +629,7 @@
 
       tbody.append(bodyFragment);
       selectedTable.append(thead, tbody);
-      tableMeta.textContent = `${excelRows.length} row${excelRows.length === 1 ? "" : "s"} shown with ${selectedColumnIndexes.length} selected column${selectedColumnIndexes.length === 1 ? "" : "s"}.`;
+      tableMeta.textContent = `${visibleRows.length} row${visibleRows.length === 1 ? "" : "s"} shown with ${selectedColumnIndexes.length} selected column${selectedColumnIndexes.length === 1 ? "" : "s"}.`;
       tableWrap.hidden = false;
     }
 
@@ -669,7 +710,7 @@
               };
             });
 
-          excelRows = rows.slice(headerRowIndex + 1);
+          excelRows = parseRows(columns, rows.slice(headerRowIndex + 1));
           renderColumns(columns, firstSheetName);
         } catch (error) {
           fileStatus.textContent = "Could not read this Excel file.";
