@@ -161,6 +161,23 @@
       transform: translateY(-2px);
     }
 
+    .upload-zone.has-file {
+      padding: 14px 18px;
+      border-style: solid;
+      border-color: var(--accent);
+      background: rgba(35, 122, 120, 0.08);
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .upload-zone.has-file .upload-help {
+      display: none;
+    }
+
+    .upload-zone.has-file .upload-title {
+      display: none;
+    }
+
     .upload-title {
       display: block;
       color: var(--ink);
@@ -375,6 +392,8 @@
       border-color: var(--accent);
       background: rgba(35, 122, 120, 0.08);
       color: var(--accent-strong);
+      cursor: default;
+      pointer-events: none;
     }
 
     @media (max-width: 760px) {
@@ -640,6 +659,7 @@
       const fileName = file.name.toLowerCase();
       const isExcelFile = excelTypes.some((extension) => fileName.endsWith(extension));
 
+      uploadZone.classList.remove("has-file");
       fileStatus.classList.remove("has-file", "has-error");
 
       if (!isExcelFile) {
@@ -653,7 +673,7 @@
 
       fileStatus.textContent = file.name;
       fileStatus.classList.add("has-file");
-      uploadZone.hidden = true;
+      uploadZone.classList.add("has-file");
       clearColumns("Reading columns...");
       readColumns(file);
     }
