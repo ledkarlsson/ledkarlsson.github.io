@@ -576,8 +576,8 @@
 <body>
   <main class="page">
     <nav class="topbar" aria-label="Project navigation">
-      <a class="brand" href="../../index.html">Daniel Karlsson</a>
-      <a class="button" href="../../index.html">Back to toolbox</a>
+      <a class="brand" href="../../">Daniel Karlsson</a>
+      <a class="button" href="../../">Back to toolbox</a>
     </nav>
 
     <section class="title-panel" aria-labelledby="project-title">
@@ -772,19 +772,30 @@
 
     function parseOmradePlatsValue(value, source) {
       const text = value === null || value === undefined ? "" : String(value);
-      const sourcePattern = source === "brygga" ? "(?:brygga|vinterplatser)" : "varvsomr(?:a|å)de";
+      const sourcePattern = source === "brygga" ? "(?:brygga|vinterplats(?:er)?)" : "varvsomr(?:a|å)de";
       const sourceMatch = text.match(new RegExp(`${sourcePattern}[\\s\\S]*?plats\\s*:\\s*([0-9A-Za-zÅÄÖåäö-]+)`, "i"));
 
       if (sourceMatch) {
         return sourceMatch[1];
       }
 
-      if (source === "brygga") {
-        const bryggaDashMatch = text.match(/brygga[\s\S]*?-\s*([0-9]+[A-Za-zÅÄÖåäö]?)/i);
-        return bryggaDashMatch ? bryggaDashMatch[1] : "";
+      const directSourceMatch = text.match(new RegExp(`${sourcePattern}\\s*[:\\-]\\s*([0-9]+[A-Za-zÅÄÖåäö-]?)`, "i"));
+
+      if (directSourceMatch) {
+        return directSourceMatch[1];
+      }
+
+      const dashMatch = text.match(new RegExp(`${sourcePattern}[\\s\\S]*?-\\s*([0-9A-Za-zÅÄÖåäö-]+)`, "i"));
+
+      if (dashMatch) {
+        return dashMatch[1];
       }
 
       return "";
+    }
+
+    function normalizePlaceCode(value) {
+      return String(value || "").trim().toUpperCase();
     }
 
     function getSelectedParseSource() {
@@ -804,9 +815,10 @@
 
       rows.forEach((row) => {
         const place = parseOmradePlatsValue(row[omradePlatsColumnIndex], source);
+        const normalizedPlace = normalizePlaceCode(place);
 
-        if (place && mapPlaces.has(place)) {
-          matchedPlaces.add(place);
+        if (normalizedPlace && mapPlaces.has(normalizedPlace)) {
+          matchedPlaces.add(normalizedPlace);
         }
       });
 
@@ -828,7 +840,7 @@
         .slice(0, 50)
         .map((row) => String(row[omradePlatsColumnIndex] || ""));
       const hasVarvsomrade = sampleValues.some((value) => /varvsomr(?:a|å)de/i.test(value));
-      const hasBryggaDashPlace = sampleValues.some((value) => /(?:brygga|vinterplatser)[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
+      const hasBryggaDashPlace = sampleValues.some((value) => /(?:brygga|vinterplats(?:er)?)[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
 
       if (!hasVarvsomrade && hasBryggaDashPlace) {
         setSelectedParseSource("brygga");
@@ -1336,7 +1348,7 @@
         const label = drawioLabelToText(cell.getAttribute("value"));
 
         if (isPlaceBoxLabel(label)) {
-          labels.add(label);
+          labels.add(normalizePlaceCode(label));
         }
       });
 
@@ -1440,7 +1452,7 @@
           firstName: String(row[firstNameColumnIndex] || "").trim(),
           lastName: String(row[lastNameColumnIndex] || "").trim()
         }))
-        .filter((row) => row.place && row.firstName && row.lastName && !mapPlaces.has(row.place));
+        .filter((row) => row.place && row.firstName && row.lastName && !mapPlaces.has(normalizePlaceCode(row.place)));
 
       missingPanel.hidden = false;
       missingPeopleRows = missingRows;
@@ -1475,9 +1487,10 @@
 
       rows.forEach((row) => {
         const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
+        const normalizedPlace = normalizePlaceCode(place);
 
-        if (place) {
-          rowsByPlace.set(place, row);
+        if (normalizedPlace) {
+          rowsByPlace.set(normalizedPlace, row);
         }
       });
 
@@ -1488,7 +1501,7 @@
           return;
         }
 
-        const row = rowsByPlace.get(label);
+        const row = rowsByPlace.get(normalizePlaceCode(label));
 
         if (row) {
           const generatedLabel = makeDrawioLabel(row);
@@ -1599,7 +1612,7 @@
     });
 
     parseSourceInputs.forEach((input) => {
-      input.addEventListener("change", reparseRows);
+      input.addEventListener("change", () => reparseRows(false));
     });
 
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
