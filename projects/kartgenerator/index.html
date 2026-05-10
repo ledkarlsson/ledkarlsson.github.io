@@ -67,9 +67,11 @@
       grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
       gap: 36px;
       align-items: stretch;
+      margin-top: 24px;
     }
 
-    .intro,
+    .title-panel,
+    .excel-panel,
     .workspace {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -77,8 +79,19 @@
       box-shadow: var(--shadow);
     }
 
-    .intro {
+    .title-panel,
+    .excel-panel {
       padding: 36px;
+    }
+
+    .title-panel p {
+      max-width: 760px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0;
     }
 
     .meta {
@@ -144,7 +157,7 @@
     .upload-zone {
       display: block;
       width: 100%;
-      margin-top: 32px;
+      margin-top: 22px;
       padding: 26px;
       border: 2px dashed var(--line);
       border-radius: 8px;
@@ -412,7 +425,8 @@
         grid-template-columns: 1fr;
       }
 
-      .intro {
+      .title-panel,
+      .excel-panel {
         padding: 26px;
       }
 
@@ -429,13 +443,17 @@
       <a href="../../index.html">Back to toolbox</a>
     </nav>
 
-    <section class="project" aria-labelledby="project-title">
-      <div class="intro">
-        <span class="meta">Project page</span>
-        <h1 id="project-title">kartgenerator</h1>
-        <p>
-          En kartgenerator som kan generera kartor fran Excel-data relevant for batklubbar.
-        </p>
+    <section class="title-panel" aria-labelledby="project-title">
+      <span class="meta">Project page</span>
+      <h1 id="project-title">kartgenerator</h1>
+      <p>
+        En kartgenerator som kan generera kartor fran Excel-data relevant for batklubbar.
+      </p>
+    </section>
+
+    <section class="project" aria-label="Kartgenerator workspace">
+      <div class="excel-panel">
+        <h2 class="panel-title">Excel data</h2>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
           <span class="upload-title">Upload Excel file</span>
           <span class="upload-help">Drag and drop an .xlsx or .xls file here, or click to choose one.</span>
