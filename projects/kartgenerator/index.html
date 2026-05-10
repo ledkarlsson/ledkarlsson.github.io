@@ -61,6 +61,10 @@
       color: var(--accent-strong);
     }
 
+    .topbar .button:hover {
+      color: #ffffff;
+    }
+
     .brand {
       color: var(--ink);
       font-weight: 700;
@@ -521,7 +525,7 @@
   <main class="page">
     <nav class="topbar" aria-label="Project navigation">
       <a class="brand" href="../../index.html">Daniel Karlsson</a>
-      <a href="../../index.html">Back to toolbox</a>
+      <a class="button" href="../../index.html">Back to toolbox</a>
     </nav>
 
     <section class="title-panel" aria-labelledby="project-title">
@@ -541,7 +545,7 @@
           <span class="file-status" id="file-status">No file selected</span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
-        <section class="columns-panel" aria-labelledby="columns-title">
+        <section class="columns-panel" id="columns-panel" aria-labelledby="columns-title" hidden>
           <h2 id="columns-title">Excel columns</h2>
           <p class="columns-meta" id="columns-meta">Upload an Excel file to list its columns.</p>
           <ul class="columns-list" id="columns-list"></ul>
@@ -560,16 +564,13 @@
             </div>
           </fieldset>
         </section>
-        <section class="table-panel" aria-labelledby="table-title">
+        <section class="table-panel" id="table-panel" aria-labelledby="table-title" hidden>
           <h2 id="table-title">Selected data</h2>
           <p class="table-meta" id="table-meta">Select columns to build a table.</p>
           <div class="table-wrap" id="table-wrap" hidden>
             <table class="selected-table" id="selected-table"></table>
           </div>
         </section>
-        <div class="actions" aria-label="Project actions">
-          <a class="button secondary" href="../../index.html">Back to toolbox</a>
-        </div>
       </div>
 
       <div class="workspace" aria-label="Kartgenerator workspace preview">
@@ -623,12 +624,14 @@
     const generatedViewer = document.querySelector("#generated-viewer");
     const generatedFrame = document.querySelector("#generated-frame");
     const columnsMeta = document.querySelector("#columns-meta");
+    const columnsPanel = document.querySelector("#columns-panel");
     const columnsList = document.querySelector("#columns-list");
     const selectedColumnsStatus = document.querySelector("#selected-columns");
     const parseControls = document.querySelector("#parse-controls");
     const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
     const showPlaceNumberInput = document.querySelector("#show-place-number");
     const tableMeta = document.querySelector("#table-meta");
+    const tablePanel = document.querySelector("#table-panel");
     const tableWrap = document.querySelector("#table-wrap");
     const selectedTable = document.querySelector("#selected-table");
     const excelTypes = [".xls", ".xlsx"];
@@ -644,6 +647,8 @@
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
+      columnsPanel.hidden = true;
+      tablePanel.hidden = true;
       columnsList.replaceChildren();
       selectedColumnIndexes = [];
       excelColumns = [];
@@ -908,6 +913,8 @@
       uploadZone.classList.add("has-file");
       uploadZone.hidden = true;
       clearColumns("Reading columns...");
+      columnsPanel.hidden = false;
+      tablePanel.hidden = false;
       readColumns(file);
     }
 
@@ -934,6 +941,7 @@
       drawioUploadZone.textContent = "";
       drawioUploadZone.classList.add("has-file");
       drawioUploadZone.append(drawioUpload);
+      drawioUploadZone.hidden = true;
       readDrawioFile(file);
     }
 
