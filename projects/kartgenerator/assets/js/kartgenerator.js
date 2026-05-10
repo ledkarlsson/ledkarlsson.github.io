@@ -576,10 +576,25 @@
       }), "*");
     }
 
+    function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12) {
+      const hasSize = frame.offsetWidth > 0 && frame.offsetHeight > 0;
+
+      if (!hasSize && attemptsLeft > 0) {
+        requestAnimationFrame(() => loadDrawioXmlWhenVisible(frame, xml, attemptsLeft - 1));
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          loadDrawioXml(frame, xml);
+        });
+      });
+    }
+
     function loadDrawioViewer(xml) {
       pendingDrawioXml = xml;
       drawioViewer.hidden = false;
-      loadDrawioXml(drawioFrame, xml);
+      loadDrawioXmlWhenVisible(drawioFrame, xml);
     }
 
     function loadGeneratedViewer(xml) {
@@ -589,7 +604,7 @@
         generatedViewer.hidden = false;
         downloadGeneratedButton.disabled = false;
         downloadGeneratedPngButton.disabled = false;
-        loadDrawioXml(generatedFrame, xml);
+        loadDrawioXmlWhenVisible(generatedFrame, xml);
       });
     }
 
@@ -1137,5 +1152,4 @@
         downloadPngWithWhiteBackground(message.data, getGeneratedPngFileName());
       }
     });
-
 
