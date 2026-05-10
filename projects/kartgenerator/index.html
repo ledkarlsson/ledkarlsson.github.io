@@ -432,6 +432,24 @@
       gap: 16px;
     }
 
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .clear-button {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--accent-strong);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
     .generated-empty {
       display: grid;
       min-height: 180px;
@@ -577,7 +595,10 @@
 
     <section class="project" aria-label="Kartgenerator workspace">
       <div class="excel-panel">
-        <h2 class="panel-title" id="excel-panel-title">Excel data från BAS rapport</h2>
+        <div class="panel-header">
+          <h2 class="panel-title" id="excel-panel-title">Excel data från BAS rapport</h2>
+          <button class="clear-button" id="clear-excel" type="button" hidden>Rensa</button>
+        </div>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
           <span class="upload-title">Ladda upp Excel-fil</span>
           <span class="upload-help">Dra och släpp en .xlsx eller .xls fil här, eller klicka för att välja</span>
@@ -613,7 +634,10 @@
       </div>
 
       <div class="workspace" aria-label="Kartgenerator workspace preview">
-        <h2 class="panel-title" id="drawio-panel-title">draw.io diagram</h2>
+        <div class="panel-header">
+          <h2 class="panel-title" id="drawio-panel-title">draw.io diagram</h2>
+          <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
+        </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
           Ladda upp en draw.io fil
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
@@ -662,9 +686,11 @@
     const excelUpload = document.querySelector("#excel-upload");
     const fileStatus = document.querySelector("#file-status");
     const excelPanelTitle = document.querySelector("#excel-panel-title");
+    const clearExcelButton = document.querySelector("#clear-excel");
     const drawioUploadZone = document.querySelector("#drawio-upload-zone");
     const drawioUpload = document.querySelector("#drawio-upload");
     const drawioPanelTitle = document.querySelector("#drawio-panel-title");
+    const clearDrawioButton = document.querySelector("#clear-drawio");
     const drawioViewer = document.querySelector("#drawio-viewer");
     const drawioFrame = document.querySelector("#drawio-frame");
     const generatedEmpty = document.querySelector("#generated-empty");
@@ -998,6 +1024,7 @@
       fileStatus.textContent = "";
       fileStatus.classList.add("has-file");
       excelPanelTitle.textContent = file.name;
+      clearExcelButton.hidden = false;
       uploadZone.classList.add("has-file");
       uploadZone.hidden = true;
       clearColumns("Reading columns...");
@@ -1028,12 +1055,40 @@
       }
 
       drawioPanelTitle.textContent = file.name;
+      clearDrawioButton.hidden = false;
       sourceDrawioFileName = file.name;
       drawioUploadZone.textContent = "";
       drawioUploadZone.classList.add("has-file");
       drawioUploadZone.append(drawioUpload);
       drawioUploadZone.hidden = true;
       readDrawioFile(file);
+    }
+
+    function clearExcelFile() {
+      excelUpload.value = "";
+      excelPanelTitle.textContent = "Excel data från BAS rapport";
+      clearExcelButton.hidden = true;
+      uploadZone.hidden = false;
+      uploadZone.classList.remove("has-file");
+      fileStatus.textContent = "";
+      fileStatus.classList.remove("has-file", "has-error");
+      clearColumns("Upload an Excel file to list its columns.");
+    }
+
+    function clearDrawioFile() {
+      drawioUpload.value = "";
+      drawioPanelTitle.textContent = "draw.io diagram";
+      clearDrawioButton.hidden = true;
+      drawioUploadZone.hidden = false;
+      drawioUploadZone.classList.remove("has-file", "has-error");
+      drawioUploadZone.textContent = "Ladda upp en draw.io fil";
+      drawioUploadZone.append(drawioUpload);
+      drawioViewer.hidden = true;
+      sourceDrawioXml = "";
+      sourceDrawioFileName = "";
+      pendingDrawioXml = "";
+      updateMissingPeopleList();
+      updateGeneratedDiagram();
     }
 
     function loadDrawioXml(frame, xml) {
@@ -1444,6 +1499,8 @@
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
     downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
     downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
+    clearExcelButton.addEventListener("click", clearExcelFile);
+    clearDrawioButton.addEventListener("click", clearDrawioFile);
 
     ["dragenter", "dragover"].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
