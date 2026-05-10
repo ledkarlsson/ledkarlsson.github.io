@@ -785,13 +785,16 @@
 
     function renderColumns(columns, sheetName) {
       columnsList.replaceChildren();
-      selectedColumnIndexes = [];
       excelColumns = columns;
-      updateSelectedColumnsStatus();
-      renderSelectedTable();
+      selectedColumnIndexes = ["omrade/plats", "fornamn", "efternamn"]
+        .map((columnName) => columns.find((column) => normalizeColumnName(column.name) === columnName))
+        .filter(Boolean)
+        .map((column) => column.index);
 
       if (columns.length === 0) {
         columnsMeta.textContent = `No columns found in "${sheetName}".`;
+        updateSelectedColumnsStatus();
+        renderSelectedTable();
         return;
       }
 
@@ -805,7 +808,13 @@
         button.className = "column-button";
         button.type = "button";
         button.textContent = columnName.name;
-        button.setAttribute("aria-pressed", "false");
+
+        if (selectedColumnIndexes.includes(columnIndex)) {
+          button.classList.add("is-selected");
+          button.setAttribute("aria-pressed", "true");
+        } else {
+          button.setAttribute("aria-pressed", "false");
+        }
 
         button.addEventListener("click", () => {
           const isSelected = button.classList.toggle("is-selected");
@@ -825,6 +834,9 @@
         item.append(button);
         columnsList.append(item);
       });
+
+      updateSelectedColumnsStatus();
+      renderSelectedTable();
     }
 
     function readColumns(file) {
@@ -965,27 +977,49 @@
     }
 
     function makeDrawioLabel(row) {
-      const lines = selectedColumnIndexes
-        .map((columnIndex) => {
-          const value = row[columnIndex];
+      const fornamnColumnIndex = excelColumns.findIndex((column) => normalizeColumnName(column.name) === "fornamn");
+      const efternamnColumnIndex = excelColumns.findIndex((column) => normalizeColumnName(column.name) === "efternamn");
+      const shouldCombineName = selectedColumnIndexes.includes(fornamnColumnIndex)
+        && selectedColumnIndexes.includes(efternamnColumnIndex);
+      const lines = [];
 
-          if (value === null || value === undefined || String(value).trim() === "") {
-            return "";
+      selectedColumnIndexes.forEach((columnIndex) => {
+        const value = row[columnIndex];
+
+        if (value === null || value === undefined || String(value).trim() === "") {
+          return;
+        }
+
+        if (columnIndex === parsedOmradePlatsColumnIndex) {
+          if (showPlaceNumberInput.checked) {
+            lines.push(String(value).trim());
           }
 
-          if (columnIndex === parsedOmradePlatsColumnIndex) {
-            if (!showPlaceNumberInput.checked) {
-              return "";
-            }
+          return;
+        }
 
-            return String(value).trim();
-          }
+        if (shouldCombineName && columnIndex === fornamnColumnIndex) {
+          const firstName = String(value).trim();
+          const lastName = row[efternamnColumnIndex] === null || row[efternamnColumnIndex] === undefined
+            ? ""
+            : String(row[efternamnColumnIndex]).trim();
 
-          return String(value).trim();
-        })
-        .filter(Boolean);
+          lines.push(`${firstName} ${lastName}`.trim());
+          return;
+        }
+
+        if (shouldCombineName && columnIndex === efternamnColumnIndex) {
+          return;
+        }
+
+        lines.push(String(value).trim());
+      });
 
       return lines.join("<br>");
+    }
+
+    function isPlaceBoxLabel(label) {
+      return /^[0-9]+[A-Za-zÅÄÖåäö]?$/.test(String(label).trim());
     }
 
     function createGeneratedDrawioXml(xml, rows) {
@@ -1008,14 +1042,37 @@
 
       documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
         const label = drawioLabelToText(cell.getAttribute("value"));
+
+        if (!isPlaceBoxLabel(label)) {
+          return;
+        }
+
         const row = rowsByPlace.get(label);
 
         if (row) {
-          cell.setAttribute("value", makeDrawioLabel(row));
+          const generatedLabel = makeDrawioLabel(row);
+          cell.setAttribute("value", generatedLabel || `${label}<br>Tom plats`);
+
+          if (!generatedLabel) {
+            markCellAsEmptyPlace(cell);
+          }
+        } else if (label) {
+          cell.setAttribute("value", `${label}<br>Tom plats`);
+          markCellAsEmptyPlace(cell);
         }
       });
 
       return new XMLSerializer().serializeToString(documentXml);
+    }
+
+    function markCellAsEmptyPlace(cell) {
+      const style = cell.getAttribute("style") || "";
+      const styleParts = style
+        .split(";")
+        .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
+
+      styleParts.push("fillColor=#dae8fc", "strokeColor=#6c8ebf");
+      cell.setAttribute("style", styleParts.join(";"));
     }
 
     function updateGeneratedDiagram() {
