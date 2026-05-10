@@ -653,7 +653,10 @@
     <section class="generated-panel" aria-labelledby="generated-title">
       <div class="generated-header">
         <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
-        <button class="button" id="download-generated" type="button" disabled>Ladda ner</button>
+        <div class="actions">
+          <button class="button" id="download-generated" type="button" disabled>Ladda ner draw.io</button>
+          <button class="button" id="download-generated-png" type="button" disabled>Ladda ner PNG</button>
+        </div>
       </div>
       <label class="generated-options">
         <input type="checkbox" id="show-place-number" checked />
@@ -701,6 +704,7 @@
     const generatedViewer = document.querySelector("#generated-viewer");
     const generatedFrame = document.querySelector("#generated-frame");
     const downloadGeneratedButton = document.querySelector("#download-generated");
+    const downloadGeneratedPngButton = document.querySelector("#download-generated-png");
     const missingPanel = document.querySelector("#missing-panel");
     const missingMeta = document.querySelector("#missing-meta");
     const missingWrap = document.querySelector("#missing-wrap");
@@ -1116,6 +1120,7 @@
       generatedEmpty.hidden = true;
       generatedViewer.hidden = false;
       downloadGeneratedButton.disabled = false;
+      downloadGeneratedPngButton.disabled = false;
       loadDrawioXml(generatedFrame, xml);
     }
 
@@ -1125,6 +1130,7 @@
       generatedEmpty.hidden = false;
       generatedEmpty.textContent = message;
       downloadGeneratedButton.disabled = true;
+      downloadGeneratedPngButton.disabled = true;
     }
 
     function downloadGeneratedDiagram() {
@@ -1140,6 +1146,22 @@
       link.download = getGeneratedDrawioFileName();
       link.click();
       URL.revokeObjectURL(url);
+    }
+
+    function downloadGeneratedPng() {
+      if (!pendingGeneratedDrawioXml) {
+        return;
+      }
+
+      generatedFrame.contentWindow.postMessage(JSON.stringify({
+        action: "export",
+        format: "png",
+        xml: pendingGeneratedDrawioXml,
+        scale: 1,
+        border: 8,
+        bg: "#ffffff",
+        background: "#ffffff"
+      }), "*");
     }
 
     function getGeneratedDrawioFileName() {
@@ -1158,6 +1180,53 @@
       }
 
       return `${fileName}-genererad.drawio`;
+    }
+
+    function getGeneratedPngFileName() {
+      const drawioFileName = getGeneratedDrawioFileName();
+      const drawioXmlSuffix = ".drawio.xml";
+
+      if (drawioFileName.toLowerCase().endsWith(drawioXmlSuffix)) {
+        return `${drawioFileName.slice(0, -drawioXmlSuffix.length)}.png`;
+      }
+
+      const dotIndex = drawioFileName.lastIndexOf(".");
+
+      if (dotIndex > 0) {
+        return `${drawioFileName.slice(0, dotIndex)}.png`;
+      }
+
+      return `${drawioFileName}.png`;
+    }
+
+    function downloadDataUrl(dataUrl, fileName) {
+      const link = document.createElement("a");
+
+      link.href = dataUrl;
+      link.download = fileName;
+      link.click();
+    }
+
+    function downloadPngWithWhiteBackground(dataUrl, fileName) {
+      const image = new Image();
+
+      image.addEventListener("load", () => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0);
+        downloadDataUrl(canvas.toDataURL("image/png"), fileName);
+      });
+
+      image.addEventListener("error", () => {
+        downloadDataUrl(dataUrl, fileName);
+      });
+
+      image.src = dataUrl;
     }
 
     function drawioLabelToText(value) {
@@ -1507,6 +1576,7 @@
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
     showColumnNamesInput.addEventListener("change", updateGeneratedDiagram);
     downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
+    downloadGeneratedPngButton.addEventListener("click", downloadGeneratedPng);
     downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
     clearExcelButton.addEventListener("click", clearExcelFile);
     clearDrawioButton.addEventListener("click", clearDrawioFile);
@@ -1574,6 +1644,10 @@
 
       if (message.event === "init" && event.source === generatedFrame.contentWindow && pendingGeneratedDrawioXml) {
         loadGeneratedViewer(pendingGeneratedDrawioXml);
+      }
+
+      if (message.event === "export" && event.source === generatedFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
+        downloadPngWithWhiteBackground(message.data, getGeneratedPngFileName());
       }
     });
   </script>
