@@ -772,7 +772,7 @@
 
     function parseOmradePlatsValue(value, source) {
       const text = value === null || value === undefined ? "" : String(value);
-      const sourcePattern = source === "brygga" ? "brygga" : "varvsomr(?:a|å)de";
+      const sourcePattern = source === "brygga" ? "(?:brygga|vinterplatser)" : "varvsomr(?:a|å)de";
       const sourceMatch = text.match(new RegExp(`${sourcePattern}[\\s\\S]*?plats\\s*:\\s*([0-9A-Za-zÅÄÖåäö-]+)`, "i"));
 
       if (sourceMatch) {
@@ -828,7 +828,7 @@
         .slice(0, 50)
         .map((row) => String(row[omradePlatsColumnIndex] || ""));
       const hasVarvsomrade = sampleValues.some((value) => /varvsomr(?:a|å)de/i.test(value));
-      const hasBryggaDashPlace = sampleValues.some((value) => /brygga[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
+      const hasBryggaDashPlace = sampleValues.some((value) => /(?:brygga|vinterplatser)[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
 
       if (!hasVarvsomrade && hasBryggaDashPlace) {
         setSelectedParseSource("brygga");
