@@ -659,6 +659,10 @@
         <input type="checkbox" id="show-place-number" checked />
         Visa platsnummer
       </label>
+      <label class="generated-options">
+        <input type="checkbox" id="show-column-names" />
+        Visa kolumnnamn
+      </label>
       <div class="generated-empty" id="generated-empty">
         Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
       </div>
@@ -709,6 +713,7 @@
     const parseControls = document.querySelector("#parse-controls");
     const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
     const showPlaceNumberInput = document.querySelector("#show-place-number");
+    const showColumnNamesInput = document.querySelector("#show-column-names");
     const tableMeta = document.querySelector("#table-meta");
     const tablePanel = document.querySelector("#table-panel");
     const tableWrap = document.querySelector("#table-wrap");
@@ -1192,8 +1197,9 @@
           const lastName = row[efternamnColumnIndex] === null || row[efternamnColumnIndex] === undefined
             ? ""
             : String(row[efternamnColumnIndex]).trim();
+          const fullName = `${firstName} ${lastName}`.trim();
 
-          lines.push(`${firstName} ${lastName}`.trim());
+          lines.push(showColumnNamesInput.checked ? `Namn: ${fullName}` : fullName);
           return;
         }
 
@@ -1201,7 +1207,9 @@
           return;
         }
 
-        lines.push(String(value).trim());
+        lines.push(showColumnNamesInput.checked
+          ? `${excelColumns[columnIndex].name}: ${String(value).trim()}`
+          : String(value).trim());
       });
 
       return lines.join("<br>");
@@ -1497,6 +1505,7 @@
     });
 
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
+    showColumnNamesInput.addEventListener("change", updateGeneratedDiagram);
     downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
     downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
     clearExcelButton.addEventListener("click", clearExcelFile);
