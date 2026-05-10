@@ -89,6 +89,36 @@
       max-width: 760px;
     }
 
+    .feedback {
+      margin-top: 16px;
+      font-size: 1rem;
+    }
+
+    .example-downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .feedback-link {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--accent-strong);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .feedback-link:hover,
+    .feedback-link:focus-visible {
+      color: var(--accent);
+      outline: none;
+    }
+
     .panel-title {
       margin: 0;
       font-size: 1.35rem;

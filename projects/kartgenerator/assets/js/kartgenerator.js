@@ -1,4 +1,6 @@
 ﻿const uploadZone = document.querySelector("#upload-zone");
+    const feedbackEmailButton = document.querySelector("#feedback-email");
+    const exampleDownloadLinks = document.querySelectorAll(".example-download");
     const excelUpload = document.querySelector("#excel-upload");
     const fileStatus = document.querySelector("#file-status");
     const excelPanelTitle = document.querySelector("#excel-panel-title");
@@ -47,6 +49,40 @@
     let selectedTableSortDirection = "asc";
     let missingSortColumn = "place";
     let missingSortDirection = "asc";
+
+    function openFeedbackEmail() {
+      const user = ["led", "karsson"].join(".");
+      const domain = ["gmail", "com"].join(".");
+      const subject = encodeURIComponent("Feedback kartgenerator");
+
+      window.location.href = `mailto:${user}@${domain}?subject=${subject}`;
+    }
+
+    async function downloadExampleFile(event) {
+      event.preventDefault();
+
+      const link = event.currentTarget;
+      const fileName = link.getAttribute("download") || link.href.split("/").pop() || "exempel";
+
+      try {
+        const response = await fetch(link.href);
+
+        if (!response.ok) {
+          throw new Error("Could not fetch example file.");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        downloadLink.click();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        window.location.href = link.href;
+      }
+    }
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
@@ -977,6 +1013,10 @@
 
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
     showColumnNamesInput.addEventListener("change", updateGeneratedDiagram);
+    feedbackEmailButton.addEventListener("click", openFeedbackEmail);
+    exampleDownloadLinks.forEach((link) => {
+      link.addEventListener("click", downloadExampleFile);
+    });
     downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
     downloadGeneratedPngButton.addEventListener("click", downloadGeneratedPng);
     downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
