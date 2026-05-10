@@ -2,3 +2,5 @@
 *.xlsx
 *.xlsm
 *.xlsb
+*.drawio
+*.drawio.xml

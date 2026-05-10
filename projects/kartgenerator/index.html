@@ -155,7 +155,8 @@
 
     .upload-zone:hover,
     .upload-zone:focus-within,
-    .upload-zone.is-dragging {
+    .upload-zone.is-dragging,
+    .upload-zone.is-dragging-drawio {
       border-color: var(--accent);
       background: rgba(35, 122, 120, 0.08);
       transform: translateY(-2px);
@@ -316,6 +317,13 @@
       overflow: hidden;
     }
 
+    .workspace .upload-zone {
+      position: relative;
+      z-index: 1;
+      margin-top: 0;
+      background: rgba(255, 255, 255, 0.86);
+    }
+
     .map-shape {
       position: absolute;
       border: 3px solid var(--accent);
@@ -435,14 +443,12 @@
       </div>
 
       <div class="workspace" aria-label="Kartgenerator workspace preview">
-        <div class="panel">
-          <h2>Kartlager</h2>
-          <ul>
-            <li>Hamnomrade</li>
-            <li>Bryggor</li>
-            <li>Batplatser</li>
-          </ul>
-        </div>
+        <label class="upload-zone" id="drawio-upload-zone" for="drawio-upload">
+          <span class="upload-title">Upload draw.io file</span>
+          <span class="upload-help">Drag and drop a .drawio or .drawio.xml file here, or click to choose one.</span>
+          <span class="file-status" id="drawio-file-status">No draw.io file selected</span>
+          <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
+        </label>
         <span class="map-shape shape-one" aria-hidden="true"></span>
         <span class="map-shape shape-two" aria-hidden="true"></span>
         <span class="pin" aria-hidden="true"></span>
@@ -454,6 +460,9 @@
     const uploadZone = document.querySelector("#upload-zone");
     const excelUpload = document.querySelector("#excel-upload");
     const fileStatus = document.querySelector("#file-status");
+    const drawioUploadZone = document.querySelector("#drawio-upload-zone");
+    const drawioUpload = document.querySelector("#drawio-upload");
+    const drawioFileStatus = document.querySelector("#drawio-file-status");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsList = document.querySelector("#columns-list");
     const selectedColumnsStatus = document.querySelector("#selected-columns");
@@ -461,6 +470,7 @@
     const tableWrap = document.querySelector("#table-wrap");
     const selectedTable = document.querySelector("#selected-table");
     const excelTypes = [".xls", ".xlsx"];
+    const drawioTypes = [".drawio", ".drawio.xml"];
     let selectedColumnIndexes = [];
     let excelColumns = [];
     let excelRows = [];
@@ -642,11 +652,36 @@
       readColumns(file);
     }
 
+    function showDrawioFile(file) {
+      const fileName = file.name.toLowerCase();
+      const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
+
+      drawioFileStatus.classList.remove("has-file", "has-error");
+
+      if (!isDrawioFile) {
+        drawioFileStatus.textContent = "Choose a draw.io file ending in .drawio or .drawio.xml.";
+        drawioFileStatus.classList.add("has-error");
+        drawioUpload.value = "";
+        return;
+      }
+
+      drawioFileStatus.textContent = file.name;
+      drawioFileStatus.classList.add("has-file");
+    }
+
     excelUpload.addEventListener("change", () => {
       const [file] = excelUpload.files;
 
       if (file) {
         showFile(file);
+      }
+    });
+
+    drawioUpload.addEventListener("change", () => {
+      const [file] = drawioUpload.files;
+
+      if (file) {
+        showDrawioFile(file);
       }
     });
 
@@ -669,6 +704,28 @@
 
       if (file) {
         showFile(file);
+      }
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      drawioUploadZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        drawioUploadZone.classList.add("is-dragging-drawio");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      drawioUploadZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        drawioUploadZone.classList.remove("is-dragging-drawio");
+      });
+    });
+
+    drawioUploadZone.addEventListener("drop", (event) => {
+      const [file] = event.dataTransfer.files;
+
+      if (file) {
+        showDrawioFile(file);
       }
     });
   </script>
