@@ -443,6 +443,15 @@
       overflow: hidden;
     }
 
+    .missing-panel {
+      margin-top: 36px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
     .generated-frame {
       display: block;
       width: 100%;
@@ -550,7 +559,8 @@
         skapa en rapport, som innehåller kolumner som Förnamn, Efternamn, och område.
         Skapa sedan upp en exempel-karta i drawio.
         <br> <br>
-        Att göra: Ladda ner exempel-drawio diagram. Ha ett exempel excel dokument.
+        Att göra: Ladda ner exempel-drawio diagram. Ha ett exempel excel dokument. Lista platser i bas som inte finns i
+        kartan.
       </p>
     </section>
 
@@ -623,6 +633,14 @@
         </iframe>
       </div>
     </section>
+
+    <section class="missing-panel" id="missing-panel" aria-labelledby="missing-title" hidden>
+      <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
+      <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io for att se saknade platser.</p>
+      <div class="table-wrap" id="missing-wrap" hidden>
+        <table class="selected-table" id="missing-table"></table>
+      </div>
+    </section>
   </main>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
@@ -639,6 +657,10 @@
     const generatedViewer = document.querySelector("#generated-viewer");
     const generatedFrame = document.querySelector("#generated-frame");
     const downloadGeneratedButton = document.querySelector("#download-generated");
+    const missingPanel = document.querySelector("#missing-panel");
+    const missingMeta = document.querySelector("#missing-meta");
+    const missingWrap = document.querySelector("#missing-wrap");
+    const missingTable = document.querySelector("#missing-table");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsPanel = document.querySelector("#columns-panel");
     const columnsList = document.querySelector("#columns-list");
@@ -676,6 +698,7 @@
       selectedColumnsStatus.textContent = "No columns selected.";
       renderSelectedTable();
       updateGeneratedDiagram();
+      updateMissingPeopleList();
     }
 
     function updateSelectedColumnsStatus() {
@@ -763,6 +786,7 @@
       }
 
       const visibleRows = getVisibleRows();
+      updateMissingPeopleList();
 
       if (visibleRows.length === 0) {
         tableMeta.textContent = "No data rows found under the header row.";
@@ -951,6 +975,7 @@
         sourceDrawioFileName = "";
         drawioViewer.hidden = true;
         drawioUploadZone.hidden = false;
+        updateMissingPeopleList();
         updateGeneratedDiagram();
         return;
       }
@@ -1084,6 +1109,99 @@
       return /^[0-9]+[A-Za-zÅÄÖåäö]?$/.test(String(label).trim());
     }
 
+    function getColumnIndexByName(columnName) {
+      const normalizedName = normalizeColumnName(columnName);
+      return excelColumns.findIndex((column) => normalizeColumnName(column.name) === normalizedName);
+    }
+
+    function getMapPlaceLabels(xml) {
+      if (!xml) {
+        return new Set();
+      }
+
+      const parser = new DOMParser();
+      const documentXml = parser.parseFromString(xml, "application/xml");
+
+      if (documentXml.querySelector("parsererror")) {
+        return new Set();
+      }
+
+      const labels = new Set();
+
+      documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+        const label = drawioLabelToText(cell.getAttribute("value"));
+
+        if (isPlaceBoxLabel(label)) {
+          labels.add(label);
+        }
+      });
+
+      return labels;
+    }
+
+    function renderMissingPeopleTable(rows) {
+      missingTable.replaceChildren();
+
+      if (rows.length === 0) {
+        missingMeta.textContent = "Alla rader med fornamn, efternamn och plats finns i kartan.";
+        missingWrap.hidden = true;
+        return;
+      }
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      ["Plats", "Fornamn", "Efternamn"].forEach((header) => {
+        const headerCell = document.createElement("th");
+        headerCell.textContent = header;
+        headerRow.append(headerCell);
+      });
+
+      thead.append(headerRow);
+
+      const tbody = document.createElement("tbody");
+      const fragment = document.createDocumentFragment();
+
+      rows.forEach((row) => {
+        const tableRow = document.createElement("tr");
+
+        [row.place, row.firstName, row.lastName].forEach((value) => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          tableRow.append(cell);
+        });
+
+        fragment.append(tableRow);
+      });
+
+      tbody.append(fragment);
+      missingTable.append(thead, tbody);
+      missingMeta.textContent = `${rows.length} person${rows.length === 1 ? "" : "er"} finns i BAS men saknas i kartan.`;
+      missingWrap.hidden = false;
+    }
+
+    function updateMissingPeopleList() {
+      const firstNameColumnIndex = getColumnIndexByName("fornamn");
+      const lastNameColumnIndex = getColumnIndexByName("efternamn");
+
+      if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || excelRows.length === 0) {
+        missingPanel.hidden = true;
+        return;
+      }
+
+      const mapPlaces = getMapPlaceLabels(sourceDrawioXml);
+      const missingRows = excelRows
+        .map((row) => ({
+          place: String(row[parsedOmradePlatsColumnIndex] || "").trim(),
+          firstName: String(row[firstNameColumnIndex] || "").trim(),
+          lastName: String(row[lastNameColumnIndex] || "").trim()
+        }))
+        .filter((row) => row.place && row.firstName && row.lastName && !mapPlaces.has(row.place));
+
+      missingPanel.hidden = false;
+      renderMissingPeopleTable(missingRows);
+    }
+
     function createGeneratedDrawioXml(xml, rows) {
       const parser = new DOMParser();
       const documentXml = parser.parseFromString(xml, "application/xml");
@@ -1175,12 +1293,14 @@
           sourceDrawioFileName = "";
           drawioViewer.hidden = true;
           drawioUploadZone.hidden = false;
+          updateMissingPeopleList();
           updateGeneratedDiagram();
           return;
         }
 
         sourceDrawioXml = xml;
         loadDrawioViewer(xml);
+        updateMissingPeopleList();
         updateGeneratedDiagram();
       });
 
@@ -1190,6 +1310,7 @@
         drawioUploadZone.append(drawioUpload);
         sourceDrawioXml = "";
         sourceDrawioFileName = "";
+        updateMissingPeopleList();
         updateGeneratedDiagram();
       });
 
