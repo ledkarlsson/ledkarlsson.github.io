@@ -731,6 +731,8 @@
     let pendingDrawioXml = "";
     let pendingGeneratedDrawioXml = "";
     let missingPeopleRows = [];
+    let selectedTableSortColumnIndex = null;
+    let selectedTableSortDirection = "asc";
     let missingSortColumn = "place";
     let missingSortDirection = "asc";
 
@@ -744,6 +746,8 @@
       excelRows = [];
       rawExcelRows = [];
       missingPeopleRows = [];
+      selectedTableSortColumnIndex = null;
+      selectedTableSortDirection = "asc";
       parsedOmradePlatsColumnIndex = null;
       parseControls.classList.remove("is-visible");
       selectedColumnsStatus.textContent = "No columns selected.";
@@ -893,9 +897,43 @@
         : excelRows;
     }
 
+    function getSortedSelectedRows(rows) {
+      if (selectedTableSortColumnIndex === null || !selectedColumnIndexes.includes(selectedTableSortColumnIndex)) {
+        return rows;
+      }
+
+      return [...rows].sort((left, right) => {
+        const leftValue = left[selectedTableSortColumnIndex] === null || left[selectedTableSortColumnIndex] === undefined
+          ? ""
+          : String(left[selectedTableSortColumnIndex]);
+        const rightValue = right[selectedTableSortColumnIndex] === null || right[selectedTableSortColumnIndex] === undefined
+          ? ""
+          : String(right[selectedTableSortColumnIndex]);
+        const result = leftValue.localeCompare(rightValue, "sv", { numeric: true, sensitivity: "base" });
+
+        return selectedTableSortDirection === "asc" ? result : -result;
+      });
+    }
+
+    function sortSelectedTable(columnIndex) {
+      if (selectedTableSortColumnIndex === columnIndex) {
+        selectedTableSortDirection = selectedTableSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        selectedTableSortColumnIndex = columnIndex;
+        selectedTableSortDirection = "asc";
+      }
+
+      renderSelectedTable();
+    }
+
     function renderSelectedTable() {
       selectedTable.replaceChildren();
       updateParseControlsVisibility();
+
+      if (selectedTableSortColumnIndex !== null && !selectedColumnIndexes.includes(selectedTableSortColumnIndex)) {
+        selectedTableSortColumnIndex = null;
+        selectedTableSortDirection = "asc";
+      }
 
       if (selectedColumnIndexes.length === 0) {
         tableMeta.textContent = "Select columns to build a table.";
@@ -914,12 +952,22 @@
         return;
       }
 
+      const sortedRows = getSortedSelectedRows(visibleRows);
       const thead = document.createElement("thead");
       const headerRow = document.createElement("tr");
 
       selectedColumnIndexes.forEach((columnIndex) => {
         const headerCell = document.createElement("th");
-        headerCell.textContent = excelColumns[columnIndex].name;
+        const button = document.createElement("button");
+        const directionMarker = selectedTableSortColumnIndex === columnIndex
+          ? ` ${selectedTableSortDirection === "asc" ? "↑" : "↓"}`
+          : "";
+
+        button.className = "sort-button";
+        button.type = "button";
+        button.textContent = `${excelColumns[columnIndex].name}${directionMarker}`;
+        button.addEventListener("click", () => sortSelectedTable(columnIndex));
+        headerCell.append(button);
         headerRow.append(headerCell);
       });
 
@@ -928,7 +976,7 @@
       const tbody = document.createElement("tbody");
       const bodyFragment = document.createDocumentFragment();
 
-      visibleRows.forEach((row) => {
+      sortedRows.forEach((row) => {
         const tableRow = document.createElement("tr");
 
         selectedColumnIndexes.forEach((columnIndex) => {
