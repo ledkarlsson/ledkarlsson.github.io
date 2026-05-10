@@ -49,6 +49,32 @@
     let selectedTableSortDirection = "asc";
     let missingSortColumn = "place";
     let missingSortDirection = "asc";
+    let scrollRestoreToken = 0;
+
+    function preserveWindowScroll(callback) {
+      const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
+      const token = ++scrollRestoreToken;
+      const restoreScroll = () => {
+        if (token === scrollRestoreToken) {
+          window.scrollTo(scrollX, scrollY);
+        }
+      };
+
+      callback();
+      restoreScroll();
+      requestAnimationFrame(() => {
+        restoreScroll();
+        requestAnimationFrame(restoreScroll);
+      });
+      [0, 50, 150, 300].forEach((delay) => {
+        setTimeout(restoreScroll, delay);
+      });
+    }
+
+    function cancelPendingScrollRestore() {
+      scrollRestoreToken += 1;
+    }
 
     function openFeedbackEmail() {
       const user = ["led", "karsson"].join(".");
@@ -264,14 +290,16 @@
     }
 
     function sortSelectedTable(columnIndex) {
-      if (selectedTableSortColumnIndex === columnIndex) {
-        selectedTableSortDirection = selectedTableSortDirection === "asc" ? "desc" : "asc";
-      } else {
-        selectedTableSortColumnIndex = columnIndex;
-        selectedTableSortDirection = "asc";
-      }
+      preserveWindowScroll(() => {
+        if (selectedTableSortColumnIndex === columnIndex) {
+          selectedTableSortDirection = selectedTableSortDirection === "asc" ? "desc" : "asc";
+        } else {
+          selectedTableSortColumnIndex = columnIndex;
+          selectedTableSortDirection = "asc";
+        }
 
-      renderSelectedTable();
+        renderSelectedTable();
+      });
     }
 
     function renderSelectedTable() {
@@ -377,19 +405,25 @@
           button.setAttribute("aria-pressed", "false");
         }
 
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+        });
+
         button.addEventListener("click", () => {
-          const isSelected = button.classList.toggle("is-selected");
+          preserveWindowScroll(() => {
+            const isSelected = button.classList.toggle("is-selected");
 
-          button.setAttribute("aria-pressed", String(isSelected));
+            button.setAttribute("aria-pressed", String(isSelected));
 
-          if (isSelected) {
-            selectedColumnIndexes.push(columnIndex);
-          } else {
-            selectedColumnIndexes = selectedColumnIndexes.filter((selectedColumnIndex) => selectedColumnIndex !== columnIndex);
-          }
+            if (isSelected) {
+              selectedColumnIndexes.push(columnIndex);
+            } else {
+              selectedColumnIndexes = selectedColumnIndexes.filter((selectedColumnIndex) => selectedColumnIndex !== columnIndex);
+            }
 
-          updateSelectedColumnsStatus();
-          renderSelectedTable();
+            updateSelectedColumnsStatus();
+            renderSelectedTable();
+          });
         });
 
         item.append(button);
@@ -549,21 +583,25 @@
     }
 
     function loadGeneratedViewer(xml) {
-      pendingGeneratedDrawioXml = xml;
-      generatedEmpty.hidden = true;
-      generatedViewer.hidden = false;
-      downloadGeneratedButton.disabled = false;
-      downloadGeneratedPngButton.disabled = false;
-      loadDrawioXml(generatedFrame, xml);
+      preserveWindowScroll(() => {
+        pendingGeneratedDrawioXml = xml;
+        generatedEmpty.hidden = true;
+        generatedViewer.hidden = false;
+        downloadGeneratedButton.disabled = false;
+        downloadGeneratedPngButton.disabled = false;
+        loadDrawioXml(generatedFrame, xml);
+      });
     }
 
     function showGeneratedMessage(message) {
-      pendingGeneratedDrawioXml = "";
-      generatedViewer.hidden = true;
-      generatedEmpty.hidden = false;
-      generatedEmpty.textContent = message;
-      downloadGeneratedButton.disabled = true;
-      downloadGeneratedPngButton.disabled = true;
+      preserveWindowScroll(() => {
+        pendingGeneratedDrawioXml = "";
+        generatedViewer.hidden = true;
+        generatedEmpty.hidden = false;
+        generatedEmpty.textContent = message;
+        downloadGeneratedButton.disabled = true;
+        downloadGeneratedPngButton.disabled = true;
+      });
     }
 
     function downloadGeneratedDiagram() {
@@ -1008,11 +1046,11 @@
     });
 
     parseSourceInputs.forEach((input) => {
-      input.addEventListener("change", () => reparseRows(false));
+      input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
     });
 
-    showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
-    showColumnNamesInput.addEventListener("change", updateGeneratedDiagram);
+    showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+    showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
     feedbackEmailButton.addEventListener("click", openFeedbackEmail);
     exampleDownloadLinks.forEach((link) => {
       link.addEventListener("click", downloadExampleFile);
@@ -1022,6 +1060,13 @@
     downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
     clearExcelButton.addEventListener("click", clearExcelFile);
     clearDrawioButton.addEventListener("click", clearDrawioFile);
+    window.addEventListener("wheel", cancelPendingScrollRestore, { passive: true });
+    window.addEventListener("touchmove", cancelPendingScrollRestore, { passive: true });
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "ArrowUp", "End", "Home", "PageDown", "PageUp", " "].includes(event.key)) {
+        cancelPendingScrollRestore();
+      }
+    });
 
     ["dragenter", "dragover"].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
