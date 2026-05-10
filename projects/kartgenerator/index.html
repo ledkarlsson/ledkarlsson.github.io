@@ -123,12 +123,22 @@
       border-radius: 8px;
       background: var(--accent);
       color: #ffffff;
+      cursor: pointer;
       font-weight: 700;
     }
 
     .button.secondary {
       background: transparent;
       color: var(--accent-strong);
+    }
+
+    .file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
 
     .workspace {
@@ -235,22 +245,22 @@
         <span class="meta">Project page</span>
         <h1 id="project-title">kartgenerator</h1>
         <p>
-          En kartgenerator som kan generera kartor från data relevant för båtklubbar.
-          This is the separate workspace for the project.
+          En kartgenerator som kan generera kartor fran Excel-data relevant for batklubbar.
         </p>
         <div class="actions" aria-label="Project actions">
-          <a class="button" href="#workspace">Open workspace</a>
+          <label class="button" for="excel-upload">Upload Excel file</label>
+          <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
           <a class="button secondary" href="../../index.html">Back to toolbox</a>
         </div>
       </div>
 
-      <div class="workspace" id="workspace" aria-label="Kartgenerator workspace preview">
+      <div class="workspace" aria-label="Kartgenerator workspace preview">
         <div class="panel">
           <h2>Kartlager</h2>
           <ul>
-            <li>Hamnområde</li>
+            <li>Hamnomrade</li>
             <li>Bryggor</li>
-            <li>Båtplatser</li>
+            <li>Batplatser</li>
           </ul>
         </div>
         <span class="map-shape shape-one" aria-hidden="true"></span>
