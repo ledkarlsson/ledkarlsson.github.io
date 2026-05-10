@@ -141,6 +141,53 @@
       white-space: nowrap;
     }
 
+    .upload-zone {
+      display: block;
+      width: 100%;
+      margin-top: 32px;
+      padding: 26px;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone:focus-within,
+    .upload-zone.is-dragging {
+      border-color: var(--accent);
+      background: rgba(35, 122, 120, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .upload-title {
+      display: block;
+      color: var(--ink);
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .upload-help,
+    .file-status {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .file-status {
+      font-weight: 700;
+    }
+
+    .file-status.has-file {
+      color: var(--accent-strong);
+    }
+
+    .file-status.has-error {
+      color: #a13e20;
+    }
+
     .workspace {
       min-height: 360px;
       padding: 22px;
@@ -247,9 +294,13 @@
         <p>
           En kartgenerator som kan generera kartor fran Excel-data relevant for batklubbar.
         </p>
-        <div class="actions" aria-label="Project actions">
-          <label class="button" for="excel-upload">Upload Excel file</label>
+        <label class="upload-zone" id="upload-zone" for="excel-upload">
+          <span class="upload-title">Upload Excel file</span>
+          <span class="upload-help">Drag and drop an .xlsx or .xls file here, or click to choose one.</span>
+          <span class="file-status" id="file-status">No file selected</span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
+        </label>
+        <div class="actions" aria-label="Project actions">
           <a class="button secondary" href="../../index.html">Back to toolbox</a>
         </div>
       </div>
@@ -269,5 +320,58 @@
       </div>
     </section>
   </main>
+  <script>
+    const uploadZone = document.querySelector("#upload-zone");
+    const excelUpload = document.querySelector("#excel-upload");
+    const fileStatus = document.querySelector("#file-status");
+    const excelTypes = [".xls", ".xlsx"];
+
+    function showFile(file) {
+      const fileName = file.name.toLowerCase();
+      const isExcelFile = excelTypes.some((extension) => fileName.endsWith(extension));
+
+      fileStatus.classList.remove("has-file", "has-error");
+
+      if (!isExcelFile) {
+        fileStatus.textContent = "Choose an Excel file ending in .xls or .xlsx.";
+        fileStatus.classList.add("has-error");
+        excelUpload.value = "";
+        return;
+      }
+
+      fileStatus.textContent = file.name;
+      fileStatus.classList.add("has-file");
+    }
+
+    excelUpload.addEventListener("change", () => {
+      const [file] = excelUpload.files;
+
+      if (file) {
+        showFile(file);
+      }
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      uploadZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        uploadZone.classList.add("is-dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      uploadZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        uploadZone.classList.remove("is-dragging");
+      });
+    });
+
+    uploadZone.addEventListener("drop", (event) => {
+      const [file] = event.dataTransfer.files;
+
+      if (file) {
+        showFile(file);
+      }
+    });
+  </script>
 </body>
 </html>
