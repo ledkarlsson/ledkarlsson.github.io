@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -533,6 +534,7 @@
     }
   </style>
 </head>
+
 <body>
   <main class="page">
     <nav class="topbar" aria-label="Project navigation">
@@ -541,10 +543,14 @@
     </nav>
 
     <section class="title-panel" aria-labelledby="project-title">
-      <span class="meta">Project page</span>
+      <span class="meta">Project kartgenerator</span>
       <h1 id="project-title">kartgenerator</h1>
       <p>
-        En kartgenerator som kan generera kartor fran Excel-data relevant for batklubbar.
+        En kartgenerator som kan generera kartor från Excel-data. relevant for båtklubbar. Gör så här: Gå in i BAS,
+        skapa en rapport, som innehåller kolumner som Förnamn, Efternamn, och område.
+        Skapa sedan upp en exempel-karta i drawio.
+        <br> <br>
+        Att göra: Ladda ner exempel-drawio diagram. Ha ett exempel excel dokument.
       </p>
     </section>
 
@@ -592,10 +598,7 @@
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
-          <iframe
-            class="drawio-frame"
-            id="drawio-frame"
-            title="draw.io file preview"
+          <iframe class="drawio-frame" id="drawio-frame" title="draw.io file preview"
             src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
           </iframe>
         </div>
@@ -615,10 +618,7 @@
         Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
       </div>
       <div class="generated-viewer" id="generated-viewer" hidden>
-        <iframe
-          class="generated-frame"
-          id="generated-frame"
-          title="Generated draw.io diagram"
+        <iframe class="generated-frame" id="generated-frame" title="Generated draw.io diagram"
           src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
         </iframe>
       </div>
@@ -886,13 +886,13 @@
           const headerRowIndex = rows.findIndex((row) => row.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""));
           const headerRow = rows[headerRowIndex] || [];
           const columns = Array.from({ length: headerRow.length }, (_, index) => {
-              const cell = headerRow[index];
-              const value = cell === null || cell === undefined ? "" : String(cell).trim();
-              return {
-                index,
-                name: value || `Column ${index + 1}`
-              };
-            });
+            const cell = headerRow[index];
+            const value = cell === null || cell === undefined ? "" : String(cell).trim();
+            return {
+              index,
+              name: value || `Column ${index + 1}`
+            };
+          });
 
           rawExcelRows = rows.slice(headerRowIndex + 1);
           excelRows = parseRows(columns, rawExcelRows);
@@ -1287,4 +1287,5 @@
     });
   </script>
 </body>
+
 </html>
