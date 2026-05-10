@@ -667,7 +667,7 @@
         Visa kolumnnamn
       </label>
       <div class="generated-empty" id="generated-empty">
-        Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
+        Ladda upp Excel-fil och drawio-fil.
       </div>
       <div class="generated-viewer" id="generated-viewer" hidden>
         <iframe class="generated-frame" id="generated-frame" title="Generated draw.io diagram"
@@ -1520,12 +1520,12 @@
 
     function updateGeneratedDiagram() {
       if (!sourceDrawioXml) {
-        showGeneratedMessage("Upload a draw.io file to prepare the generated diagram.");
+        showGeneratedMessage("Ladda upp Excel-fil och drawio-fil.");
         return;
       }
 
       if (parsedOmradePlatsColumnIndex === null || !selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)) {
-        showGeneratedMessage("Select område/plats to match Excel rows with draw.io boxes.");
+        showGeneratedMessage("Ladda upp Excel-fil och drawio-fil.");
         return;
       }
 
