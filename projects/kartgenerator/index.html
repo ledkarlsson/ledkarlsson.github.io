@@ -155,8 +155,7 @@
 
     .upload-zone:hover,
     .upload-zone:focus-within,
-    .upload-zone.is-dragging,
-    .upload-zone.is-dragging-drawio {
+    .upload-zone.is-dragging {
       border-color: var(--accent);
       background: rgba(35, 122, 120, 0.08);
       transform: translateY(-2px);
@@ -308,74 +307,65 @@
     .workspace {
       min-height: 360px;
       padding: 22px;
-      background:
-        linear-gradient(90deg, rgba(23, 32, 38, 0.06) 1px, transparent 1px),
-        linear-gradient(rgba(23, 32, 38, 0.06) 1px, transparent 1px),
-        #fffaf3;
-      background-size: 28px 28px;
+      background: #fffaf3;
       position: relative;
       overflow: hidden;
     }
 
-    .workspace .upload-zone {
-      position: relative;
-      z-index: 1;
-      margin-top: 0;
-      background: rgba(255, 255, 255, 0.86);
-    }
-
-    .map-shape {
-      position: absolute;
-      border: 3px solid var(--accent);
-      border-radius: 999px;
-    }
-
-    .shape-one {
-      width: 180px;
-      height: 180px;
-      left: 40px;
-      top: 42px;
-    }
-
-    .shape-two {
-      width: 220px;
-      height: 118px;
-      right: 34px;
-      bottom: 50px;
-      border-color: var(--warm);
-      transform: rotate(-16deg);
-    }
-
-    .pin {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent-strong);
-      box-shadow: 0 0 0 8px rgba(35, 122, 120, 0.18);
-      left: 54%;
-      top: 42%;
-    }
-
-    .panel {
-      position: relative;
-      width: min(240px, 100%);
-      padding: 16px;
+    .drawio-viewer {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.88);
+      background: #ffffff;
+      min-height: 520px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
     }
 
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 1rem;
+    .drawio-viewer[hidden] {
+      display: none;
     }
 
-    .panel ul {
-      margin: 0;
-      padding-left: 18px;
+    .drawio-frame {
+      display: block;
+      width: 100%;
+      height: 520px;
+      border: 0;
+    }
+
+    .drawio-empty {
+      display: grid;
+      min-height: 520px;
+      place-items: center;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(23, 32, 38, 0.06) 1px, transparent 1px),
+        linear-gradient(rgba(23, 32, 38, 0.06) 1px, transparent 1px),
+        rgba(255, 255, 255, 0.55);
+      background-size: 28px 28px;
       color: var(--muted);
-      line-height: 1.7;
+      cursor: pointer;
+      font-weight: 700;
+      text-align: center;
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .drawio-empty:hover,
+    .drawio-empty:focus-within,
+    .drawio-empty.is-dragging-drawio {
+      border-color: var(--accent);
+      background: rgba(35, 122, 120, 0.08);
+      color: var(--accent-strong);
+      transform: translateY(-2px);
+    }
+
+    .drawio-empty.has-error {
+      border-color: #a13e20;
+      color: #a13e20;
     }
 
     @media (max-width: 760px) {
@@ -443,15 +433,18 @@
       </div>
 
       <div class="workspace" aria-label="Kartgenerator workspace preview">
-        <label class="upload-zone" id="drawio-upload-zone" for="drawio-upload">
-          <span class="upload-title">Upload draw.io file</span>
-          <span class="upload-help">Drag and drop a .drawio or .drawio.xml file here, or click to choose one.</span>
-          <span class="file-status" id="drawio-file-status">No draw.io file selected</span>
+        <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
+          Upload a draw.io file to preview it here.
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
-        <span class="map-shape shape-one" aria-hidden="true"></span>
-        <span class="map-shape shape-two" aria-hidden="true"></span>
-        <span class="pin" aria-hidden="true"></span>
+        <div class="drawio-viewer" id="drawio-viewer" hidden>
+          <iframe
+            class="drawio-frame"
+            id="drawio-frame"
+            title="draw.io file preview"
+            src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
+          </iframe>
+        </div>
       </div>
     </section>
   </main>
@@ -462,7 +455,8 @@
     const fileStatus = document.querySelector("#file-status");
     const drawioUploadZone = document.querySelector("#drawio-upload-zone");
     const drawioUpload = document.querySelector("#drawio-upload");
-    const drawioFileStatus = document.querySelector("#drawio-file-status");
+    const drawioViewer = document.querySelector("#drawio-viewer");
+    const drawioFrame = document.querySelector("#drawio-frame");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsList = document.querySelector("#columns-list");
     const selectedColumnsStatus = document.querySelector("#selected-columns");
@@ -474,6 +468,7 @@
     let selectedColumnIndexes = [];
     let excelColumns = [];
     let excelRows = [];
+    let pendingDrawioXml = "";
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
@@ -642,12 +637,14 @@
         fileStatus.textContent = "Choose an Excel file ending in .xls or .xlsx.";
         fileStatus.classList.add("has-error");
         excelUpload.value = "";
+        uploadZone.hidden = false;
         clearColumns("Upload an Excel file to list its columns.");
         return;
       }
 
       fileStatus.textContent = file.name;
       fileStatus.classList.add("has-file");
+      uploadZone.hidden = true;
       clearColumns("Reading columns...");
       readColumns(file);
     }
@@ -656,17 +653,59 @@
       const fileName = file.name.toLowerCase();
       const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
 
-      drawioFileStatus.classList.remove("has-file", "has-error");
+      drawioUploadZone.classList.remove("has-error");
 
       if (!isDrawioFile) {
-        drawioFileStatus.textContent = "Choose a draw.io file ending in .drawio or .drawio.xml.";
-        drawioFileStatus.classList.add("has-error");
+        drawioUploadZone.textContent = "Choose a draw.io file ending in .drawio or .drawio.xml.";
+        drawioUploadZone.classList.add("has-error");
+        drawioUploadZone.append(drawioUpload);
         drawioUpload.value = "";
+        drawioViewer.hidden = true;
+        drawioUploadZone.hidden = false;
         return;
       }
 
-      drawioFileStatus.textContent = file.name;
-      drawioFileStatus.classList.add("has-file");
+      readDrawioFile(file);
+    }
+
+    function loadDrawioViewer(xml) {
+      pendingDrawioXml = xml;
+      drawioUploadZone.hidden = true;
+      drawioViewer.hidden = false;
+
+      drawioFrame.contentWindow.postMessage(JSON.stringify({
+        action: "load",
+        xml,
+        autosave: 0,
+        modified: 0
+      }), "*");
+    }
+
+    function readDrawioFile(file) {
+      const reader = new FileReader();
+
+      reader.addEventListener("load", (event) => {
+        const xml = String(event.target.result || "").trim();
+
+        if (!xml) {
+          drawioUploadZone.textContent = "This draw.io file is empty.";
+          drawioUploadZone.classList.add("has-error");
+          drawioUploadZone.append(drawioUpload);
+          drawioViewer.hidden = true;
+          drawioUploadZone.hidden = false;
+          return;
+        }
+
+        loadDrawioViewer(xml);
+      });
+
+      reader.addEventListener("error", () => {
+        drawioUploadZone.textContent = "Could not read this draw.io file.";
+        drawioUploadZone.classList.add("has-error");
+        drawioUploadZone.append(drawioUpload);
+      });
+
+      reader.readAsText(file);
     }
 
     excelUpload.addEventListener("change", () => {
@@ -726,6 +765,24 @@
 
       if (file) {
         showDrawioFile(file);
+      }
+    });
+
+    window.addEventListener("message", (event) => {
+      if (!String(event.origin).includes("diagrams.net")) {
+        return;
+      }
+
+      let message;
+
+      try {
+        message = JSON.parse(event.data);
+      } catch (error) {
+        return;
+      }
+
+      if (message.event === "init" && pendingDrawioXml) {
+        loadDrawioViewer(pendingDrawioXml);
       }
     });
   </script>
