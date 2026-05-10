@@ -743,12 +743,39 @@
       const sourcePattern = source === "brygga" ? "brygga" : "varvsomr(?:a|å)de";
       const sourceMatch = text.match(new RegExp(`${sourcePattern}[\\s\\S]*?plats\\s*:\\s*([0-9A-Za-zÅÄÖåäö-]+)`, "i"));
 
-      return sourceMatch ? sourceMatch[1] : "";
+      if (sourceMatch) {
+        return sourceMatch[1];
+      }
+
+      if (source === "brygga") {
+        const bryggaDashMatch = text.match(/brygga[\s\S]*?-\s*([0-9]+[A-Za-zÅÄÖåäö]?)/i);
+        return bryggaDashMatch ? bryggaDashMatch[1] : "";
+      }
+
+      return "";
     }
 
     function getSelectedParseSource() {
       const selectedInput = [...parseSourceInputs].find((input) => input.checked);
       return selectedInput ? selectedInput.value : "varvsomrade";
+    }
+
+    function setSelectedParseSource(source) {
+      parseSourceInputs.forEach((input) => {
+        input.checked = input.value === source;
+      });
+    }
+
+    function detectParseSource(rows, omradePlatsColumnIndex) {
+      const sampleValues = rows
+        .slice(0, 50)
+        .map((row) => String(row[omradePlatsColumnIndex] || ""));
+      const hasVarvsomrade = sampleValues.some((value) => /varvsomr(?:a|å)de/i.test(value));
+      const hasBryggaDashPlace = sampleValues.some((value) => /brygga[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
+
+      if (!hasVarvsomrade && hasBryggaDashPlace) {
+        setSelectedParseSource("brygga");
+      }
     }
 
     function parseRows(columns, rows) {
@@ -760,6 +787,7 @@
       }
 
       parsedOmradePlatsColumnIndex = omradePlatsColumn.index;
+      detectParseSource(rows, omradePlatsColumn.index);
 
       return rows.map((row) => {
         const parsedRow = [...row];
