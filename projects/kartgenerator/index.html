@@ -387,6 +387,17 @@
       font-weight: 700;
     }
 
+    .sort-button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      text-align: left;
+    }
+
     .workspace {
       min-height: 360px;
       padding: 22px;
@@ -635,7 +646,10 @@
     </section>
 
     <section class="missing-panel" id="missing-panel" aria-labelledby="missing-title" hidden>
-      <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
+      <div class="generated-header">
+        <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
+        <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
+      </div>
       <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io for att se saknade platser.</p>
       <div class="table-wrap" id="missing-wrap" hidden>
         <table class="selected-table" id="missing-table"></table>
@@ -661,6 +675,7 @@
     const missingMeta = document.querySelector("#missing-meta");
     const missingWrap = document.querySelector("#missing-wrap");
     const missingTable = document.querySelector("#missing-table");
+    const downloadMissingButton = document.querySelector("#download-missing");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsPanel = document.querySelector("#columns-panel");
     const columnsList = document.querySelector("#columns-list");
@@ -683,6 +698,9 @@
     let sourceDrawioFileName = "";
     let pendingDrawioXml = "";
     let pendingGeneratedDrawioXml = "";
+    let missingPeopleRows = [];
+    let missingSortColumn = "place";
+    let missingSortDirection = "asc";
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
@@ -693,6 +711,7 @@
       excelColumns = [];
       excelRows = [];
       rawExcelRows = [];
+      missingPeopleRows = [];
       parsedOmradePlatsColumnIndex = null;
       parseControls.classList.remove("is-visible");
       selectedColumnsStatus.textContent = "No columns selected.";
@@ -1145,15 +1164,29 @@
       if (rows.length === 0) {
         missingMeta.textContent = "Alla rader med fornamn, efternamn och plats finns i kartan.";
         missingWrap.hidden = true;
+        downloadMissingButton.disabled = true;
         return;
       }
 
       const thead = document.createElement("thead");
       const headerRow = document.createElement("tr");
 
-      ["Plats", "Fornamn", "Efternamn"].forEach((header) => {
+      [
+        ["place", "Plats"],
+        ["firstName", "Fornamn"],
+        ["lastName", "Efternamn"]
+      ].forEach(([columnKey, header]) => {
         const headerCell = document.createElement("th");
-        headerCell.textContent = header;
+        const button = document.createElement("button");
+        const directionMarker = missingSortColumn === columnKey
+          ? ` ${missingSortDirection === "asc" ? "↑" : "↓"}`
+          : "";
+
+        button.className = "sort-button";
+        button.type = "button";
+        button.textContent = `${header}${directionMarker}`;
+        button.addEventListener("click", () => sortMissingPeople(columnKey));
+        headerCell.append(button);
         headerRow.append(headerCell);
       });
 
@@ -1178,6 +1211,30 @@
       missingTable.append(thead, tbody);
       missingMeta.textContent = `${rows.length} person${rows.length === 1 ? "" : "er"} finns i BAS men saknas i kartan.`;
       missingWrap.hidden = false;
+      downloadMissingButton.disabled = false;
+    }
+
+    function getSortedMissingPeopleRows() {
+      return [...missingPeopleRows].sort((left, right) => {
+        const leftValue = String(left[missingSortColumn] || "").localeCompare(
+          String(right[missingSortColumn] || ""),
+          "sv",
+          { numeric: true, sensitivity: "base" }
+        );
+
+        return missingSortDirection === "asc" ? leftValue : -leftValue;
+      });
+    }
+
+    function sortMissingPeople(columnKey) {
+      if (missingSortColumn === columnKey) {
+        missingSortDirection = missingSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        missingSortColumn = columnKey;
+        missingSortDirection = "asc";
+      }
+
+      renderMissingPeopleTable(getSortedMissingPeopleRows());
     }
 
     function updateMissingPeopleList() {
@@ -1186,6 +1243,8 @@
 
       if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || excelRows.length === 0) {
         missingPanel.hidden = true;
+        missingPeopleRows = [];
+        downloadMissingButton.disabled = true;
         return;
       }
 
@@ -1199,7 +1258,24 @@
         .filter((row) => row.place && row.firstName && row.lastName && !mapPlaces.has(row.place));
 
       missingPanel.hidden = false;
-      renderMissingPeopleTable(missingRows);
+      missingPeopleRows = missingRows;
+      renderMissingPeopleTable(getSortedMissingPeopleRows());
+    }
+
+    function downloadMissingPeopleExcel() {
+      if (!window.XLSX || missingPeopleRows.length === 0) {
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(getSortedMissingPeopleRows().map((row) => ({
+        Plats: row.place,
+        Fornamn: row.firstName,
+        Efternamn: row.lastName
+      })));
+      const workbook = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Saknas i kartan");
+      XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
     }
 
     function createGeneratedDrawioXml(xml, rows) {
@@ -1339,6 +1415,7 @@
 
     showPlaceNumberInput.addEventListener("change", updateGeneratedDiagram);
     downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
+    downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
 
     ["dragenter", "dragover"].forEach((eventName) => {
       uploadZone.addEventListener(eventName, (event) => {
