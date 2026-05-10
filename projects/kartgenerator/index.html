@@ -391,6 +391,44 @@
       z-index: 1;
     }
 
+    .generated-panel {
+      margin-top: 36px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .generated-empty {
+      display: grid;
+      min-height: 180px;
+      margin-top: 18px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .generated-viewer {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      min-height: 620px;
+      overflow: hidden;
+    }
+
+    .generated-frame {
+      display: block;
+      width: 100%;
+      height: 620px;
+      border: 0;
+    }
+
     .drawio-viewer[hidden] {
       display: none;
     }
@@ -546,6 +584,21 @@
         </div>
       </div>
     </section>
+
+    <section class="generated-panel" aria-labelledby="generated-title">
+      <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
+      <div class="generated-empty" id="generated-empty">
+        Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
+      </div>
+      <div class="generated-viewer" id="generated-viewer" hidden>
+        <iframe
+          class="generated-frame"
+          id="generated-frame"
+          title="Generated draw.io diagram"
+          src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
+        </iframe>
+      </div>
+    </section>
   </main>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
@@ -558,6 +611,9 @@
     const drawioPanelTitle = document.querySelector("#drawio-panel-title");
     const drawioViewer = document.querySelector("#drawio-viewer");
     const drawioFrame = document.querySelector("#drawio-frame");
+    const generatedEmpty = document.querySelector("#generated-empty");
+    const generatedViewer = document.querySelector("#generated-viewer");
+    const generatedFrame = document.querySelector("#generated-frame");
     const columnsMeta = document.querySelector("#columns-meta");
     const columnsList = document.querySelector("#columns-list");
     const selectedColumnsStatus = document.querySelector("#selected-columns");
@@ -573,7 +629,9 @@
     let excelRows = [];
     let rawExcelRows = [];
     let parsedOmradePlatsColumnIndex = null;
+    let sourceDrawioXml = "";
     let pendingDrawioXml = "";
+    let pendingGeneratedDrawioXml = "";
 
     function clearColumns(message) {
       columnsMeta.textContent = message;
@@ -586,6 +644,7 @@
       parseControls.classList.remove("is-visible");
       selectedColumnsStatus.textContent = "No columns selected.";
       renderSelectedTable();
+      updateGeneratedDiagram();
     }
 
     function updateSelectedColumnsStatus() {
@@ -652,6 +711,15 @@
       parseControls.classList.toggle("is-visible", shouldShow);
     }
 
+    function getVisibleRows() {
+      return selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
+        ? excelRows.filter((row) => {
+          const value = row[parsedOmradePlatsColumnIndex];
+          return value !== null && value !== undefined && String(value).trim() !== "";
+        })
+        : excelRows;
+    }
+
     function renderSelectedTable() {
       selectedTable.replaceChildren();
       updateParseControlsVisibility();
@@ -659,19 +727,16 @@
       if (selectedColumnIndexes.length === 0) {
         tableMeta.textContent = "Select columns to build a table.";
         tableWrap.hidden = true;
+        updateGeneratedDiagram();
         return;
       }
 
-      const visibleRows = selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
-        ? excelRows.filter((row) => {
-          const value = row[parsedOmradePlatsColumnIndex];
-          return value !== null && value !== undefined && String(value).trim() !== "";
-        })
-        : excelRows;
+      const visibleRows = getVisibleRows();
 
       if (visibleRows.length === 0) {
         tableMeta.textContent = "No data rows found under the header row.";
         tableWrap.hidden = true;
+        updateGeneratedDiagram();
         return;
       }
 
@@ -706,6 +771,7 @@
       selectedTable.append(thead, tbody);
       tableMeta.textContent = `${visibleRows.length} row${visibleRows.length === 1 ? "" : "s"} shown with ${selectedColumnIndexes.length} selected column${selectedColumnIndexes.length === 1 ? "" : "s"}.`;
       tableWrap.hidden = false;
+      updateGeneratedDiagram();
     }
 
     function renderColumns(columns, sheetName) {
@@ -836,8 +902,10 @@
         drawioPanelTitle.textContent = "draw.io diagram";
         drawioUploadZone.append(drawioUpload);
         drawioUpload.value = "";
+        sourceDrawioXml = "";
         drawioViewer.hidden = true;
         drawioUploadZone.hidden = false;
+        updateGeneratedDiagram();
         return;
       }
 
@@ -848,16 +916,118 @@
       readDrawioFile(file);
     }
 
-    function loadDrawioViewer(xml) {
-      pendingDrawioXml = xml;
-      drawioViewer.hidden = false;
-
-      drawioFrame.contentWindow.postMessage(JSON.stringify({
+    function loadDrawioXml(frame, xml) {
+      frame.contentWindow.postMessage(JSON.stringify({
         action: "load",
         xml,
         autosave: 0,
         modified: 0
       }), "*");
+    }
+
+    function loadDrawioViewer(xml) {
+      pendingDrawioXml = xml;
+      drawioViewer.hidden = false;
+      loadDrawioXml(drawioFrame, xml);
+    }
+
+    function loadGeneratedViewer(xml) {
+      pendingGeneratedDrawioXml = xml;
+      generatedEmpty.hidden = true;
+      generatedViewer.hidden = false;
+      loadDrawioXml(generatedFrame, xml);
+    }
+
+    function showGeneratedMessage(message) {
+      pendingGeneratedDrawioXml = "";
+      generatedViewer.hidden = true;
+      generatedEmpty.hidden = false;
+      generatedEmpty.textContent = message;
+    }
+
+    function drawioLabelToText(value) {
+      const textarea = document.createElement("textarea");
+      textarea.innerHTML = String(value || "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/div>/gi, "\n")
+        .replace(/<[^>]*>/g, "");
+
+      return textarea.value.trim();
+    }
+
+    function makeDrawioLabel(row) {
+      const lines = selectedColumnIndexes
+        .map((columnIndex) => {
+          const value = row[columnIndex];
+
+          if (value === null || value === undefined || String(value).trim() === "") {
+            return "";
+          }
+
+          if (columnIndex === parsedOmradePlatsColumnIndex) {
+            return String(value).trim();
+          }
+
+          return `${excelColumns[columnIndex].name}: ${String(value).trim()}`;
+        })
+        .filter(Boolean);
+
+      return lines.join("<br>");
+    }
+
+    function createGeneratedDrawioXml(xml, rows) {
+      const parser = new DOMParser();
+      const documentXml = parser.parseFromString(xml, "application/xml");
+
+      if (documentXml.querySelector("parsererror")) {
+        throw new Error("Could not parse draw.io XML.");
+      }
+
+      const rowsByPlace = new Map();
+
+      rows.forEach((row) => {
+        const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
+
+        if (place) {
+          rowsByPlace.set(place, row);
+        }
+      });
+
+      documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+        const label = drawioLabelToText(cell.getAttribute("value"));
+        const row = rowsByPlace.get(label);
+
+        if (row) {
+          cell.setAttribute("value", makeDrawioLabel(row));
+        }
+      });
+
+      return new XMLSerializer().serializeToString(documentXml);
+    }
+
+    function updateGeneratedDiagram() {
+      if (!sourceDrawioXml) {
+        showGeneratedMessage("Upload a draw.io file to prepare the generated diagram.");
+        return;
+      }
+
+      if (parsedOmradePlatsColumnIndex === null || !selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)) {
+        showGeneratedMessage("Select område/plats to match Excel rows with draw.io boxes.");
+        return;
+      }
+
+      const visibleRows = getVisibleRows();
+
+      if (visibleRows.length === 0) {
+        showGeneratedMessage("No matching område/plats rows to place in the generated diagram.");
+        return;
+      }
+
+      try {
+        loadGeneratedViewer(createGeneratedDrawioXml(sourceDrawioXml, visibleRows));
+      } catch (error) {
+        showGeneratedMessage("Could not generate a draw.io diagram from this file.");
+      }
     }
 
     function readDrawioFile(file) {
@@ -870,18 +1040,24 @@
           drawioUploadZone.textContent = "This draw.io file is empty.";
           drawioUploadZone.classList.add("has-error");
           drawioUploadZone.append(drawioUpload);
+          sourceDrawioXml = "";
           drawioViewer.hidden = true;
           drawioUploadZone.hidden = false;
+          updateGeneratedDiagram();
           return;
         }
 
+        sourceDrawioXml = xml;
         loadDrawioViewer(xml);
+        updateGeneratedDiagram();
       });
 
       reader.addEventListener("error", () => {
         drawioUploadZone.textContent = "Could not read this draw.io file.";
         drawioUploadZone.classList.add("has-error");
         drawioUploadZone.append(drawioUpload);
+        sourceDrawioXml = "";
+        updateGeneratedDiagram();
       });
 
       reader.readAsText(file);
@@ -964,8 +1140,12 @@
         return;
       }
 
-      if (message.event === "init" && pendingDrawioXml) {
+      if (message.event === "init" && event.source === drawioFrame.contentWindow && pendingDrawioXml) {
         loadDrawioViewer(pendingDrawioXml);
+      }
+
+      if (message.event === "init" && event.source === generatedFrame.contentWindow && pendingGeneratedDrawioXml) {
+        loadGeneratedViewer(pendingGeneratedDrawioXml);
       }
     });
   </script>
