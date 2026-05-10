@@ -556,11 +556,11 @@
 
     <section class="project" aria-label="Kartgenerator workspace">
       <div class="excel-panel">
-        <h2 class="panel-title" id="excel-panel-title">Excel data</h2>
+        <h2 class="panel-title" id="excel-panel-title">Excel data från BAS rapport</h2>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
-          <span class="upload-title">Upload Excel file</span>
-          <span class="upload-help">Drag and drop an .xlsx or .xls file here, or click to choose one.</span>
-          <span class="file-status" id="file-status">No file selected</span>
+          <span class="upload-title">Ladda upp Excel-fil</span>
+          <span class="upload-help">Dra och släpp en .xlsx eller .xls fil här, eller klicka för att välja</span>
+          <span class="file-status" id="file-status"></span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
         <section class="columns-panel" id="columns-panel" aria-labelledby="columns-title" hidden>
@@ -583,7 +583,7 @@
           </fieldset>
         </section>
         <section class="table-panel" id="table-panel" aria-labelledby="table-title" hidden>
-          <h2 id="table-title">Selected data</h2>
+          <h2 id="table-title">Vald data</h2>
           <p class="table-meta" id="table-meta">Select columns to build a table.</p>
           <div class="table-wrap" id="table-wrap" hidden>
             <table class="selected-table" id="selected-table"></table>
@@ -594,7 +594,7 @@
       <div class="workspace" aria-label="Kartgenerator workspace preview">
         <h2 class="panel-title" id="drawio-panel-title">draw.io diagram</h2>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
-          Upload a draw.io file to preview it here.
+          Ladda upp en draw.io fil
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
@@ -612,7 +612,7 @@
       </div>
       <label class="generated-options">
         <input type="checkbox" id="show-place-number" checked />
-        Show place number in generated boxes
+        Visa platsnummer
       </label>
       <div class="generated-empty" id="generated-empty">
         Upload Excel and draw.io files, then select område/plats and other columns to generate a new diagram.
@@ -1133,7 +1133,6 @@
         .split(";")
         .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
 
-      styleParts.push("fillColor=#dae8fc", "strokeColor=#6c8ebf");
       cell.setAttribute("style", styleParts.join(";"));
     }
 
