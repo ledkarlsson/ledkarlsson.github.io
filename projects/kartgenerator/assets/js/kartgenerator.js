@@ -1,4 +1,4 @@
-﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName } from "./kartgenerator-utils.js";
+﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
 
 const uploadZone = document.querySelector("#upload-zone");
 const feedbackEmailButton = document.querySelector("#feedback-email");
@@ -679,16 +679,6 @@ function downloadPngWithWhiteBackground(dataUrl, fileName) {
   });
 
   image.src = dataUrl;
-}
-
-function drawioLabelToText(value) {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = String(value || "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<[^>]*>/g, "");
-
-  return textarea.value.trim();
 }
 
 function makeDrawioLabel(row) {

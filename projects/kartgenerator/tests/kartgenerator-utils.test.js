@@ -1,12 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName } from "../assets/js/kartgenerator-utils.js";
+import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "../assets/js/kartgenerator-utils.js";
+
+describe("drawioLabelToText", () => {
+    it("Null ger tom sträng", () => {
+        const input = null;
+        expect(drawioLabelToText(input)).toBe("")
+    });
+
+    it("Radbrytning", () => {
+        const input = "Rad 1<br>Rad 2";
+        expect(drawioLabelToText(input)).toBe("Rad 1\nRad 2")
+    });
+
+    it("tar bort övriga html-taggar", () => {
+        const input = "<div><strong>Anna</strong><br>12B</div>";
+        expect(drawioLabelToText(input)).toBe("Anna\n12B")
+    });
+});
+
 
 describe("normalizeColumnName", () => {
     it("Normaliserar namn", () => {
         const input = "  åBc  ";
         expect(normalizeColumnName(input)).toBe("abc")
     });
-
 });
 
 describe("normalizePlaceCode", () => {
