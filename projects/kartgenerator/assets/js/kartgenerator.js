@@ -1,4 +1,4 @@
-﻿import { parseOmradePlatsValue, isPlaceBoxLabel } from "./kartgenerator-utils.js";
+﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName } from "./kartgenerator-utils.js";
 
 const uploadZone = document.querySelector("#upload-zone");
 const feedbackEmailButton = document.querySelector("#feedback-email");
@@ -140,18 +140,6 @@ function updateSelectedColumnsStatus() {
 
   const selectedNames = selectedColumnIndexes.map((columnIndex) => excelColumns[columnIndex].name);
   selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} selected: ${selectedNames.join(", ")}`;
-}
-
-function normalizeColumnName(columnName) {
-  return String(columnName)
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function normalizePlaceCode(value) {
-  return String(value || "").trim().toUpperCase();
 }
 
 function getSelectedParseSource() {

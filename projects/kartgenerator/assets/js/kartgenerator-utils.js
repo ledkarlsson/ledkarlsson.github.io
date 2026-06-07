@@ -1,3 +1,16 @@
+export function normalizeColumnName(columnName) {
+  return String(columnName)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+export function normalizePlaceCode(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+
 export function isPlaceBoxLabel(label) {
   return /^[0-9]+[A-Za-zÅÄÖåäö]?$/.test(String(label).trim());
 }

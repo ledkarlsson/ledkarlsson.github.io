@@ -1,5 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { isPlaceBoxLabel, parseOmradePlatsValue } from "../assets/js/kartgenerator-utils.js";
+import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName } from "../assets/js/kartgenerator-utils.js";
+
+describe("normalizeColumnName", () => {
+    it("Normaliserar namn", () => {
+        const input = "  åBc  ";
+        expect(normalizeColumnName(input)).toBe("abc")
+    });
+
+});
+
+describe("normalizePlaceCode", () => {
+    it("Returnerar stor bokstav", () => {
+        const input = "a";
+        expect(normalizePlaceCode(input)).toBe("A")
+    });
+
+    it("Returnerar tom sträng för null objekt", () => {
+        const input = null;
+        expect(normalizePlaceCode(input)).toBe("")
+    });
+});
+
 
 describe("isPlaceBoxLabel", () => {
     it("Returnerar true för ett giltigt platsnummer", () => {
