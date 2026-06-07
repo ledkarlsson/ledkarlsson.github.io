@@ -1,0 +1,8 @@
+{
+  "coverage-gutters.coverageBaseDir": "coverage",
+  "coverage-gutters.coverageFileNames": [
+    "lcov.info"
+  ],
+  "coverage-gutters.watchOnActivate": true,
+  "coverage-gutters.showGutterCoverage": true
+}
