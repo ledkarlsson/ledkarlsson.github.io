@@ -6,7 +6,6 @@ describe("parseOmradePlatsValue", () => {
         const input = "Varvsområde Alpha plats: 12B";
         const source = "varvsomrade";
         const expected = "12B";
-
         expect(parseOmradePlatsValue(input, source)).toBe(expected);
     });
 
@@ -14,7 +13,20 @@ describe("parseOmradePlatsValue", () => {
         const input = "Brygga Alpha plats: 12B";
         const source = "brygga";
         const expected = "12B";
+        expect(parseOmradePlatsValue(input, source)).toBe(expected);
+    });
 
+    it("Testa med bindestreck", () => {
+        const input = "Brygga Alpha - 12B";
+        const source = "brygga";
+        const expected = "12B";
+        expect(parseOmradePlatsValue(input, source)).toBe(expected);
+    });
+
+    it("Testa med kolon", () => {
+        const input = "Varvsområde: 12B";
+        const source = "varvsomrade";
+        const expected = "12B";
         expect(parseOmradePlatsValue(input, source)).toBe(expected);
     });
 
@@ -26,4 +38,10 @@ describe("parseOmradePlatsValue", () => {
         expect(parseOmradePlatsValue(input, source)).toBe(expected);
     });
 
+    it("Testa null", () => {
+        const input = null;
+        const source = "abc123";
+        const expected = "";
+        expect(parseOmradePlatsValue(input, source)).toBe(expected);
+    });
 });
