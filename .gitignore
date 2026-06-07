@@ -4,6 +4,7 @@
 *.xlsb
 *.drawio
 *.drawio.xml
+node_modules/
 !projects/kartgenerator/assets/examples/
 !projects/kartgenerator/assets/examples/exempel.xlsx
 !projects/kartgenerator/assets/examples/exempel.drawio

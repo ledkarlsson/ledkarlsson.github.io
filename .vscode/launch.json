@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug toolbox in Chrome",
+      "url": "http://localhost:8000/",
+      "webRoot": "${workspaceFolder}",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "preLaunchTask": "Serve site"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug kartgenerator in Chrome",
+      "url": "http://localhost:8000/projects/kartgenerator/",
+      "webRoot": "${workspaceFolder}",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "preLaunchTask": "Serve site"
+    }
+  ]
+}
