@@ -1,4 +1,4 @@
-﻿import { parseOmradePlatsValue } from "./kartgenerator-utils.js";
+﻿import { parseOmradePlatsValue, isPlaceBoxLabel } from "./kartgenerator-utils.js";
 
 const uploadZone = document.querySelector("#upload-zone");
 const feedbackEmailButton = document.querySelector("#feedback-email");
@@ -748,9 +748,6 @@ function makeDrawioLabel(row) {
   return lines.join("<br>");
 }
 
-function isPlaceBoxLabel(label) {
-  return /^[0-9]+[A-Za-zÅÄÖåäö]?$/.test(String(label).trim());
-}
 
 function getColumnIndexByName(columnName) {
   const normalizedName = normalizeColumnName(columnName);

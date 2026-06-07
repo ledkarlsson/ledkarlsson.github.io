@@ -1,3 +1,7 @@
+export function isPlaceBoxLabel(label) {
+  return /^[0-9]+[A-Za-zÅÄÖåäö]?$/.test(String(label).trim());
+}
+
 export function parseOmradePlatsValue(value, source) {
     const text = value === null || value === undefined ? "" : String(value);
     const sourcePattern = source === "brygga" ? "(?:brygga|vinterplats(?:er)?)" : "varvsomr(?:a|å)de";

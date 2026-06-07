@@ -1,5 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { parseOmradePlatsValue } from "../assets/js/kartgenerator-utils.js";
+import { isPlaceBoxLabel, parseOmradePlatsValue } from "../assets/js/kartgenerator-utils.js";
+
+describe("isPlaceBoxLabel", () => {
+    it("Returnerar true för ett giltigt platsnummer", () => {
+        const input = "12";
+        expect(isPlaceBoxLabel(input)).toBe(true)
+    });
+
+    it("Returnerar False för flera ord", () => {
+        const input = "abc 123";
+        expect(isPlaceBoxLabel(input)).toBe(false)
+    });
+
+});
 
 describe("parseOmradePlatsValue", () => {
     it("Testa Varvsområde", () => {
