@@ -1,4 +1,5 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
+import { getMapPlaceLabels } from "./drawio.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const feedbackEmailButton = document.querySelector("#feedback-email");
@@ -730,31 +731,6 @@ function makeDrawioLabel(row) {
 function getColumnIndexByName(columnName) {
   const normalizedName = normalizeColumnName(columnName);
   return excelColumns.findIndex((column) => normalizeColumnName(column.name) === normalizedName);
-}
-
-function getMapPlaceLabels(xml) {
-  if (!xml) {
-    return new Set();
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return new Set();
-  }
-
-  const labels = new Set();
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
-
-    if (isPlaceBoxLabel(label)) {
-      labels.add(normalizePlaceCode(label));
-    }
-  });
-
-  return labels;
 }
 
 function renderMissingPeopleTable(rows) {
