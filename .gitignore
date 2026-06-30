@@ -6,6 +6,8 @@
 *.drawio.xml
 node_modules/
 coverage/
+test-results/
+playwright-report/
 !projects/kartgenerator/assets/examples/
 !projects/kartgenerator/assets/examples/exempel.xlsx
 !projects/kartgenerator/assets/examples/exempel.drawio
