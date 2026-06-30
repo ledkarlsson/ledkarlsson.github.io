@@ -2,7 +2,6 @@
 import { getMapPlaceLabels } from "./drawio.js"
 
 const uploadZone = document.querySelector("#upload-zone");
-const feedbackEmailButton = document.querySelector("#feedback-email");
 const exampleDownloadLinks = document.querySelectorAll(".example-download");
 const excelUpload = document.querySelector("#excel-upload");
 const fileStatus = document.querySelector("#file-status");
@@ -77,14 +76,6 @@ function preserveWindowScroll(callback) {
 
 function cancelPendingScrollRestore() {
   scrollRestoreToken += 1;
-}
-
-function openFeedbackEmail() {
-  const user = ["led", "karsson"].join(".");
-  const domain = ["gmail", "com"].join(".");
-  const subject = encodeURIComponent("Feedback kartgenerator");
-
-  window.location.href = `mailto:${user}@${domain}?subject=${subject}`;
 }
 
 async function downloadExampleFile(event) {
@@ -476,6 +467,31 @@ function showFile(file) {
   readColumns(file);
 }
 
+function setDrawioUploadMessage(title, help = "") {
+  drawioUploadZone.replaceChildren();
+
+  const titleElement = document.createElement("span");
+  titleElement.className = "drawio-title";
+  titleElement.textContent = title;
+  drawioUploadZone.append(titleElement);
+
+  if (help) {
+    const helpElement = document.createElement("span");
+    helpElement.className = "drawio-help";
+    helpElement.textContent = help;
+    drawioUploadZone.append(helpElement);
+  }
+
+  drawioUploadZone.append(drawioUpload);
+}
+
+function resetDrawioUploadMessage() {
+  setDrawioUploadMessage(
+    "Ladda upp draw.io-fil",
+    "Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja"
+  );
+}
+
 function showDrawioFile(file) {
   const fileName = file.name.toLowerCase();
   const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
@@ -483,10 +499,9 @@ function showDrawioFile(file) {
   drawioUploadZone.classList.remove("has-error", "has-file");
 
   if (!isDrawioFile) {
-    drawioUploadZone.textContent = "Välj en draw.io-fil som slutar med .drawio eller .drawio.xml.";
+    setDrawioUploadMessage("Välj en draw.io-fil som slutar med .drawio eller .drawio.xml.");
     drawioUploadZone.classList.add("has-error");
     drawioPanelTitle.textContent = "draw.io-diagram";
-    drawioUploadZone.append(drawioUpload);
     drawioUpload.value = "";
     sourceDrawioXml = "";
     sourceDrawioFileName = "";
@@ -500,7 +515,7 @@ function showDrawioFile(file) {
   drawioPanelTitle.textContent = file.name;
   clearDrawioButton.hidden = false;
   sourceDrawioFileName = file.name;
-  drawioUploadZone.textContent = "";
+  drawioUploadZone.replaceChildren();
   drawioUploadZone.classList.add("has-file");
   drawioUploadZone.append(drawioUpload);
   drawioUploadZone.hidden = true;
@@ -524,8 +539,7 @@ function clearDrawioFile() {
   clearDrawioButton.hidden = true;
   drawioUploadZone.hidden = false;
   drawioUploadZone.classList.remove("has-file", "has-error");
-  drawioUploadZone.textContent = "Ladda upp en draw.io fil";
-  drawioUploadZone.append(drawioUpload);
+  resetDrawioUploadMessage();
   drawioViewer.hidden = true;
   sourceDrawioXml = "";
   sourceDrawioFileName = "";
@@ -938,9 +952,8 @@ function readDrawioFile(file) {
     const xml = String(event.target.result || "").trim();
 
     if (!xml) {
-      drawioUploadZone.textContent = "Den här draw.io-filen är tom.";
+      setDrawioUploadMessage("Den här draw.io-filen är tom.");
       drawioUploadZone.classList.add("has-error");
-      drawioUploadZone.append(drawioUpload);
       sourceDrawioXml = "";
       sourceDrawioFileName = "";
       drawioViewer.hidden = true;
@@ -961,9 +974,8 @@ function readDrawioFile(file) {
   });
 
   reader.addEventListener("error", () => {
-    drawioUploadZone.textContent = "Kunde inte läsa draw.io-filen.";
+    setDrawioUploadMessage("Kunde inte läsa draw.io-filen.");
     drawioUploadZone.classList.add("has-error");
-    drawioUploadZone.append(drawioUpload);
     sourceDrawioXml = "";
     sourceDrawioFileName = "";
     updateMissingPeopleList();
@@ -995,7 +1007,6 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-feedbackEmailButton.addEventListener("click", openFeedbackEmail);
 exampleDownloadLinks.forEach((link) => {
   link.addEventListener("click", downloadExampleFile);
 });

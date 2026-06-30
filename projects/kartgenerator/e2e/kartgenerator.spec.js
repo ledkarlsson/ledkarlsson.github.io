@@ -82,7 +82,9 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
   await test.step("Kontrollera startläget", async () => {
     await expect(page.getByRole("heading", { name: "kartgenerator" })).toBeVisible();
     await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
-    await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp en draw.io fil");
+    await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp draw.io-fil");
+    await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
+    await expect(page.locator("#feedback-email")).toHaveAttribute("href", "mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator");
     await expect(page.locator("#generated-empty")).toHaveText("Ladda upp Excel-fil och drawio-fil.");
     await expect(page.locator("#download-generated")).toBeDisabled();
     await expect(page.locator("#download-generated-png")).toBeDisabled();

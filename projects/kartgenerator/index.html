@@ -35,7 +35,8 @@
       </div>
       <p class="feedback">
         För feedback, skicka mail till
-        <button class="feedback-link" id="feedback-email" type="button">led.karlsson(snabela)gmail.com</button>.
+        <a class="feedback-link" id="feedback-email"
+          href="mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator">led.karlsson(snabela)gmail.com</a>.
       </p>
     </section>
 
@@ -85,7 +86,8 @@
           <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
         </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
-          Ladda upp en draw.io fil
+          <span class="drawio-title">Ladda upp draw.io-fil</span>
+          <span class="drawio-help">Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja</span>
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
