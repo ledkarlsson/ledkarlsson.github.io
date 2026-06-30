@@ -1,36 +1,14 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+const sheetJsBundlePath = path.join(process.cwd(), "node_modules", "xlsx", "dist", "xlsx.full.min.js");
 
 async function mockExternalScripts(page) {
   await page.route("https://cdn.sheetjs.com/**", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
-      body: `
-        window.XLSX = {
-          read() {
-            return {
-              SheetNames: ["BAS"],
-              Sheets: { BAS: {} }
-            };
-          },
-          utils: {
-            sheet_to_json() {
-              return [
-                ["Omrade/Plats", "Fornamn", "Efternamn"],
-                ["Varvsomrade Alpha plats: 53", "Anna", "Andersson"],
-                ["Varvsomrade Alpha plats: 99", "Bo", "Bengtsson"]
-              ];
-            },
-            json_to_sheet(rows) {
-              return { rows };
-            },
-            book_new() {
-              return {};
-            },
-            book_append_sheet() {}
-          },
-          writeFile() {}
-        };
-      `
+      body: await readFile(sheetJsBundlePath, "utf8")
     });
   });
 
@@ -91,33 +69,7 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
   });
 });
 
-test("läser nedladdad Excel-exempeldata och visar vald tabell", async ({ page }, testInfo) => {
-  await test.step("Öppna kartgeneratorn", async () => {
-    await page.goto("/projects/kartgenerator/");
-  });
-
-  const excelExamplePath = await downloadExampleFile(page, "Ladda ner exempel-Excel", testInfo);
-
-  await test.step("Ladda upp nedladdat Excel-exempel", async () => {
-    await page.locator("#excel-upload").setInputFiles(excelExamplePath);
-  });
-
-  await test.step("Skrolla till vald tabell", async () => {
-    await scrollToCenter(page, "#table-panel");
-  });
-
-  await test.step("Kontrollera vald kolumntabell", async () => {
-    await expect(page.locator("#columns-panel")).toBeVisible();
-    await expect(page.locator("#columns-meta")).toHaveText('3 kolumner hittades i "BAS".');
-    await expect(page.locator("#selected-columns")).toHaveText("3 valda: Omrade/Plats, Fornamn, Efternamn");
-    await expect(page.locator("#table-meta")).toHaveText("2 rader visas med 3 valda kolumner.");
-    await expect(page.locator("#selected-table")).toContainText("Anna");
-    await expect(page.locator("#selected-table")).toContainText("Andersson");
-    await expect(page.locator("#selected-table")).toContainText("53");
-  });
-});
-
-test("aktiverar genererad draw.io-output efter nedladdning och uppladdning av exempel", async ({ page }, testInfo) => {
+test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", async ({ page }, testInfo) => {
   await test.step("Öppna kartgeneratorn", async () => {
     await page.goto("/projects/kartgenerator/");
   });
@@ -128,6 +80,20 @@ test("aktiverar genererad draw.io-output efter nedladdning och uppladdning av ex
   await test.step("Ladda upp nedladdade exempel", async () => {
     await page.locator("#excel-upload").setInputFiles(excelExamplePath);
     await page.locator("#drawio-upload").setInputFiles(drawioExamplePath);
+  });
+
+  await test.step("Skrolla till vald tabell", async () => {
+    await scrollToCenter(page, "#table-panel");
+  });
+
+  await test.step("Kontrollera vald kolumntabell", async () => {
+    await expect(page.locator("#columns-panel")).toBeVisible();
+    await expect(page.locator("#columns-meta")).toHaveText('5 kolumner hittades i "Rapport".');
+    await expect(page.locator("#selected-columns")).toHaveText("3 valda: Område/plats, Förnamn, Efternamn");
+    await expect(page.locator("#table-meta")).toHaveText("4 rader visas med 3 valda kolumner.");
+    await expect(page.locator("#selected-table")).toContainText("Pelle");
+    await expect(page.locator("#selected-table")).toContainText("Pelleson");
+    await expect(page.locator("#selected-table")).toContainText("51");
   });
 
   await test.step("Skrolla till genererat diagram", async () => {
@@ -147,7 +113,10 @@ test("aktiverar genererad draw.io-output efter nedladdning och uppladdning av ex
   await test.step("Kontrollera rapport över saknade platser", async () => {
     await expect(page.locator("#missing-panel")).toBeVisible();
     await expect(page.locator("#missing-meta")).toHaveText("1 person finns i BAS men saknas i kartan.");
-    await expect(page.locator("#missing-table")).toContainText("99");
-    await expect(page.locator("#missing-table")).toContainText("Bo");
+    const missingRows = await page.locator("#missing-table tbody tr").evaluateAll((rows) =>
+      rows.map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent.trim()))
+    );
+
+    expect(missingRows).toContainEqual(["75", "Josefin", "Josefinsson"]);
   });
 });
