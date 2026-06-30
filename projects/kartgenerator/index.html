@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kartgenerator | Daniel Karlsson's Toolbox</title>
+  <title>Kartgenerator | Daniel Karlssons verktygslåda</title>
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="assets/css/kartgenerator.css" />
@@ -12,16 +12,16 @@
 
 <body>
   <main class="page">
-    <nav class="topbar" aria-label="Project navigation">
+    <nav class="topbar" aria-label="Projektnavigering">
       <a class="brand" href="../../">Daniel Karlsson</a>
-      <a class="button" href="../../">Back to toolbox</a>
+      <a class="button" href="../../">Tillbaka till verktygslådan</a>
     </nav>
 
     <section class="title-panel" aria-labelledby="project-title">
-      <span class="meta">Project kartgenerator</span>
+      <span class="meta">Projekt kartgenerator</span>
       <h1 id="project-title">kartgenerator</h1>
       <p>
-        En kartgenerator som kan generera kartor från Excel-data. relevant for båtklubbar. Gör så här: Gå in i BAS,
+        En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar. Gör så här: Gå in i BAS,
         skapa en rapport, som innehåller kolumner som Förnamn, Efternamn, och område.
         Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna ner exemplet för draw.io, och ladda upp för att
         testa. Du kan gå in i denna fil sedan via programmet draw.io.
@@ -39,10 +39,10 @@
       </p>
     </section>
 
-    <section class="project" aria-label="Kartgenerator workspace">
+    <section class="project" aria-label="Kartgeneratorns arbetsyta">
       <div class="excel-panel">
         <div class="panel-header">
-          <h2 class="panel-title" id="excel-panel-title">Excel data från BAS rapport</h2>
+          <h2 class="panel-title" id="excel-panel-title">Excel-data från BAS-rapport</h2>
           <button class="clear-button" id="clear-excel" type="button" hidden>Rensa</button>
         </div>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
@@ -52,12 +52,12 @@
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
         <section class="columns-panel" id="columns-panel" aria-labelledby="columns-title" hidden>
-          <h2 id="columns-title">Excel columns</h2>
-          <p class="columns-meta" id="columns-meta">Upload an Excel file to list its columns.</p>
+          <h2 id="columns-title">Excel-kolumner</h2>
+          <p class="columns-meta" id="columns-meta">Ladda upp en Excel-fil för att visa kolumnerna.</p>
           <ul class="columns-list" id="columns-list"></ul>
-          <p class="selected-columns" id="selected-columns">No columns selected.</p>
+          <p class="selected-columns" id="selected-columns">Inga kolumner valda.</p>
           <fieldset class="parse-controls" id="parse-controls">
-            <legend class="parse-controls-title">Parse område/plats from</legend>
+            <legend class="parse-controls-title">Tolka område/plats från</legend>
             <div class="parse-options">
               <label>
                 <input type="radio" name="omrade-plats-source" value="varvsomrade" checked />
@@ -72,16 +72,16 @@
         </section>
         <section class="table-panel" id="table-panel" aria-labelledby="table-title" hidden>
           <h2 id="table-title">Vald data</h2>
-          <p class="table-meta" id="table-meta">Select columns to build a table.</p>
+          <p class="table-meta" id="table-meta">Välj kolumner för att skapa en tabell.</p>
           <div class="table-wrap" id="table-wrap" hidden>
             <table class="selected-table" id="selected-table"></table>
           </div>
         </section>
       </div>
 
-      <div class="workspace" aria-label="Kartgenerator workspace preview">
+      <div class="workspace" aria-label="Förhandsvisning av kartgeneratorns arbetsyta">
         <div class="panel-header">
-          <h2 class="panel-title" id="drawio-panel-title">draw.io diagram</h2>
+          <h2 class="panel-title" id="drawio-panel-title">draw.io-diagram</h2>
           <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
         </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
@@ -89,7 +89,7 @@
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
-          <iframe class="drawio-frame" id="drawio-frame" title="draw.io file preview"
+          <iframe class="drawio-frame" id="drawio-frame" title="Förhandsvisning av draw.io-fil"
             src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
           </iframe>
         </div>
@@ -98,7 +98,7 @@
 
     <section class="generated-panel" aria-labelledby="generated-title">
       <div class="generated-header">
-        <h2 class="panel-title" id="generated-title">Generated draw.io diagram</h2>
+        <h2 class="panel-title" id="generated-title">Genererat draw.io-diagram</h2>
         <div class="actions">
           <button class="button" id="download-generated" type="button" disabled>Ladda ner draw.io</button>
           <button class="button" id="download-generated-png" type="button" disabled>Ladda ner PNG</button>
@@ -116,7 +116,7 @@
         Ladda upp Excel-fil och drawio-fil.
       </div>
       <div class="generated-viewer" id="generated-viewer" hidden>
-        <iframe class="generated-frame" id="generated-frame" title="Generated draw.io diagram"
+        <iframe class="generated-frame" id="generated-frame" title="Genererat draw.io-diagram"
           src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
         </iframe>
       </div>
@@ -127,7 +127,7 @@
         <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
         <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
       </div>
-      <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io for att se saknade platser.</p>
+      <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io för att se saknade platser.</p>
       <div class="table-wrap" id="missing-wrap" hidden>
         <table class="selected-table" id="missing-table"></table>
       </div>

@@ -97,7 +97,7 @@ async function downloadExampleFile(event) {
     const response = await fetch(link.href);
 
     if (!response.ok) {
-      throw new Error("Could not fetch example file.");
+      throw new Error("Kunde inte hämta exempelfilen.");
     }
 
     const blob = await response.blob();
@@ -127,7 +127,7 @@ function clearColumns(message) {
   selectedTableSortDirection = "asc";
   parsedOmradePlatsColumnIndex = null;
   parseControls.classList.remove("is-visible");
-  selectedColumnsStatus.textContent = "No columns selected.";
+  selectedColumnsStatus.textContent = "Inga kolumner valda.";
   renderSelectedTable();
   updateGeneratedDiagram();
   updateMissingPeopleList();
@@ -135,12 +135,12 @@ function clearColumns(message) {
 
 function updateSelectedColumnsStatus() {
   if (selectedColumnIndexes.length === 0) {
-    selectedColumnsStatus.textContent = "No columns selected.";
+    selectedColumnsStatus.textContent = "Inga kolumner valda.";
     return;
   }
 
   const selectedNames = selectedColumnIndexes.map((columnIndex) => excelColumns[columnIndex].name);
-  selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} selected: ${selectedNames.join(", ")}`;
+  selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} valda: ${selectedNames.join(", ")}`;
 }
 
 function getSelectedParseSource() {
@@ -279,7 +279,7 @@ function renderSelectedTable() {
   }
 
   if (selectedColumnIndexes.length === 0) {
-    tableMeta.textContent = "Select columns to build a table.";
+    tableMeta.textContent = "Välj kolumner för att skapa en tabell.";
     tableWrap.hidden = true;
     updateGeneratedDiagram();
     return;
@@ -289,7 +289,7 @@ function renderSelectedTable() {
   updateMissingPeopleList();
 
   if (visibleRows.length === 0) {
-    tableMeta.textContent = "No data rows found under the header row.";
+    tableMeta.textContent = "Inga datarader hittades under rubrikraden.";
     tableWrap.hidden = true;
     updateGeneratedDiagram();
     return;
@@ -334,7 +334,7 @@ function renderSelectedTable() {
 
   tbody.append(bodyFragment);
   selectedTable.append(thead, tbody);
-  tableMeta.textContent = `${visibleRows.length} row${visibleRows.length === 1 ? "" : "s"} shown with ${selectedColumnIndexes.length} selected column${selectedColumnIndexes.length === 1 ? "" : "s"}.`;
+  tableMeta.textContent = `${visibleRows.length} ${visibleRows.length === 1 ? "rad visas" : "rader visas"} med ${selectedColumnIndexes.length} ${selectedColumnIndexes.length === 1 ? "vald kolumn" : "valda kolumner"}.`;
   tableWrap.hidden = false;
   updateGeneratedDiagram();
 }
@@ -348,13 +348,13 @@ function renderColumns(columns, sheetName) {
     .map((column) => column.index);
 
   if (columns.length === 0) {
-    columnsMeta.textContent = `No columns found in "${sheetName}".`;
+    columnsMeta.textContent = `Inga kolumner hittades i "${sheetName}".`;
     updateSelectedColumnsStatus();
     renderSelectedTable();
     return;
   }
 
-  columnsMeta.textContent = `${columns.length} column${columns.length === 1 ? "" : "s"} found in "${sheetName}".`;
+  columnsMeta.textContent = `${columns.length} ${columns.length === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}".`;
 
   columns.forEach((columnName) => {
     const item = document.createElement("li");
@@ -403,9 +403,9 @@ function renderColumns(columns, sheetName) {
 
 function readColumns(file) {
   if (!window.XLSX) {
-    fileStatus.textContent = "Excel reader could not load. Check your internet connection and refresh.";
+    fileStatus.textContent = "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.";
     fileStatus.classList.add("has-error");
-    clearColumns("Excel reader is not available.");
+    clearColumns("Excel-läsaren är inte tillgänglig.");
     return;
   }
 
@@ -417,7 +417,7 @@ function readColumns(file) {
       const [firstSheetName] = workbook.SheetNames;
 
       if (!firstSheetName) {
-        clearColumns("No sheets found in this workbook.");
+        clearColumns("Inga blad hittades i arbetsboken.");
         return;
       }
 
@@ -430,7 +430,7 @@ function readColumns(file) {
         const value = cell === null || cell === undefined ? "" : String(cell).trim();
         return {
           index,
-          name: value || `Column ${index + 1}`
+          name: value || `Kolumn ${index + 1}`
         };
       });
 
@@ -438,9 +438,9 @@ function readColumns(file) {
       excelRows = parseRows(columns, rawExcelRows);
       renderColumns(columns, firstSheetName);
     } catch (error) {
-      fileStatus.textContent = "Could not read this Excel file.";
+      fileStatus.textContent = "Kunde inte läsa Excel-filen.";
       fileStatus.classList.add("has-error");
-      clearColumns("Try another .xls or .xlsx file.");
+      clearColumns("Försök med en annan .xls- eller .xlsx-fil.");
     }
   });
 
@@ -455,12 +455,12 @@ function showFile(file) {
   fileStatus.classList.remove("has-file", "has-error");
 
   if (!isExcelFile) {
-    fileStatus.textContent = "Choose an Excel file ending in .xls or .xlsx.";
+    fileStatus.textContent = "Välj en Excel-fil som slutar med .xls eller .xlsx.";
     fileStatus.classList.add("has-error");
-    excelPanelTitle.textContent = "Excel data";
+    excelPanelTitle.textContent = "Excel-data";
     excelUpload.value = "";
     uploadZone.hidden = false;
-    clearColumns("Upload an Excel file to list its columns.");
+    clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
     return;
   }
 
@@ -470,7 +470,7 @@ function showFile(file) {
   clearExcelButton.hidden = false;
   uploadZone.classList.add("has-file");
   uploadZone.hidden = true;
-  clearColumns("Reading columns...");
+  clearColumns("Läser kolumner...");
   columnsPanel.hidden = false;
   tablePanel.hidden = false;
   readColumns(file);
@@ -483,9 +483,9 @@ function showDrawioFile(file) {
   drawioUploadZone.classList.remove("has-error", "has-file");
 
   if (!isDrawioFile) {
-    drawioUploadZone.textContent = "Choose a draw.io file ending in .drawio or .drawio.xml.";
+    drawioUploadZone.textContent = "Välj en draw.io-fil som slutar med .drawio eller .drawio.xml.";
     drawioUploadZone.classList.add("has-error");
-    drawioPanelTitle.textContent = "draw.io diagram";
+    drawioPanelTitle.textContent = "draw.io-diagram";
     drawioUploadZone.append(drawioUpload);
     drawioUpload.value = "";
     sourceDrawioXml = "";
@@ -509,18 +509,18 @@ function showDrawioFile(file) {
 
 function clearExcelFile() {
   excelUpload.value = "";
-  excelPanelTitle.textContent = "Excel data från BAS rapport";
+  excelPanelTitle.textContent = "Excel-data från BAS-rapport";
   clearExcelButton.hidden = true;
   uploadZone.hidden = false;
   uploadZone.classList.remove("has-file");
   fileStatus.textContent = "";
   fileStatus.classList.remove("has-file", "has-error");
-  clearColumns("Upload an Excel file to list its columns.");
+  clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
 }
 
 function clearDrawioFile() {
   drawioUpload.value = "";
-  drawioPanelTitle.textContent = "draw.io diagram";
+  drawioPanelTitle.textContent = "draw.io-diagram";
   clearDrawioButton.hidden = true;
   drawioUploadZone.hidden = false;
   drawioUploadZone.classList.remove("has-file", "has-error");
@@ -737,7 +737,7 @@ function renderMissingPeopleTable(rows) {
   missingTable.replaceChildren();
 
   if (rows.length === 0) {
-    missingMeta.textContent = "Alla rader med fornamn, efternamn och plats finns i kartan.";
+    missingMeta.textContent = "Alla rader med förnamn, efternamn och plats finns i kartan.";
     missingWrap.hidden = true;
     downloadMissingButton.disabled = true;
     return;
@@ -858,7 +858,7 @@ function createGeneratedDrawioXml(xml, rows) {
   const documentXml = parser.parseFromString(xml, "application/xml");
 
   if (documentXml.querySelector("parsererror")) {
-    throw new Error("Could not parse draw.io XML.");
+    throw new Error("Kunde inte tolka draw.io-XML.");
   }
 
   const rowsByPlace = new Map();
@@ -920,14 +920,14 @@ function updateGeneratedDiagram() {
   const visibleRows = getVisibleRows();
 
   if (visibleRows.length === 0) {
-    showGeneratedMessage("No matching område/plats rows to place in the generated diagram.");
+    showGeneratedMessage("Inga matchande rader för område/plats att placera i det genererade diagrammet.");
     return;
   }
 
   try {
     loadGeneratedViewer(createGeneratedDrawioXml(sourceDrawioXml, visibleRows));
   } catch (error) {
-    showGeneratedMessage("Could not generate a draw.io diagram from this file.");
+    showGeneratedMessage("Kunde inte generera ett draw.io-diagram från filen.");
   }
 }
 
@@ -938,7 +938,7 @@ function readDrawioFile(file) {
     const xml = String(event.target.result || "").trim();
 
     if (!xml) {
-      drawioUploadZone.textContent = "This draw.io file is empty.";
+      drawioUploadZone.textContent = "Den här draw.io-filen är tom.";
       drawioUploadZone.classList.add("has-error");
       drawioUploadZone.append(drawioUpload);
       sourceDrawioXml = "";
@@ -961,7 +961,7 @@ function readDrawioFile(file) {
   });
 
   reader.addEventListener("error", () => {
-    drawioUploadZone.textContent = "Could not read this draw.io file.";
+    drawioUploadZone.textContent = "Kunde inte läsa draw.io-filen.";
     drawioUploadZone.classList.add("has-error");
     drawioUploadZone.append(drawioUpload);
     sourceDrawioXml = "";
@@ -1081,4 +1081,3 @@ window.addEventListener("message", (event) => {
     downloadPngWithWhiteBackground(message.data, getGeneratedPngFileName());
   }
 });
-
