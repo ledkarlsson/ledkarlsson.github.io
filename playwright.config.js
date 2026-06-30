@@ -7,7 +7,8 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:4173",
-    trace: "on-first-retry"
+    trace: "on-first-retry",
+    viewport: { width: 1440, height: 1100 }
   },
   webServer: {
     command: "npx vite --host 127.0.0.1 --port 4173",
