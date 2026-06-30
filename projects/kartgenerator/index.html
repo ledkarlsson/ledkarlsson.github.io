@@ -22,9 +22,11 @@
       <h1 id="project-title">kartgenerator</h1>
       <p>
         En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar. Gör så här: Gå in i BAS,
-        skapa en rapport, som innehåller kolumner som Förnamn, Efternamn, och område.
-        Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna ner exemplet för draw.io, och ladda upp för att
-        testa. Du kan gå in i denna fil sedan via programmet draw.io.
+        skapa en rapport som innehåller kolumner som Förnamn, Efternamn, och område.
+        Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna ner exemplet för draw.io, och ladda upp i
+        högerkolumnen för att testa.
+        Du kan ändra direkt i högerkolumnen, och den genererade kartan kommer att uppdateras. Du kan även ändra kartan i
+        t.ex. Google Drive, eller via programmet draw.io.
         Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror.
       </p>
       <div class="example-downloads" aria-label="Exempelfiler">
@@ -87,7 +89,8 @@
         </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
           <span class="drawio-title">Ladda upp draw.io-fil</span>
-          <span class="drawio-help">Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja</span>
+          <span class="drawio-help">Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att
+            välja</span>
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>

@@ -48,6 +48,12 @@ async function scrollToCenter(page, selector) {
   await page.waitForTimeout(100);
 }
 
+function addDrawioPlaceBox(xml, place) {
+  const cell = `<mxCell id="playwright-place-${place}" value="${place}" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="120" height="40" as="geometry"/></mxCell>`;
+
+  return xml.replace("</root>", `${cell}</root>`);
+}
+
 test.beforeEach(async ({ page }) => {
   await mockExternalScripts(page);
 });
@@ -118,5 +124,38 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     );
 
     expect(missingRows).toContainEqual(["75", "Josefin", "Josefinsson"]);
+  });
+
+  await test.step("Lägg till plats 75 i originalkartan", async () => {
+    const drawioXml = await readFile(drawioExamplePath, "utf8");
+    const sourceFrameElement = await page.locator("#drawio-frame").elementHandle();
+    const sourceFrame = await sourceFrameElement.contentFrame();
+
+    expect(sourceFrame).not.toBeNull();
+
+    await sourceFrame.evaluate((updatedXml) => {
+      window.parent.postMessage(JSON.stringify({
+        event: "autosave",
+        xml: updatedXml
+      }), "*");
+    }, addDrawioPlaceBox(drawioXml, "75"));
+  });
+
+  await test.step("Kontrollera att saknad BAS-rad flyttas till den genererade kartan", async () => {
+    await expect(page.locator("#missing-panel")).toBeHidden();
+
+    const downloadPromise = page.waitForEvent("download");
+
+    await page.locator("#download-generated").click();
+
+    const download = await downloadPromise;
+    const generatedPath = testInfo.outputPath(download.suggestedFilename());
+
+    await download.saveAs(generatedPath);
+
+    const generatedXml = await readFile(generatedPath, "utf8");
+
+    expect(generatedXml).toContain("75");
+    expect(generatedXml).toContain("Josefin Josefinsson");
   });
 });

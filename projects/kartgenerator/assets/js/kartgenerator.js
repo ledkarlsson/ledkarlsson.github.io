@@ -548,26 +548,26 @@ function clearDrawioFile() {
   updateGeneratedDiagram();
 }
 
-function loadDrawioXml(frame, xml) {
+function loadDrawioXml(frame, xml, options = {}) {
   frame.contentWindow.postMessage(JSON.stringify({
     action: "load",
     xml,
-    autosave: 0,
+    autosave: options.autosave ? 1 : 0,
     modified: 0
   }), "*");
 }
 
-function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12) {
+function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12, options = {}) {
   const hasSize = frame.offsetWidth > 0 && frame.offsetHeight > 0;
 
   if (!hasSize && attemptsLeft > 0) {
-    requestAnimationFrame(() => loadDrawioXmlWhenVisible(frame, xml, attemptsLeft - 1));
+    requestAnimationFrame(() => loadDrawioXmlWhenVisible(frame, xml, attemptsLeft - 1, options));
     return;
   }
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      loadDrawioXml(frame, xml);
+      loadDrawioXml(frame, xml, options);
     });
   });
 }
@@ -575,7 +575,7 @@ function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12) {
 function loadDrawioViewer(xml) {
   pendingDrawioXml = xml;
   drawioViewer.hidden = false;
-  loadDrawioXmlWhenVisible(drawioFrame, xml);
+  loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true });
 }
 
 function loadGeneratedViewer(xml) {
@@ -752,11 +752,13 @@ function renderMissingPeopleTable(rows) {
 
   if (rows.length === 0) {
     missingMeta.textContent = "Alla rader med förnamn, efternamn och plats finns i kartan.";
+    missingPanel.hidden = true;
     missingWrap.hidden = true;
     downloadMissingButton.disabled = true;
     return;
   }
 
+  missingPanel.hidden = false;
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -849,6 +851,26 @@ function updateMissingPeopleList() {
   missingPanel.hidden = false;
   missingPeopleRows = missingRows;
   renderMissingPeopleTable(getSortedMissingPeopleRows());
+}
+
+function updateSourceDrawioXml(xml) {
+  const updatedXml = String(xml || "").trim();
+
+  if (!updatedXml || updatedXml === sourceDrawioXml) {
+    return;
+  }
+
+  sourceDrawioXml = updatedXml;
+  pendingDrawioXml = updatedXml;
+
+  preserveWindowScroll(() => {
+    if (excelColumns.length > 0 && rawExcelRows.length > 0) {
+      reparseRows(true);
+    } else {
+      updateMissingPeopleList();
+      updateGeneratedDiagram();
+    }
+  });
 }
 
 function downloadMissingPeopleExcel() {
@@ -1086,6 +1108,10 @@ window.addEventListener("message", (event) => {
 
   if (message.event === "init" && event.source === generatedFrame.contentWindow && pendingGeneratedDrawioXml) {
     loadGeneratedViewer(pendingGeneratedDrawioXml);
+  }
+
+  if (event.source === drawioFrame.contentWindow && typeof message.xml === "string" && ["autosave", "save"].includes(message.event)) {
+    updateSourceDrawioXml(message.xml);
   }
 
   if (message.event === "export" && event.source === generatedFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
