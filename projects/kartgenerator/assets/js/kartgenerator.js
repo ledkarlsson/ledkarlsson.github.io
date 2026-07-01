@@ -229,6 +229,10 @@ function updateSelectedColumnsStatus() {
   selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} valda: ${selectedNames.join(", ")}`;
 }
 
+function isRequiredColumn(column) {
+  return normalizeColumnName(column.name) === "omrade/plats";
+}
+
 function getSelectedParseSource() {
   const selectedInput = [...parseSourceInputs].find((input) => input.checked);
   return selectedInput ? selectedInput.value : "varvsomrade";
@@ -467,6 +471,10 @@ function renderColumns(columns, sheetName) {
   columnsMeta.textContent = `${columns.length} ${columns.length === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}".`;
 
   columns.forEach((columnName) => {
+    if (isRequiredColumn(columnName)) {
+      return;
+    }
+
     const item = document.createElement("li");
     const button = document.createElement("button");
     const columnIndex = columnName.index;

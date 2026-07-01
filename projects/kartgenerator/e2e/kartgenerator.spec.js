@@ -106,6 +106,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#columns-panel")).toBeVisible();
     await expect(page.locator("#columns-meta")).toHaveText('5 kolumner hittades i "Rapport".');
     await expect(page.locator("#selected-columns")).toHaveText("3 valda: Område/plats, Förnamn, Efternamn");
+    await expect(page.locator("#columns-list .column-button", { hasText: "Område/plats" })).toHaveCount(0);
     await expect(page.locator("#parse-controls")).toBeHidden();
     await expect(page.locator("#table-meta")).toHaveText("4 rader visas med 3 valda kolumner.");
     await expect(page.locator("#selected-table")).toContainText("Pelle");
