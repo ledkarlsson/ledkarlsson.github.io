@@ -27,7 +27,7 @@
         Gör så här: Gå in i BAS,
         skapa en rapport som innehåller kolumner som Förnamn, Efternamn och platsinformation.
 
-        Skapa sedan en karta i draw.io, och rita boxar. Ladda gärna in exempel för Excel och kartan.
+        Skapa sedan en karta med en ruta per båtplats. Ladda gärna in exempel för Excel och kartan.
         Du kan ändra direkt i kartan i högerpanelen, och den genererade kartan kommer att uppdateras.
 
         Du kan även ändra kartan i
@@ -93,16 +93,16 @@
       <div class="workspace" aria-label="Förhandsvisning av kartgeneratorns arbetsyta">
         <div class="panel-header">
           <div class="panel-title-row">
-            <h2 class="panel-title" id="drawio-panel-title">draw.io-diagram</h2>
+            <h2 class="panel-title" id="drawio-panel-title">Karta</h2>
             <button class="help-button" type="button" data-help-target="map-help" aria-label="Hjälp för kartan">?</button>
           </div>
           <div class="panel-header-actions">
             <div class="example-menu" id="drawio-example-menu">
               <button class="button secondary" id="drawio-example-button" type="button"
-                aria-expanded="false">Exempel-draw.io</button>
+                aria-expanded="false">Exempelkarta</button>
               <div class="download-options example-options" id="drawio-example-options" hidden>
-                <button type="button" id="download-example-drawio">Ladda ner draw.io-filen</button>
-                <button type="button" id="load-example-drawio">Läs in draw.io-filen direkt</button>
+                <button type="button" id="download-example-drawio">Ladda ner kartfilen (.drawio)</button>
+                <button type="button" id="load-example-drawio">Läs in exempelkartan direkt</button>
               </div>
             </div>
             <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
@@ -138,13 +138,13 @@
           </label>
         </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
-          <span class="drawio-title">Ladda upp draw.io-fil</span>
+          <span class="drawio-title">Ladda upp karta</span>
           <span class="drawio-help">Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att
             välja</span>
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
-          <iframe class="drawio-frame" id="drawio-frame" title="Förhandsvisning av draw.io-fil"
+          <iframe class="drawio-frame" id="drawio-frame" title="Förhandsvisning av karta"
             src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1&noSaveAndExit=1&saveAndExit=0">
           </iframe>
         </div>
@@ -163,7 +163,7 @@
           <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
         </div>
       </div>
-      <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io för att se saknade platser.</p>
+      <p class="table-meta" id="missing-meta">Ladda upp Excel och karta för att se saknade platser.</p>
       <div class="table-wrap" id="missing-wrap" hidden>
         <table class="selected-table" id="missing-table"></table>
       </div>
@@ -180,7 +180,7 @@
   <dialog class="help-dialog" id="map-help">
     <form method="dialog">
       <h2>Karta</h2>
-      <p>Ladda upp en draw.io-karta med en box per plats. Du kan ändra kartan direkt här.</p>
+      <p>Ladda upp en karta i draw.io-format med en box per plats. Du kan ändra kartan direkt här.</p>
       <p>Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror. Glöm inte att spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.</p>
       <button class="button" type="submit">Stäng</button>
     </form>

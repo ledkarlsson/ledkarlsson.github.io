@@ -670,7 +670,7 @@ function setDrawioUploadMessage(title, help = "") {
 
 function resetDrawioUploadMessage() {
   setDrawioUploadMessage(
-    "Ladda upp draw.io-fil",
+    "Ladda upp karta",
     "Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja"
   );
 }
@@ -682,9 +682,9 @@ function showDrawioFile(file) {
   drawioUploadZone.classList.remove("has-error", "has-file");
 
   if (!isDrawioFile) {
-    setDrawioUploadMessage("Välj en draw.io-fil som slutar med .drawio eller .drawio.xml.");
+    setDrawioUploadMessage("Välj en kartfil som slutar med .drawio eller .drawio.xml.");
     drawioUploadZone.classList.add("has-error");
-    drawioPanelTitle.textContent = "draw.io-diagram";
+    drawioPanelTitle.textContent = "Karta";
     drawioUpload.value = "";
     sourceDrawioXml = "";
     sourceDrawioFileName = "";
@@ -724,7 +724,7 @@ function clearExcelFile() {
 
 function clearDrawioFile() {
   drawioUpload.value = "";
-  drawioPanelTitle.textContent = "draw.io-diagram";
+  drawioPanelTitle.textContent = "Karta";
   clearDrawioButton.hidden = true;
   drawioExampleMenu.hidden = false;
   drawioUploadZone.hidden = false;
@@ -1335,13 +1335,13 @@ function createDrawioXmlWithMissingBoxes(xml, rows) {
   const documentXml = parser.parseFromString(xml, "application/xml");
 
   if (documentXml.querySelector("parsererror")) {
-    throw new Error("Kunde inte tolka draw.io-XML.");
+    throw new Error("Kunde inte tolka kartfilen.");
   }
 
   const root = documentXml.querySelector("mxGraphModel > root");
 
   if (!root) {
-    throw new Error("Kunde inte hitta diagrammets root-nod.");
+    throw new Error("Kunde inte hitta kartans innehåll.");
   }
 
   const startPosition = getNewBoxStartPosition(documentXml);
@@ -1414,7 +1414,7 @@ function addMissingBoxesToDrawio() {
 
     updateDrawioButtons();
   } catch (error) {
-    missingMeta.textContent = "Kunde inte lägga till boxar i diagrammet.";
+    missingMeta.textContent = "Kunde inte lägga till platser i kartan.";
   }
 }
 
@@ -1457,7 +1457,7 @@ function createGeneratedDrawioXml(xml, rows) {
   const documentXml = parser.parseFromString(xml, "application/xml");
 
   if (documentXml.querySelector("parsererror")) {
-    throw new Error("Kunde inte tolka draw.io-XML.");
+    throw new Error("Kunde inte tolka kartfilen.");
   }
 
   const rowsByPlace = new Map();
@@ -1567,7 +1567,7 @@ function readDrawioFile(file) {
     const xml = String(event.target.result || "").trim();
 
     if (!xml) {
-      setDrawioUploadMessage("Den här draw.io-filen är tom.");
+      setDrawioUploadMessage("Den här kartfilen är tom.");
       drawioUploadZone.classList.add("has-error");
       sourceDrawioXml = "";
       sourceDrawioFileName = "";
@@ -1595,7 +1595,7 @@ function readDrawioFile(file) {
   });
 
   reader.addEventListener("error", () => {
-    setDrawioUploadMessage("Kunde inte läsa draw.io-filen.");
+    setDrawioUploadMessage("Kunde inte läsa kartfilen.");
     drawioUploadZone.classList.add("has-error");
     sourceDrawioXml = "";
     sourceDrawioFileName = "";

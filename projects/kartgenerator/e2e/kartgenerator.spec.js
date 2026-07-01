@@ -69,10 +69,10 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
     await expect(page.locator("#excel-example-menu")).toBeVisible();
     await expect(page.locator("#excel-example-button")).toHaveText("Exempel-Excel");
-    await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp draw.io-fil");
+    await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp karta");
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
     await expect(page.locator("#drawio-example-menu")).toBeVisible();
-    await expect(page.locator("#drawio-example-button")).toHaveText("Exempel-draw.io");
+    await expect(page.locator("#drawio-example-button")).toHaveText("Exempelkarta");
     await expect(page.locator(".feedback")).toHaveText("Skicka återkoppling till led.karlsson[snabela]gmail.com.");
     await expect(page.locator("#toggle-map-focus")).toBeHidden();
     await expect(page.getByLabel("Hjälp för Excel-data")).toBeVisible();
@@ -120,7 +120,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#selected-table")).toContainText("51");
   });
 
-  await test.step("Kontrollera draw.io-visning och nedladdningslägen", async () => {
+  await test.step("Kontrollera kartvisning och nedladdningslägen", async () => {
     await expect(page.locator("#drawio-viewer")).toBeVisible();
     await expect(page.locator("#generated-options")).toBeVisible();
     await expect(page.locator("#show-clean-map")).toBeEnabled();
