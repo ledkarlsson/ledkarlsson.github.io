@@ -122,9 +122,9 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
   await test.step("Kontrollera kartvisning och nedladdningslägen", async () => {
     await expect(page.locator("#drawio-viewer")).toBeVisible();
-    await expect(page.locator("#generated-options")).toBeVisible();
-    await expect(page.locator("#show-clean-map")).toBeEnabled();
-    await expect(page.locator("#show-generated-map")).toBeDisabled();
+    await expect(page.locator("#generated-options")).toBeHidden();
+    await expect(page.locator("#show-clean-map")).toBeDisabled();
+    await expect(page.locator("#show-generated-map")).toBeEnabled();
     await expect(page.locator("#download-menu-button")).toBeEnabled();
     await expect(page.locator("#add-place-box")).toBeEnabled();
     await expect(page.locator("#toggle-map-focus")).toHaveText("Visa bara kartan");
@@ -169,6 +169,10 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     const cleanPngDownload = await cleanPngDownloadPromise;
 
     expect(cleanPngDownload.suggestedFilename()).toMatch(/utan-bas-info\.png$/);
+
+    await page.locator("#show-generated-map").click();
+    await expect(page.locator("#generated-options")).toBeVisible();
+    await expect(page.locator("#show-clean-map")).toBeEnabled();
 
     await page.locator("#show-clean-map").click();
     await expect(page.locator("#generated-options")).toBeHidden();

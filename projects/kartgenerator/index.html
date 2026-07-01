@@ -106,26 +106,26 @@
               </div>
             </div>
             <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
+            <div class="download-menu" id="download-menu" hidden>
+              <button class="button" id="download-menu-button" type="button" aria-expanded="false" disabled>Ladda
+                ner</button>
+              <div class="download-options" id="download-options" hidden>
+                <button type="button" id="download-clean-drawio" disabled>Karta utan BAS-info (.drawio)</button>
+                <button type="button" id="download-clean-png" disabled>Karta utan BAS-info (PNG)</button>
+                <button type="button" id="download-generated-drawio" disabled>
+                  <span>Karta med BAS-info (.drawio)</span>
+                  <small>Behövs oftast inte och kan inte användas för att generera nya kartor.</small>
+                </button>
+                <button type="button" id="download-generated-png" disabled>Karta med BAS-info (PNG)</button>
+              </div>
+            </div>
           </div>
         </div>
-        <button class="button secondary map-focus-button" id="toggle-map-focus" type="button" hidden>Visa bara kartan</button>
         <div class="actions drawio-actions" hidden>
+          <button class="button secondary map-focus-button" id="toggle-map-focus" type="button" hidden>Visa bara kartan</button>
           <button class="button secondary" id="add-place-box" type="button" disabled>Lägg till plats</button>
           <button class="button secondary" id="show-clean-map" type="button" disabled>Visa karta utan BAS-info</button>
           <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
-          <div class="download-menu" id="download-menu">
-            <button class="button" id="download-menu-button" type="button" aria-expanded="false" disabled>Ladda
-              ner</button>
-            <div class="download-options" id="download-options" hidden>
-              <button type="button" id="download-clean-drawio" disabled>Karta utan BAS-info (.drawio)</button>
-              <button type="button" id="download-clean-png" disabled>Karta utan BAS-info (PNG)</button>
-              <button type="button" id="download-generated-drawio" disabled>
-                <span>Karta med BAS-info (.drawio)</span>
-                <small>Behövs oftast inte och kan inte användas för att generera nya kartor.</small>
-              </button>
-              <button type="button" id="download-generated-png" disabled>Karta med BAS-info (PNG)</button>
-            </div>
-          </div>
         </div>
         <div class="generated-options" id="generated-options" aria-label="Inställningar för BAS-info" hidden>
           <label>

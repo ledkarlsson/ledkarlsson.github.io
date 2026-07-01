@@ -29,6 +29,7 @@ const addPlaceBoxButton = document.querySelector("#add-place-box");
 const showCleanMapButton = document.querySelector("#show-clean-map");
 const showGeneratedMapButton = document.querySelector("#show-generated-map");
 const generatedOptions = document.querySelector("#generated-options");
+const downloadMenu = document.querySelector("#download-menu");
 const downloadMenuButton = document.querySelector("#download-menu-button");
 const downloadOptions = document.querySelector("#download-options");
 const downloadCleanDrawioButton = document.querySelector("#download-clean-drawio");
@@ -806,6 +807,7 @@ function updateDrawioButtons() {
   }
 
   drawioActions.hidden = !hasSource;
+  downloadMenu.hidden = !hasSource;
   toggleMapFocusButton.hidden = !hasSource;
   addPlaceBoxButton.disabled = !hasSource;
   showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
@@ -1584,7 +1586,7 @@ function readDrawioFile(file) {
 
     sourceDrawioXml = createCleanDrawioXml(xml);
     currentDrawioMode = "clean";
-    hasManualDrawioMode = false;
+    hasManualDrawioMode = true;
     loadDrawioViewer(sourceDrawioXml);
     if (excelColumns.length > 0 && rawExcelRows.length > 0) {
       reparseRows(true);
