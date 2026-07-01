@@ -23,9 +23,9 @@ async function mockExternalScripts(page) {
           window.addEventListener("message", (event) => {
             const message = JSON.parse(event.data);
 
-            if (message.action === "load") {
+            if (["load", "merge"].includes(message.action)) {
               document.querySelector("#loaded-xml").textContent = message.xml;
-              document.querySelector("#last-load-options").textContent = JSON.stringify({ noFit: message.noFit });
+              document.querySelector("#last-load-options").textContent = JSON.stringify({ action: message.action });
             }
 
             if (message.action === "export") {
@@ -206,7 +206,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     expect(sourceFrame).not.toBeNull();
     await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
-    await expect(sourceFrame.locator("#last-load-options")).toContainText('"noFit":1');
+    await expect(sourceFrame.locator("#last-load-options")).toContainText('"action":"merge"');
 
     const downloadPromise = page.waitForEvent("download");
 

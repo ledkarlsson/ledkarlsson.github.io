@@ -743,12 +743,13 @@ function clearDrawioFile() {
 }
 
 function loadDrawioXml(frame, xml, options = {}) {
+  const action = options.keepZoom ? "merge" : "load";
+
   frame.contentWindow.postMessage(JSON.stringify({
-    action: "load",
+    action,
     xml,
     autosave: options.autosave ? 1 : 0,
-    modified: 0,
-    noFit: options.keepZoom ? 1 : 0
+    modified: 0
   }), "*");
 }
 
@@ -1331,7 +1332,7 @@ function addMissingBoxesToDrawio() {
     if (currentDrawioMode === "generated") {
       loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
     } else {
-      loadDrawioViewer(sourceDrawioXml);
+      loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
     }
 
     updateDrawioButtons();
