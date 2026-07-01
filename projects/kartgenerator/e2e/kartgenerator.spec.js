@@ -158,6 +158,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     expect(cleanXml).toContain("51");
     expect(cleanXml).toContain("57");
+    expect(cleanXml).toMatch(/value="57"[\s\S]*<mxGeometry x="-450" y="1240" width="120" height="40"/);
     expect(cleanXml).not.toContain("Pelle Pelleson");
 
     const cleanPngDownloadPromise = page.waitForEvent("download");

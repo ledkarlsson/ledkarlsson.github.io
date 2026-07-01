@@ -1201,27 +1201,106 @@ function downloadMissingPeopleExcel() {
   XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
 }
 
-function getGraphBounds(documentXml) {
-  const geometries = [...documentXml.querySelectorAll("mxCell[vertex='1'] > mxGeometry")]
-    .map((geometry) => ({
-      x: Number(geometry.getAttribute("x") || 0),
-      y: Number(geometry.getAttribute("y") || 0),
-      width: Number(geometry.getAttribute("width") || 0),
-      height: Number(geometry.getAttribute("height") || 0)
-    }))
-    .filter((geometry) => Number.isFinite(geometry.x)
-      && Number.isFinite(geometry.y)
-      && Number.isFinite(geometry.width)
-      && Number.isFinite(geometry.height));
+function getCellGeometry(cell) {
+  const geometry = [...cell.children].find((child) => child.tagName === "mxGeometry");
 
-  if (geometries.length === 0) {
-    return { minY: 0, maxX: 0 };
+  if (!geometry) {
+    return null;
   }
 
-  return geometries.reduce((bounds, geometry) => ({
-    minY: Math.min(bounds.minY, geometry.y),
-    maxX: Math.max(bounds.maxX, geometry.x + geometry.width)
-  }), { minY: geometries[0].y, maxX: geometries[0].x + geometries[0].width });
+  const parsedGeometry = {
+    x: Number(geometry.getAttribute("x") || 0),
+    y: Number(geometry.getAttribute("y") || 0),
+    width: Number(geometry.getAttribute("width") || 0),
+    height: Number(geometry.getAttribute("height") || 0)
+  };
+
+  return Object.values(parsedGeometry).every(Number.isFinite) ? parsedGeometry : null;
+}
+
+function getNewBoxStartPosition(documentXml) {
+  const placeCells = [];
+  const generatedPlaceCells = [];
+  const fallbackCells = [];
+
+  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    const geometry = getCellGeometry(cell);
+
+    if (!geometry) {
+      return;
+    }
+
+    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const cellInfo = {
+      geometry,
+      placeNumber: Number.parseInt(placeCode, 10),
+      isGenerated: String(cell.getAttribute("id") || "").startsWith("kartgenerator-missing-")
+    };
+
+    if (placeCode) {
+      placeCells.push(cellInfo);
+
+      if (cellInfo.isGenerated) {
+        generatedPlaceCells.push(cellInfo);
+      }
+    } else {
+      fallbackCells.push(cellInfo);
+    }
+  });
+
+  const bottomCell = (cells) => cells.reduce((bottomCellInfo, cellInfo) => {
+    const bottomEdge = cellInfo.geometry.y + cellInfo.geometry.height;
+    const currentBottomEdge = bottomCellInfo.geometry.y + bottomCellInfo.geometry.height;
+
+    if (bottomEdge > currentBottomEdge) {
+      return cellInfo;
+    }
+
+    if (bottomEdge === currentBottomEdge && cellInfo.geometry.x < bottomCellInfo.geometry.x) {
+      return cellInfo;
+    }
+
+    return bottomCellInfo;
+  }, cells[0]);
+
+  if (generatedPlaceCells.length > 0) {
+    const anchor = bottomCell(generatedPlaceCells).geometry;
+
+    return {
+      x: Math.round(anchor.x / 10) * 10,
+      y: Math.ceil((anchor.y + anchor.height + 16) / 10) * 10
+    };
+  }
+
+  const existingCells = placeCells.length > 0 ? placeCells : fallbackCells;
+
+  if (existingCells.length === 0) {
+    return { x: 0, y: 0 };
+  }
+
+  const anchor = existingCells.reduce((anchorCell, cellInfo) => {
+    if (Number.isFinite(cellInfo.placeNumber) && Number.isFinite(anchorCell.placeNumber)) {
+      return cellInfo.placeNumber > anchorCell.placeNumber ? cellInfo : anchorCell;
+    }
+
+    if (Number.isFinite(cellInfo.placeNumber)) {
+      return cellInfo;
+    }
+
+    if (Number.isFinite(anchorCell.placeNumber)) {
+      return anchorCell;
+    }
+
+    const rightEdge = cellInfo.geometry.x + cellInfo.geometry.width;
+    const currentRightEdge = anchorCell.geometry.x + anchorCell.geometry.width;
+
+    return rightEdge > currentRightEdge ? cellInfo : anchorCell;
+  }, existingCells[0]).geometry;
+
+  return {
+    x: Math.ceil((anchor.x + anchor.width + 56) / 10) * 10,
+    y: Math.round(anchor.y / 10) * 10
+  };
 }
 
 function createMissingBoxId(place, index) {
@@ -1265,12 +1344,10 @@ function createDrawioXmlWithMissingBoxes(xml, rows) {
     throw new Error("Kunde inte hitta diagrammets root-nod.");
   }
 
-  const bounds = getGraphBounds(documentXml);
-  const startX = Math.ceil((bounds.maxX + 80) / 10) * 10;
-  const startY = Math.floor(bounds.minY / 10) * 10;
+  const startPosition = getNewBoxStartPosition(documentXml);
 
   rows.forEach((row, index) => {
-    root.append(createDrawioCell(documentXml, row, index, startX, startY + index * 56));
+    root.append(createDrawioCell(documentXml, row, index, startPosition.x, startPosition.y + index * 56));
   });
 
   return new XMLSerializer().serializeToString(documentXml);
