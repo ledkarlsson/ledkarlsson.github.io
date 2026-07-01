@@ -23,17 +23,18 @@
       <p>
         En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar. Gör så här: Gå in i BAS,
         skapa en rapport som innehåller kolumner som Förnamn, Efternamn, och område.
-        Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna ner exemplet för draw.io, och ladda upp i
-        högerkolumnen för att testa.
+        Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna in exempel för Excel och kartan.
         Du kan ändra direkt i högerkolumnen, och den genererade kartan kommer att uppdateras. Du kan även ändra kartan i
-        t.ex. Google Drive, eller via programmet draw.io.
+        t.ex. Google Drive, eller via programmet draw.io, och ladda upp igen.
         Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror.
       </p>
-      <p class="feedback">
-        För feedback, skicka mail till
-        <a class="feedback-link" id="feedback-email"
-          href="mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator">led.karlsson(snabela)gmail.com</a>.
-      </p>
+      <form class="feedback" id="feedback-form">
+        <label class="feedback-label" for="feedback-message">Feedback</label>
+        <textarea id="feedback-message" name="feedback-message" rows="3"
+          placeholder="Skriv kort vad som kan bli bättre"></textarea>
+        <button class="button secondary" type="submit">Kopiera feedback</button>
+        <p class="feedback-status" id="feedback-status" aria-live="polite"></p>
+      </form>
     </section>
 
     <section class="project" aria-label="Kartgeneratorns arbetsyta">
@@ -135,7 +136,10 @@
     <section class="missing-panel" id="missing-panel" aria-labelledby="missing-title" hidden>
       <div class="generated-header">
         <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
-        <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
+        <div class="generated-header-actions">
+          <button class="button secondary" id="add-missing-boxes" type="button" hidden>Lägg till boxar i kartan</button>
+          <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
+        </div>
       </div>
       <p class="table-meta" id="missing-meta">Ladda upp Excel och draw.io för att se saknade platser.</p>
       <div class="table-wrap" id="missing-wrap" hidden>

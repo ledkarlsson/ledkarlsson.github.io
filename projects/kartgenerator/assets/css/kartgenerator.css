@@ -96,6 +96,35 @@
       font-size: 1rem;
     }
 
+    .feedback-label {
+      display: block;
+      color: var(--accent-strong);
+      font-weight: 700;
+    }
+
+    .feedback textarea {
+      display: block;
+      width: min(100%, 560px);
+      margin-top: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      font: inherit;
+      resize: vertical;
+    }
+
+    .feedback .button {
+      margin-top: 10px;
+    }
+
+    .feedback-status {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
     .feedback-link {
       padding: 0;
       border: 0;
@@ -469,6 +498,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .generated-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .panel-header {

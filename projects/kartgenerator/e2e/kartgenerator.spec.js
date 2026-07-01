@@ -17,9 +17,14 @@ async function mockExternalScripts(page) {
       contentType: "text/html",
       body: `<!doctype html>
         <title>draw.io test frame</title>
+        <pre id="loaded-xml"></pre>
         <script>
           window.addEventListener("message", (event) => {
             const message = JSON.parse(event.data);
+
+            if (message.action === "load") {
+              document.querySelector("#loaded-xml").textContent = message.xml;
+            }
 
             if (message.action === "export") {
               window.parent.postMessage(JSON.stringify({
@@ -46,12 +51,6 @@ async function scrollToCenter(page, selector) {
   await page.waitForTimeout(100);
 }
 
-function addDrawioPlaceBox(xml, place) {
-  const cell = `<mxCell id="playwright-place-${place}" value="${place}" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="120" height="40" as="geometry"/></mxCell>`;
-
-  return xml.replace("</root>", `${cell}</root>`);
-}
-
 test.beforeEach(async ({ page }) => {
   await mockExternalScripts(page);
 });
@@ -70,7 +69,10 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
     await expect(page.locator("#drawio-example-menu")).toBeVisible();
     await expect(page.locator("#drawio-example-button")).toHaveText("Exempel-draw.io");
-    await expect(page.locator("#feedback-email")).toHaveAttribute("href", "mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator");
+    await expect(page.locator("#feedback-form")).toBeVisible();
+    await expect(page.locator("#feedback-message")).toHaveAttribute("placeholder", "Skriv kort vad som kan bli bättre");
+    await page.locator("#feedback-form button[type='submit']").click();
+    await expect(page.locator("#feedback-status")).toHaveText("Skriv feedback först.");
     await expect(page.locator(".drawio-actions")).toBeHidden();
     await expect(page.locator("#show-clean-map")).toBeDisabled();
     await expect(page.locator("#show-generated-map")).toBeDisabled();
@@ -83,8 +85,6 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
   await test.step("Öppna kartgeneratorn", async () => {
     await page.goto("/projects/kartgenerator/");
   });
-
-  const drawioExamplePath = path.join(process.cwd(), "projects", "kartgenerator", "assets", "examples", "exempel.drawio");
 
   await test.step("Läs in exempelfiler direkt", async () => {
     await page.locator("#excel-example-button").click();
@@ -153,6 +153,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
   await test.step("Kontrollera rapport över saknade platser", async () => {
     await expect(page.locator("#missing-panel")).toBeVisible();
     await expect(page.locator("#missing-meta")).toHaveText("1 person finns i BAS men saknas i kartan.");
+    await expect(page.locator("#add-missing-boxes")).toBeVisible();
     const missingRows = await page.locator("#missing-table tbody tr").evaluateAll((rows) =>
       rows.map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent.trim()))
     );
@@ -160,23 +161,22 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(missingRows).toContainEqual(["75", "Josefin", "Josefinsson"]);
   });
 
-  await test.step("Lägg till plats 75 i originalkartan", async () => {
-    const drawioXml = await readFile(drawioExamplePath, "utf8");
-    const sourceFrameElement = await page.locator("#drawio-frame").elementHandle();
-    const sourceFrame = await sourceFrameElement.contentFrame();
+  await test.step("Lägg till plats 75 med saknade-boxar-knappen", async () => {
+    await page.locator("#show-generated-map").click();
+    await expect(page.locator("#generated-options")).toBeVisible();
 
-    expect(sourceFrame).not.toBeNull();
-
-    await sourceFrame.evaluate((updatedXml) => {
-      window.parent.postMessage(JSON.stringify({
-        event: "autosave",
-        xml: updatedXml
-      }), "*");
-    }, addDrawioPlaceBox(drawioXml, "75"));
+    await page.locator("#add-missing-boxes").click();
   });
 
   await test.step("Kontrollera att saknad BAS-rad flyttas till den genererade kartan", async () => {
     await expect(page.locator("#missing-panel")).toBeHidden();
+    await expect(page.locator("#add-missing-boxes")).toBeHidden();
+
+    const sourceFrameElement = await page.locator("#drawio-frame").elementHandle();
+    const sourceFrame = await sourceFrameElement.contentFrame();
+
+    expect(sourceFrame).not.toBeNull();
+    await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
 
     const downloadPromise = page.waitForEvent("download");
 

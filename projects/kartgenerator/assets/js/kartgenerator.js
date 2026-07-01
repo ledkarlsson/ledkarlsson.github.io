@@ -36,7 +36,11 @@ const missingPanel = document.querySelector("#missing-panel");
 const missingMeta = document.querySelector("#missing-meta");
 const missingWrap = document.querySelector("#missing-wrap");
 const missingTable = document.querySelector("#missing-table");
+const addMissingBoxesButton = document.querySelector("#add-missing-boxes");
 const downloadMissingButton = document.querySelector("#download-missing");
+const feedbackForm = document.querySelector("#feedback-form");
+const feedbackMessage = document.querySelector("#feedback-message");
+const feedbackStatus = document.querySelector("#feedback-status");
 const columnsMeta = document.querySelector("#columns-meta");
 const columnsPanel = document.querySelector("#columns-panel");
 const columnsList = document.querySelector("#columns-list");
@@ -104,6 +108,29 @@ function preserveWindowScroll(callback) {
 
 function cancelPendingScrollRestore() {
   scrollRestoreToken += 1;
+}
+
+async function copyFeedback(event) {
+  event.preventDefault();
+
+  const message = feedbackMessage.value.trim();
+  const emailAddress = ["led.karlsson", "gmail.com"].join("@");
+
+  if (!message) {
+    feedbackStatus.textContent = "Skriv feedback först.";
+    feedbackMessage.focus();
+    return;
+  }
+
+  const feedbackText = `Feedback kartgenerator\n\n${message}\n\nSkickas till: ${emailAddress}`;
+
+  try {
+    await navigator.clipboard.writeText(feedbackText);
+    feedbackStatus.textContent = `Kopierat. Klistra in i ett mail till ${emailAddress}.`;
+  } catch (error) {
+    feedbackMessage.select();
+    feedbackStatus.textContent = `Kunde inte kopiera automatiskt. Markera texten och skicka till ${emailAddress}.`;
+  }
 }
 
 async function fetchExampleBlob(example) {
@@ -913,11 +940,13 @@ function renderMissingPeopleTable(rows) {
     missingMeta.textContent = "Alla rader med förnamn, efternamn och plats finns i kartan.";
     missingPanel.hidden = true;
     missingWrap.hidden = true;
+    addMissingBoxesButton.hidden = true;
     downloadMissingButton.disabled = true;
     return;
   }
 
   missingPanel.hidden = false;
+  addMissingBoxesButton.hidden = false;
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -994,6 +1023,7 @@ function updateMissingPeopleList() {
   if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || excelRows.length === 0) {
     missingPanel.hidden = true;
     missingPeopleRows = [];
+    addMissingBoxesButton.hidden = true;
     downloadMissingButton.disabled = true;
     return;
   }
@@ -1019,11 +1049,13 @@ function updateSourceDrawioXml(xml) {
     return;
   }
 
+  const shouldRefreshGeneratedView = currentDrawioMode === "generated";
+
   sourceDrawioXml = updatedXml;
   pendingDrawioXml = updatedXml;
 
   preserveWindowScroll(() => {
-    shouldReloadDrawioViewer = false;
+    shouldReloadDrawioViewer = shouldRefreshGeneratedView;
 
     try {
       if (excelColumns.length > 0 && rawExcelRows.length > 0) {
@@ -1052,6 +1084,105 @@ function downloadMissingPeopleExcel() {
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Saknas i kartan");
   XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
+}
+
+function getGraphBounds(documentXml) {
+  const geometries = [...documentXml.querySelectorAll("mxCell[vertex='1'] > mxGeometry")]
+    .map((geometry) => ({
+      x: Number(geometry.getAttribute("x") || 0),
+      y: Number(geometry.getAttribute("y") || 0),
+      width: Number(geometry.getAttribute("width") || 0),
+      height: Number(geometry.getAttribute("height") || 0)
+    }))
+    .filter((geometry) => Number.isFinite(geometry.x)
+      && Number.isFinite(geometry.y)
+      && Number.isFinite(geometry.width)
+      && Number.isFinite(geometry.height));
+
+  if (geometries.length === 0) {
+    return { minY: 0, maxX: 0 };
+  }
+
+  return geometries.reduce((bounds, geometry) => ({
+    minY: Math.min(bounds.minY, geometry.y),
+    maxX: Math.max(bounds.maxX, geometry.x + geometry.width)
+  }), { minY: geometries[0].y, maxX: geometries[0].x + geometries[0].width });
+}
+
+function createMissingBoxId(place, index) {
+  const normalizedPlace = normalizePlaceCode(place).replace(/[^a-z0-9_-]/gi, "-") || `plats-${index + 1}`;
+
+  return `kartgenerator-missing-${Date.now()}-${index}-${normalizedPlace}`;
+}
+
+function createDrawioCell(documentXml, row, index, x, y) {
+  const cell = documentXml.createElement("mxCell");
+  const geometry = documentXml.createElement("mxGeometry");
+
+  cell.setAttribute("id", createMissingBoxId(row.place, index));
+  cell.setAttribute("value", row.place);
+  cell.setAttribute("style", "rounded=0;whiteSpace=wrap;html=1;");
+  cell.setAttribute("vertex", "1");
+  cell.setAttribute("parent", "1");
+
+  geometry.setAttribute("x", String(x));
+  geometry.setAttribute("y", String(y));
+  geometry.setAttribute("width", "120");
+  geometry.setAttribute("height", "40");
+  geometry.setAttribute("as", "geometry");
+
+  cell.append(geometry);
+
+  return cell;
+}
+
+function createDrawioXmlWithMissingBoxes(xml, rows) {
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    throw new Error("Kunde inte tolka draw.io-XML.");
+  }
+
+  const root = documentXml.querySelector("mxGraphModel > root");
+
+  if (!root) {
+    throw new Error("Kunde inte hitta diagrammets root-nod.");
+  }
+
+  const bounds = getGraphBounds(documentXml);
+  const startX = Math.ceil((bounds.maxX + 80) / 10) * 10;
+  const startY = Math.floor(bounds.minY / 10) * 10;
+
+  rows.forEach((row, index) => {
+    root.append(createDrawioCell(documentXml, row, index, startX, startY + index * 56));
+  });
+
+  return new XMLSerializer().serializeToString(documentXml);
+}
+
+function addMissingBoxesToDrawio() {
+  const rows = getSortedMissingPeopleRows();
+
+  if (!sourceDrawioXml || rows.length === 0) {
+    return;
+  }
+
+  try {
+    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, rows));
+    hasManualDrawioMode = true;
+    currentDrawioMode = generatedDrawioXml ? "generated" : "clean";
+
+    if (currentDrawioMode === "generated") {
+      loadDrawioViewer(generatedDrawioXml);
+    } else {
+      loadDrawioViewer(sourceDrawioXml);
+    }
+
+    updateDrawioButtons();
+  } catch (error) {
+    missingMeta.textContent = "Kunde inte lägga till boxar i diagrammet.";
+  }
 }
 
 function getPlaceCodeFromCellLabel(label) {
@@ -1265,6 +1396,7 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+feedbackForm.addEventListener("submit", copyFeedback);
 excelExampleButton.addEventListener("click", () => toggleExampleMenu(excelExampleOptions, excelExampleButton));
 drawioExampleButton.addEventListener("click", () => toggleExampleMenu(drawioExampleOptions, drawioExampleButton));
 downloadExampleExcelButton.addEventListener("click", () => downloadExampleAsset(excelExample));
@@ -1278,6 +1410,7 @@ downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(down
 downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
 downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(downloadGeneratedDiagram));
 downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
+addMissingBoxesButton.addEventListener("click", addMissingBoxesToDrawio);
 downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
 clearExcelButton.addEventListener("click", clearExcelFile);
 clearDrawioButton.addEventListener("click", clearDrawioFile);
