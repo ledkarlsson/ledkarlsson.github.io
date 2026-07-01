@@ -96,13 +96,6 @@
       font-size: 1rem;
     }
 
-    .example-downloads {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
     .feedback-link {
       padding: 0;
       border: 0;
@@ -449,7 +442,7 @@
       min-height: 360px;
       background: var(--panel);
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .drawio-viewer {
@@ -494,6 +487,18 @@
 
     .download-menu {
       position: relative;
+    }
+
+    .example-menu {
+      display: inline-block;
+      margin-top: 14px;
+      position: relative;
+    }
+
+    .example-options {
+      left: 0;
+      right: auto;
+      min-width: 250px;
     }
 
     .download-options {

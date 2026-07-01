@@ -2,17 +2,27 @@
 import { getMapPlaceLabels } from "./drawio.js"
 
 const uploadZone = document.querySelector("#upload-zone");
-const exampleDownloadLinks = document.querySelectorAll(".example-download");
 const excelUpload = document.querySelector("#excel-upload");
 const fileStatus = document.querySelector("#file-status");
 const excelPanelTitle = document.querySelector("#excel-panel-title");
 const clearExcelButton = document.querySelector("#clear-excel");
+const excelExampleMenu = document.querySelector("#excel-example-menu");
+const excelExampleButton = document.querySelector("#excel-example-button");
+const excelExampleOptions = document.querySelector("#excel-example-options");
+const downloadExampleExcelButton = document.querySelector("#download-example-excel");
+const loadExampleExcelButton = document.querySelector("#load-example-excel");
 const drawioUploadZone = document.querySelector("#drawio-upload-zone");
 const drawioUpload = document.querySelector("#drawio-upload");
 const drawioPanelTitle = document.querySelector("#drawio-panel-title");
 const clearDrawioButton = document.querySelector("#clear-drawio");
+const drawioExampleMenu = document.querySelector("#drawio-example-menu");
+const drawioExampleButton = document.querySelector("#drawio-example-button");
+const drawioExampleOptions = document.querySelector("#drawio-example-options");
+const downloadExampleDrawioButton = document.querySelector("#download-example-drawio");
+const loadExampleDrawioButton = document.querySelector("#load-example-drawio");
 const drawioViewer = document.querySelector("#drawio-viewer");
 const drawioFrame = document.querySelector("#drawio-frame");
+const drawioActions = document.querySelector(".drawio-actions");
 const showCleanMapButton = document.querySelector("#show-clean-map");
 const showGeneratedMapButton = document.querySelector("#show-generated-map");
 const generatedOptions = document.querySelector("#generated-options");
@@ -41,6 +51,16 @@ const tableWrap = document.querySelector("#table-wrap");
 const selectedTable = document.querySelector("#selected-table");
 const excelTypes = [".xls", ".xlsx"];
 const drawioTypes = [".drawio", ".drawio.xml"];
+const excelExample = {
+  url: "assets/examples/exempel.xlsx",
+  fileName: "exempel.xlsx",
+  type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+};
+const drawioExample = {
+  url: "assets/examples/exempel.drawio",
+  fileName: "exempel.drawio",
+  type: "application/xml"
+};
 let selectedColumnIndexes = [];
 let excelColumns = [];
 let excelRows = [];
@@ -86,30 +106,52 @@ function cancelPendingScrollRestore() {
   scrollRestoreToken += 1;
 }
 
-async function downloadExampleFile(event) {
-  event.preventDefault();
+async function fetchExampleBlob(example) {
+  const response = await fetch(example.url);
 
-  const link = event.currentTarget;
-  const fileName = link.getAttribute("download") || link.href.split("/").pop() || "exempel";
+  if (!response.ok) {
+    throw new Error("Kunde inte hämta exempelfilen.");
+  }
+
+  return response.blob();
+}
+
+async function downloadExampleAsset(example) {
+  closeExampleMenus();
 
   try {
-    const response = await fetch(link.href);
+    const blob = await fetchExampleBlob(example);
 
-    if (!response.ok) {
-      throw new Error("Kunde inte hämta exempelfilen.");
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const downloadLink = document.createElement("a");
-
-    downloadLink.href = url;
-    downloadLink.download = fileName;
-    downloadLink.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, example.fileName);
   } catch (error) {
-    window.location.href = link.href;
+    window.location.href = example.url;
   }
+}
+
+async function getExampleFile(example) {
+  const blob = await fetchExampleBlob(example);
+
+  return new File([blob], example.fileName, { type: example.type });
+}
+
+async function loadExcelExample() {
+  closeExampleMenus();
+  showFile(await getExampleFile(excelExample));
+}
+
+async function loadDrawioExample() {
+  closeExampleMenus();
+  showDrawioFile(await getExampleFile(drawioExample));
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function clearColumns(message) {
@@ -467,6 +509,7 @@ function showFile(file) {
   fileStatus.classList.add("has-file");
   excelPanelTitle.textContent = file.name;
   clearExcelButton.hidden = false;
+  excelExampleMenu.hidden = true;
   uploadZone.classList.add("has-file");
   uploadZone.hidden = true;
   clearColumns("Läser kolumner...");
@@ -526,6 +569,7 @@ function showDrawioFile(file) {
 
   drawioPanelTitle.textContent = file.name;
   clearDrawioButton.hidden = false;
+  drawioExampleMenu.hidden = true;
   sourceDrawioFileName = file.name;
   drawioUploadZone.replaceChildren();
   drawioUploadZone.classList.add("has-file");
@@ -538,6 +582,7 @@ function clearExcelFile() {
   excelUpload.value = "";
   excelPanelTitle.textContent = "Excel-data från BAS-rapport";
   clearExcelButton.hidden = true;
+  excelExampleMenu.hidden = false;
   uploadZone.hidden = false;
   uploadZone.classList.remove("has-file");
   fileStatus.textContent = "";
@@ -549,6 +594,7 @@ function clearDrawioFile() {
   drawioUpload.value = "";
   drawioPanelTitle.textContent = "draw.io-diagram";
   clearDrawioButton.hidden = true;
+  drawioExampleMenu.hidden = false;
   drawioUploadZone.hidden = false;
   drawioUploadZone.classList.remove("has-file", "has-error");
   resetDrawioUploadMessage();
@@ -620,6 +666,7 @@ function updateDrawioButtons() {
   const hasSource = Boolean(sourceDrawioXml);
   const hasGenerated = Boolean(generatedDrawioXml);
 
+  drawioActions.hidden = !hasSource;
   showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
   showGeneratedMapButton.disabled = !hasGenerated || currentDrawioMode === "generated";
   generatedOptions.hidden = currentDrawioMode !== "generated" || !hasGenerated;
@@ -670,6 +717,7 @@ function downloadGeneratedPng() {
 function toggleDownloadMenu() {
   const isOpening = downloadOptions.hidden;
 
+  closeExampleMenus();
   downloadOptions.hidden = !isOpening;
   downloadMenuButton.setAttribute("aria-expanded", String(isOpening));
 }
@@ -677,6 +725,22 @@ function toggleDownloadMenu() {
 function closeDownloadMenu() {
   downloadOptions.hidden = true;
   downloadMenuButton.setAttribute("aria-expanded", "false");
+}
+
+function toggleExampleMenu(options, button) {
+  const isOpening = options.hidden;
+
+  closeDownloadMenu();
+  closeExampleMenus();
+  options.hidden = !isOpening;
+  button.setAttribute("aria-expanded", String(isOpening));
+}
+
+function closeExampleMenus() {
+  excelExampleOptions.hidden = true;
+  drawioExampleOptions.hidden = true;
+  excelExampleButton.setAttribute("aria-expanded", "false");
+  drawioExampleButton.setAttribute("aria-expanded", "false");
 }
 
 function runDownloadAction(action) {
@@ -1201,9 +1265,12 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-exampleDownloadLinks.forEach((link) => {
-  link.addEventListener("click", downloadExampleFile);
-});
+excelExampleButton.addEventListener("click", () => toggleExampleMenu(excelExampleOptions, excelExampleButton));
+drawioExampleButton.addEventListener("click", () => toggleExampleMenu(drawioExampleOptions, drawioExampleButton));
+downloadExampleExcelButton.addEventListener("click", () => downloadExampleAsset(excelExample));
+downloadExampleDrawioButton.addEventListener("click", () => downloadExampleAsset(drawioExample));
+loadExampleExcelButton.addEventListener("click", loadExcelExample);
+loadExampleDrawioButton.addEventListener("click", loadDrawioExample);
 showCleanMapButton.addEventListener("click", showCleanMap);
 showGeneratedMapButton.addEventListener("click", showGeneratedMap);
 downloadMenuButton.addEventListener("click", toggleDownloadMenu);
@@ -1217,6 +1284,10 @@ clearDrawioButton.addEventListener("click", clearDrawioFile);
 document.addEventListener("click", (event) => {
   if (!downloadOptions.hidden && !event.target.closest("#download-menu")) {
     closeDownloadMenu();
+  }
+
+  if (!event.target.closest(".example-menu")) {
+    closeExampleMenus();
   }
 });
 window.addEventListener("wheel", cancelPendingScrollRestore, { passive: true });

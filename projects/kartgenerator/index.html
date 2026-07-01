@@ -29,12 +29,6 @@
         t.ex. Google Drive, eller via programmet draw.io.
         Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror.
       </p>
-      <div class="example-downloads" aria-label="Exempelfiler">
-        <a class="button secondary example-download" href="assets/examples/exempel.xlsx" download="exempel.xlsx">Ladda
-          ner exempel-Excel</a>
-        <a class="button secondary example-download" href="assets/examples/exempel.drawio"
-          download="exempel.drawio">Ladda ner exempel-draw.io</a>
-      </div>
       <p class="feedback">
         För feedback, skicka mail till
         <a class="feedback-link" id="feedback-email"
@@ -54,6 +48,13 @@
           <span class="file-status" id="file-status"></span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
+        <div class="example-menu" id="excel-example-menu">
+          <button class="button secondary" id="excel-example-button" type="button" aria-expanded="false">Exempel-Excel</button>
+          <div class="download-options example-options" id="excel-example-options" hidden>
+            <button type="button" id="download-example-excel">Ladda ner Excel-filen</button>
+            <button type="button" id="load-example-excel">Läs in Excel-filen direkt</button>
+          </div>
+        </div>
         <section class="columns-panel" id="columns-panel" aria-labelledby="columns-title" hidden>
           <h2 id="columns-title">Excel-kolumner</h2>
           <p class="columns-meta" id="columns-meta">Ladda upp en Excel-fil för att visa kolumnerna.</p>
@@ -87,7 +88,7 @@
           <h2 class="panel-title" id="drawio-panel-title">draw.io-diagram</h2>
           <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
         </div>
-        <div class="actions drawio-actions">
+        <div class="actions drawio-actions" hidden>
           <button class="button secondary" id="show-clean-map" type="button" disabled>Visa karta utan BAS-info</button>
           <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
           <div class="download-menu" id="download-menu">
@@ -116,6 +117,13 @@
             välja</span>
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
+        <div class="example-menu" id="drawio-example-menu">
+          <button class="button secondary" id="drawio-example-button" type="button" aria-expanded="false">Exempel-draw.io</button>
+          <div class="download-options example-options" id="drawio-example-options" hidden>
+            <button type="button" id="download-example-drawio">Ladda ner draw.io-filen</button>
+            <button type="button" id="load-example-drawio">Läs in draw.io-filen direkt</button>
+          </div>
+        </div>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
           <iframe class="drawio-frame" id="drawio-frame" title="Förhandsvisning av draw.io-fil"
             src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">

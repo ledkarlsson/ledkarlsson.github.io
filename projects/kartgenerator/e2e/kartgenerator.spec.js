@@ -33,21 +33,6 @@ async function mockExternalScripts(page) {
   });
 }
 
-async function downloadExampleFile(page, linkName, testInfo) {
-  return test.step(`Ladda ner ${linkName}`, async () => {
-    const downloadPromise = page.waitForEvent("download");
-
-    await page.getByRole("link", { name: linkName }).click();
-
-    const download = await downloadPromise;
-    const filePath = testInfo.outputPath(download.suggestedFilename());
-
-    await download.saveAs(filePath);
-
-    return filePath;
-  });
-}
-
 async function scrollToCenter(page, selector) {
   await page.waitForTimeout(350);
 
@@ -79,9 +64,14 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
   await test.step("Kontrollera startläget", async () => {
     await expect(page.getByRole("heading", { name: "kartgenerator" })).toBeVisible();
     await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
+    await expect(page.locator("#excel-example-menu")).toBeVisible();
+    await expect(page.locator("#excel-example-button")).toHaveText("Exempel-Excel");
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp draw.io-fil");
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
+    await expect(page.locator("#drawio-example-menu")).toBeVisible();
+    await expect(page.locator("#drawio-example-button")).toHaveText("Exempel-draw.io");
     await expect(page.locator("#feedback-email")).toHaveAttribute("href", "mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator");
+    await expect(page.locator(".drawio-actions")).toBeHidden();
     await expect(page.locator("#show-clean-map")).toBeDisabled();
     await expect(page.locator("#show-generated-map")).toBeDisabled();
     await expect(page.locator("#generated-options")).toBeHidden();
@@ -94,12 +84,16 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await page.goto("/projects/kartgenerator/");
   });
 
-  const excelExamplePath = await downloadExampleFile(page, "Ladda ner exempel-Excel", testInfo);
-  const drawioExamplePath = await downloadExampleFile(page, "Ladda ner exempel-draw.io", testInfo);
+  const drawioExamplePath = path.join(process.cwd(), "projects", "kartgenerator", "assets", "examples", "exempel.drawio");
 
-  await test.step("Ladda upp nedladdade exempel", async () => {
-    await page.locator("#excel-upload").setInputFiles(excelExamplePath);
-    await page.locator("#drawio-upload").setInputFiles(drawioExamplePath);
+  await test.step("Läs in exempelfiler direkt", async () => {
+    await page.locator("#excel-example-button").click();
+    await page.locator("#load-example-excel").click();
+    await page.locator("#drawio-example-button").click();
+    await page.locator("#load-example-drawio").click();
+    await expect(page.locator("#excel-example-menu")).toBeHidden();
+    await expect(page.locator("#drawio-example-menu")).toBeHidden();
+    await expect(page.locator(".drawio-actions")).toBeVisible();
   });
 
   await test.step("Skrolla till vald tabell", async () => {
