@@ -18,12 +18,14 @@ async function mockExternalScripts(page) {
       body: `<!doctype html>
         <title>draw.io test frame</title>
         <pre id="loaded-xml"></pre>
+        <pre id="last-load-options"></pre>
         <script>
           window.addEventListener("message", (event) => {
             const message = JSON.parse(event.data);
 
             if (message.action === "load") {
               document.querySelector("#loaded-xml").textContent = message.xml;
+              document.querySelector("#last-load-options").textContent = JSON.stringify({ noFit: message.noFit });
             }
 
             if (message.action === "export") {
@@ -71,10 +73,10 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
     await expect(page.locator("#drawio-example-menu")).toBeVisible();
     await expect(page.locator("#drawio-example-button")).toHaveText("Exempel-draw.io");
-    await expect(page.locator("#feedback-form")).toBeVisible();
-    await expect(page.locator("#feedback-message")).toHaveAttribute("placeholder", "Skriv kort vad som kan bli bättre");
-    await page.locator("#feedback-form button[type='submit']").click();
-    await expect(page.locator("#feedback-status")).toHaveText("Skriv feedback först.");
+    await expect(page.locator(".feedback")).toHaveText("Skicka återkoppling till led.karlsson[snabela]gmail.com.");
+    await expect(page.locator("#toggle-map-focus")).toBeHidden();
+    await expect(page.getByLabel("Hjälp för Excel-data")).toBeVisible();
+    await expect(page.getByLabel("Hjälp för kartan")).toBeVisible();
     await expect(page.locator(".drawio-actions")).toBeHidden();
     await expect(page.locator("#show-clean-map")).toBeDisabled();
     await expect(page.locator("#show-generated-map")).toBeDisabled();
@@ -104,11 +106,15 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
   await test.step("Kontrollera vald kolumntabell", async () => {
     await expect(page.locator("#columns-panel")).toBeVisible();
-    await expect(page.locator("#columns-meta")).toHaveText('5 kolumner hittades i "Rapport".');
-    await expect(page.locator("#selected-columns")).toHaveText("3 valda: Område/plats, Förnamn, Efternamn");
+    await expect(page.locator("#columns-meta")).toHaveText('4 kolumner hittades i "Rapport", förutom område/plats som sköter matchningen.');
+    await expect(page.locator("#selected-columns")).toBeHidden();
     await expect(page.locator("#columns-list .column-button", { hasText: "Område/plats" })).toHaveCount(0);
     await expect(page.locator("#parse-controls")).toBeHidden();
-    await expect(page.locator("#table-meta")).toHaveText("4 rader visas med 3 valda kolumner.");
+    await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
+    await expect(page.locator("#duplicate-place-warning")).toBeHidden();
+    await expect(page.locator("#table-meta")).toBeHidden();
+    await expect(page.locator("#selected-table thead")).toContainText("Plats");
+    await expect(page.locator("#selected-table thead")).not.toContainText("Område/plats");
     await expect(page.locator("#selected-table")).toContainText("Pelle");
     await expect(page.locator("#selected-table")).toContainText("Pelleson");
     await expect(page.locator("#selected-table")).toContainText("51");
@@ -120,10 +126,27 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#show-clean-map")).toBeEnabled();
     await expect(page.locator("#show-generated-map")).toBeDisabled();
     await expect(page.locator("#download-menu-button")).toBeEnabled();
+    await expect(page.locator("#add-place-box")).toBeEnabled();
+    await expect(page.locator("#toggle-map-focus")).toHaveText("Visa bara kartan");
+
+    await page.locator("#toggle-map-focus").click();
+    await expect(page.locator(".project")).toHaveClass(/is-map-focused/);
+    await expect(page.locator(".excel-panel")).toBeHidden();
+    await expect(page.locator("#toggle-map-focus")).toHaveText("Visa Excel och karta");
+    await page.locator("#toggle-map-focus").click();
+    await expect(page.locator(".excel-panel")).toBeVisible();
+
+    await page.locator("#add-place-box").click();
+    const frameElement = await page.locator("#drawio-frame").elementHandle();
+    const frame = await frameElement.contentFrame();
+
+    expect(frame).not.toBeNull();
+    await expect(frame.locator("#loaded-xml")).toContainText("57");
 
     const cleanDownloadPromise = page.waitForEvent("download");
 
     await page.locator("#download-menu-button").click();
+    await expect(page.locator("#download-generated-drawio")).toContainText("Behövs oftast inte");
     await page.locator("#download-clean-drawio").click();
 
     const cleanDownload = await cleanDownloadPromise;
@@ -134,6 +157,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     const cleanXml = await readFile(cleanPath, "utf8");
 
     expect(cleanXml).toContain("51");
+    expect(cleanXml).toContain("57");
     expect(cleanXml).not.toContain("Pelle Pelleson");
 
     const cleanPngDownloadPromise = page.waitForEvent("download");
@@ -157,7 +181,8 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
   await test.step("Kontrollera rapport över saknade platser", async () => {
     await expect(page.locator("#missing-panel")).toBeVisible();
     await expect(page.locator("#missing-meta")).toHaveText("1 person finns i BAS men saknas i kartan.");
-    await expect(page.locator("#add-missing-boxes")).toBeVisible();
+    await expect(page.getByLabel("Hjälp för saknade platser")).toBeVisible();
+    await expect(page.locator("#add-missing-boxes")).toHaveText("Lägg till 1 saknade platser i kartan");
     const missingRows = await page.locator("#missing-table tbody tr").evaluateAll((rows) =>
       rows.map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent.trim()))
     );
@@ -181,6 +206,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     expect(sourceFrame).not.toBeNull();
     await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
+    await expect(sourceFrame.locator("#last-load-options")).toContainText('"noFit":1');
 
     const downloadPromise = page.waitForEvent("download");
 

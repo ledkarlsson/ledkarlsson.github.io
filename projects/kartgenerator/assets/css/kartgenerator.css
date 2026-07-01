@@ -72,6 +72,14 @@
       margin-top: 24px;
     }
 
+    .project.is-map-focused {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .project.is-map-focused .excel-panel {
+      display: none;
+    }
+
     .title-panel,
     .excel-panel,
     .workspace {
@@ -103,33 +111,9 @@
       font-size: 1rem;
     }
 
-    .feedback-label {
-      display: block;
+    .feedback span {
       color: var(--accent-strong);
       font-weight: 700;
-    }
-
-    .feedback textarea {
-      display: block;
-      width: min(100%, 560px);
-      margin-top: 8px;
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      color: var(--ink);
-      font: inherit;
-      resize: vertical;
-    }
-
-    .feedback .button {
-      margin-top: 10px;
-    }
-
-    .feedback-status {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.4;
     }
 
     .feedback-link {
@@ -155,6 +139,22 @@
       font-size: 1.35rem;
       letter-spacing: 0;
       overflow-wrap: anywhere;
+    }
+
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      flex: 1 1 auto;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .panel-header-actions {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .meta {
@@ -216,6 +216,23 @@
     .button[disabled] {
       opacity: 0.45;
       cursor: not-allowed;
+    }
+
+    .help-button {
+      inline-size: 34px;
+      block-size: 34px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--accent-strong);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .help-button:hover,
+    .help-button:focus-visible {
+      border-color: var(--accent);
+      outline: none;
     }
 
     .file-input {
@@ -431,6 +448,14 @@
       line-height: 1.5;
     }
 
+    .warning-meta {
+      margin: 10px 0 0;
+      color: #8f3a1f;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
     .table-wrap {
       max-height: 360px;
       margin-top: 14px;
@@ -519,13 +544,18 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .drawio-actions {
       align-items: flex-start;
       justify-content: flex-start;
       margin-top: 0;
+    }
+
+    .map-focus-button {
+      width: 100%;
+      margin-top: 14px;
     }
 
     .download-menu {
@@ -536,6 +566,10 @@
       display: inline-block;
       margin-top: 14px;
       position: relative;
+    }
+
+    .panel-header .example-menu {
+      margin-top: 0;
     }
 
     .example-options {
@@ -569,6 +603,14 @@
       font: inherit;
       font-size: 0.94rem;
       text-align: left;
+    }
+
+    .download-options button small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
     }
 
     .download-options button:hover,
@@ -606,6 +648,34 @@
       border-radius: 8px;
       background: var(--panel);
       box-shadow: var(--shadow);
+    }
+
+    .help-dialog {
+      max-width: min(520px, calc(100% - 32px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .help-dialog::backdrop {
+      background: rgba(23, 32, 38, 0.35);
+    }
+
+    .help-dialog h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .help-dialog p {
+      margin-top: 14px;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .help-dialog .button {
+      margin-top: 18px;
     }
 
     .drawio-viewer[hidden] {
@@ -673,6 +743,10 @@
 
       .project {
         grid-template-columns: 1fr;
+      }
+
+      .panel-header {
+        flex-wrap: wrap;
       }
 
       .title-panel,

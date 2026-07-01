@@ -15,6 +15,7 @@ const drawioUploadZone = document.querySelector("#drawio-upload-zone");
 const drawioUpload = document.querySelector("#drawio-upload");
 const drawioPanelTitle = document.querySelector("#drawio-panel-title");
 const clearDrawioButton = document.querySelector("#clear-drawio");
+const projectWorkspace = document.querySelector(".project");
 const drawioExampleMenu = document.querySelector("#drawio-example-menu");
 const drawioExampleButton = document.querySelector("#drawio-example-button");
 const drawioExampleOptions = document.querySelector("#drawio-example-options");
@@ -23,6 +24,8 @@ const loadExampleDrawioButton = document.querySelector("#load-example-drawio");
 const drawioViewer = document.querySelector("#drawio-viewer");
 const drawioFrame = document.querySelector("#drawio-frame");
 const drawioActions = document.querySelector(".drawio-actions");
+const toggleMapFocusButton = document.querySelector("#toggle-map-focus");
+const addPlaceBoxButton = document.querySelector("#add-place-box");
 const showCleanMapButton = document.querySelector("#show-clean-map");
 const showGeneratedMapButton = document.querySelector("#show-generated-map");
 const generatedOptions = document.querySelector("#generated-options");
@@ -38,11 +41,9 @@ const missingWrap = document.querySelector("#missing-wrap");
 const missingTable = document.querySelector("#missing-table");
 const addMissingBoxesButton = document.querySelector("#add-missing-boxes");
 const downloadMissingButton = document.querySelector("#download-missing");
-const feedbackForm = document.querySelector("#feedback-form");
-const feedbackMessage = document.querySelector("#feedback-message");
-const feedbackStatus = document.querySelector("#feedback-status");
 const lastUpdated = document.querySelector("#last-updated");
 const lastUpdatedDate = document.querySelector("#last-updated-date");
+const helpButtons = document.querySelectorAll("[data-help-target]");
 const columnsMeta = document.querySelector("#columns-meta");
 const columnsPanel = document.querySelector("#columns-panel");
 const columnsList = document.querySelector("#columns-list");
@@ -52,7 +53,9 @@ const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-so
 const showPlaceNumberInput = document.querySelector("#show-place-number");
 const showColumnNamesInput = document.querySelector("#show-column-names");
 const tableMeta = document.querySelector("#table-meta");
+const duplicatePlaceWarning = document.querySelector("#duplicate-place-warning");
 const tablePanel = document.querySelector("#table-panel");
+const tableTitle = document.querySelector("#table-title");
 const tableWrap = document.querySelector("#table-wrap");
 const selectedTable = document.querySelector("#selected-table");
 const excelTypes = [".xls", ".xlsx"];
@@ -79,6 +82,7 @@ let generatedDrawioXml = "";
 let currentDrawioMode = "clean";
 let hasManualDrawioMode = false;
 let shouldReloadDrawioViewer = true;
+let isMapFocused = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
 let selectedTableSortColumnIndex = null;
@@ -128,27 +132,23 @@ function showLastUpdatedDate() {
   lastUpdated.hidden = false;
 }
 
-async function copyFeedback(event) {
-  event.preventDefault();
+function showHelpDialog(event) {
+  const dialog = document.querySelector(`#${event.currentTarget.dataset.helpTarget}`);
 
-  const message = feedbackMessage.value.trim();
-  const emailAddress = ["led.karlsson", "gmail.com"].join("@");
-
-  if (!message) {
-    feedbackStatus.textContent = "Skriv feedback först.";
-    feedbackMessage.focus();
-    return;
+  if (dialog instanceof HTMLDialogElement) {
+    dialog.showModal();
   }
+}
 
-  const feedbackText = `Feedback kartgenerator\n\n${message}\n\nSkickas till: ${emailAddress}`;
+function updateMapFocus() {
+  projectWorkspace.classList.toggle("is-map-focused", isMapFocused);
+  toggleMapFocusButton.textContent = isMapFocused ? "Visa Excel och karta" : "Visa bara kartan";
+  toggleMapFocusButton.setAttribute("aria-pressed", String(isMapFocused));
+}
 
-  try {
-    await navigator.clipboard.writeText(feedbackText);
-    feedbackStatus.textContent = `Kopierat. Klistra in i ett mail till ${emailAddress}.`;
-  } catch (error) {
-    feedbackMessage.select();
-    feedbackStatus.textContent = `Kunde inte kopiera automatiskt. Markera texten och skicka till ${emailAddress}.`;
-  }
+function toggleMapFocus() {
+  isMapFocused = !isMapFocused;
+  updateMapFocus();
 }
 
 async function fetchExampleBlob(example) {
@@ -203,6 +203,8 @@ function clearColumns(message) {
   columnsMeta.textContent = message;
   columnsPanel.hidden = true;
   tablePanel.hidden = true;
+  tableTitle.textContent = "Vald data";
+  duplicatePlaceWarning.hidden = true;
   columnsList.replaceChildren();
   selectedColumnIndexes = [];
   excelColumns = [];
@@ -213,24 +215,32 @@ function clearColumns(message) {
   selectedTableSortDirection = "asc";
   parsedOmradePlatsColumnIndex = null;
   parseControls.classList.remove("is-visible");
-  selectedColumnsStatus.textContent = "Inga kolumner valda.";
+  selectedColumnsStatus.textContent = "";
   renderSelectedTable();
   updateGeneratedDiagram();
   updateMissingPeopleList();
 }
 
 function updateSelectedColumnsStatus() {
-  if (selectedColumnIndexes.length === 0) {
-    selectedColumnsStatus.textContent = "Inga kolumner valda.";
+  const visibleColumnNames = selectedColumnIndexes
+    .map((columnIndex) => excelColumns[columnIndex])
+    .filter((column) => column && !isRequiredColumn(column))
+    .map((column) => column.name);
+
+  if (visibleColumnNames.length === 0) {
+    selectedColumnsStatus.textContent = "";
     return;
   }
 
-  const selectedNames = selectedColumnIndexes.map((columnIndex) => excelColumns[columnIndex].name);
-  selectedColumnsStatus.textContent = `${selectedColumnIndexes.length} valda: ${selectedNames.join(", ")}`;
+  selectedColumnsStatus.textContent = `${visibleColumnNames.length} valda: ${visibleColumnNames.join(", ")}`;
 }
 
 function isRequiredColumn(column) {
   return normalizeColumnName(column.name) === "omrade/plats";
+}
+
+function getColumnDisplayName(column) {
+  return isRequiredColumn(column) ? "Plats" : column.name;
 }
 
 function getSelectedParseSource() {
@@ -383,6 +393,42 @@ function sortSelectedTable(columnIndex) {
   });
 }
 
+function getDuplicatePlaces(rows) {
+  if (parsedOmradePlatsColumnIndex === null) {
+    return [];
+  }
+
+  const placeCounts = new Map();
+
+  rows.forEach((row) => {
+    const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
+
+    if (!place) {
+      return;
+    }
+
+    placeCounts.set(place, (placeCounts.get(place) || 0) + 1);
+  });
+
+  return [...placeCounts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([place]) => place)
+    .sort((left, right) => left.localeCompare(right, "sv", { numeric: true, sensitivity: "base" }));
+}
+
+function updateDuplicatePlaceWarning(rows) {
+  const duplicatePlaces = getDuplicatePlaces(rows);
+
+  duplicatePlaceWarning.hidden = duplicatePlaces.length === 0;
+
+  if (duplicatePlaces.length === 0) {
+    duplicatePlaceWarning.textContent = "";
+    return;
+  }
+
+  duplicatePlaceWarning.textContent = `Varning: flera medlemmar har samma plats: ${duplicatePlaces.join(", ")}.`;
+}
+
 function renderSelectedTable() {
   selectedTable.replaceChildren();
   updateParseControlsVisibility();
@@ -393,7 +439,9 @@ function renderSelectedTable() {
   }
 
   if (selectedColumnIndexes.length === 0) {
+    tableTitle.textContent = "Vald data";
     tableMeta.textContent = "Välj kolumner för att skapa en tabell.";
+    duplicatePlaceWarning.hidden = true;
     tableWrap.hidden = true;
     updateGeneratedDiagram();
     return;
@@ -403,13 +451,16 @@ function renderSelectedTable() {
   updateMissingPeopleList();
 
   if (visibleRows.length === 0) {
+    tableTitle.textContent = "Vald data";
     tableMeta.textContent = "Inga datarader hittades under rubrikraden.";
+    duplicatePlaceWarning.hidden = true;
     tableWrap.hidden = true;
     updateGeneratedDiagram();
     return;
   }
 
   const sortedRows = getSortedSelectedRows(visibleRows);
+  updateDuplicatePlaceWarning(visibleRows);
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -422,7 +473,7 @@ function renderSelectedTable() {
 
     button.className = "sort-button";
     button.type = "button";
-    button.textContent = `${excelColumns[columnIndex].name}${directionMarker}`;
+    button.textContent = `${getColumnDisplayName(excelColumns[columnIndex])}${directionMarker}`;
     button.addEventListener("click", () => sortSelectedTable(columnIndex));
     headerCell.append(button);
     headerRow.append(headerCell);
@@ -448,7 +499,8 @@ function renderSelectedTable() {
 
   tbody.append(bodyFragment);
   selectedTable.append(thead, tbody);
-  tableMeta.textContent = `${visibleRows.length} ${visibleRows.length === 1 ? "rad visas" : "rader visas"} med ${selectedColumnIndexes.length} ${selectedColumnIndexes.length === 1 ? "vald kolumn" : "valda kolumner"}.`;
+  tableTitle.textContent = `Vald data (${visibleRows.length} ${visibleRows.length === 1 ? "rad" : "rader"})`;
+  tableMeta.textContent = "";
   tableWrap.hidden = false;
   updateGeneratedDiagram();
 }
@@ -468,7 +520,10 @@ function renderColumns(columns, sheetName) {
     return;
   }
 
-  columnsMeta.textContent = `${columns.length} ${columns.length === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}".`;
+  const requiredColumnCount = columns.filter(isRequiredColumn).length;
+  const visibleColumnCount = columns.length - requiredColumnCount;
+
+  columnsMeta.textContent = `${visibleColumnCount} ${visibleColumnCount === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}", förutom område/plats som sköter matchningen.`;
 
   columns.forEach((columnName) => {
     if (isRequiredColumn(columnName)) {
@@ -692,7 +747,8 @@ function loadDrawioXml(frame, xml, options = {}) {
     action: "load",
     xml,
     autosave: options.autosave ? 1 : 0,
-    modified: 0
+    modified: 0,
+    noFit: options.keepZoom ? 1 : 0
   }), "*");
 }
 
@@ -711,10 +767,10 @@ function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12, options = {}) {
   });
 }
 
-function loadDrawioViewer(xml) {
+function loadDrawioViewer(xml, options = {}) {
   pendingDrawioXml = xml;
   drawioViewer.hidden = false;
-  loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true });
+  loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true, keepZoom: options.keepZoom });
 }
 
 function showCleanMap() {
@@ -743,7 +799,14 @@ function updateDrawioButtons() {
   const hasSource = Boolean(sourceDrawioXml);
   const hasGenerated = Boolean(generatedDrawioXml);
 
+  if (!hasSource && isMapFocused) {
+    isMapFocused = false;
+    updateMapFocus();
+  }
+
   drawioActions.hidden = !hasSource;
+  toggleMapFocusButton.hidden = !hasSource;
+  addPlaceBoxButton.disabled = !hasSource;
   showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
   showGeneratedMapButton.disabled = !hasGenerated || currentDrawioMode === "generated";
   generatedOptions.hidden = currentDrawioMode !== "generated" || !hasGenerated;
@@ -997,6 +1060,7 @@ function renderMissingPeopleTable(rows) {
 
   missingPanel.hidden = false;
   addMissingBoxesButton.hidden = false;
+  addMissingBoxesButton.textContent = `Lägg till ${rows.length} saknade platser i kartan`;
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -1211,6 +1275,47 @@ function createDrawioXmlWithMissingBoxes(xml, rows) {
   return new XMLSerializer().serializeToString(documentXml);
 }
 
+function getNextMapPlaceNumber(xml) {
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return 1;
+  }
+
+  const placeNumbers = [...documentXml.querySelectorAll("mxCell[vertex='1']")]
+    .map((cell) => drawioLabelToText(cell.getAttribute("value")))
+    .filter(isPlaceBoxLabel)
+    .map((label) => Number.parseInt(label, 10))
+    .filter(Number.isFinite);
+
+  return placeNumbers.length > 0 ? Math.max(...placeNumbers) + 1 : 1;
+}
+
+function addPlaceBoxToDrawio() {
+  if (!sourceDrawioXml) {
+    return;
+  }
+
+  const place = String(getNextMapPlaceNumber(sourceDrawioXml));
+
+  try {
+    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, [{ place }]));
+    hasManualDrawioMode = true;
+
+    if (currentDrawioMode === "generated" && generatedDrawioXml) {
+      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
+    } else {
+      currentDrawioMode = "clean";
+      loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+    }
+
+    updateDrawioButtons();
+  } catch (error) {
+    drawioPanelTitle.textContent = "Kunde inte lägga till plats.";
+  }
+}
+
 function addMissingBoxesToDrawio() {
   const rows = getSortedMissingPeopleRows();
 
@@ -1224,7 +1329,7 @@ function addMissingBoxesToDrawio() {
     currentDrawioMode = generatedDrawioXml ? "generated" : "clean";
 
     if (currentDrawioMode === "generated") {
-      loadDrawioViewer(generatedDrawioXml);
+      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
     } else {
       loadDrawioViewer(sourceDrawioXml);
     }
@@ -1334,7 +1439,7 @@ function updateGeneratedDiagram() {
     if (currentDrawioMode === "generated") {
       currentDrawioMode = "clean";
       if (shouldReloadDrawioViewer) {
-        loadDrawioViewer(sourceDrawioXml);
+        loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
       }
     }
     updateDrawioButtons();
@@ -1348,7 +1453,7 @@ function updateGeneratedDiagram() {
     if (currentDrawioMode === "generated") {
       currentDrawioMode = "clean";
       if (shouldReloadDrawioViewer) {
-        loadDrawioViewer(sourceDrawioXml);
+        loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
       }
     }
     updateDrawioButtons();
@@ -1365,7 +1470,7 @@ function updateGeneratedDiagram() {
     }
 
     if (shouldReloadDrawioViewer && currentDrawioMode === "generated") {
-      loadDrawioViewer(generatedDrawioXml);
+      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
     }
   } catch (error) {
     generatedDrawioXml = "";
@@ -1441,6 +1546,7 @@ drawioUpload.addEventListener("change", () => {
 });
 
 showLastUpdatedDate();
+updateMapFocus();
 
 parseSourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
@@ -1448,7 +1554,10 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-feedbackForm.addEventListener("submit", copyFeedback);
+toggleMapFocusButton.addEventListener("click", toggleMapFocus);
+helpButtons.forEach((button) => {
+  button.addEventListener("click", showHelpDialog);
+});
 excelExampleButton.addEventListener("click", () => toggleExampleMenu(excelExampleOptions, excelExampleButton));
 drawioExampleButton.addEventListener("click", () => toggleExampleMenu(drawioExampleOptions, drawioExampleButton));
 downloadExampleExcelButton.addEventListener("click", () => downloadExampleAsset(excelExample));
@@ -1457,6 +1566,7 @@ loadExampleExcelButton.addEventListener("click", loadExcelExample);
 loadExampleDrawioButton.addEventListener("click", loadDrawioExample);
 showCleanMapButton.addEventListener("click", showCleanMap);
 showGeneratedMapButton.addEventListener("click", showGeneratedMap);
+addPlaceBoxButton.addEventListener("click", addPlaceBoxToDrawio);
 downloadMenuButton.addEventListener("click", toggleDownloadMenu);
 downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
 downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
