@@ -179,6 +179,11 @@
       color: var(--accent-strong);
     }
 
+    .button.secondary[aria-pressed="true"] {
+      background: rgba(35, 122, 120, 0.12);
+      border-color: var(--accent-strong);
+    }
+
     .button[disabled] {
       opacity: 0.45;
       cursor: not-allowed;
@@ -362,7 +367,19 @@
     }
 
     .generated-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
       margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .generated-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
     }
 
     .table-panel {
@@ -466,6 +483,61 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .drawio-actions {
+      align-items: flex-start;
+      justify-content: flex-start;
+      margin-top: 0;
+    }
+
+    .download-menu {
+      position: relative;
+    }
+
+    .download-options {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 5;
+      min-width: 260px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .download-options button {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      text-align: left;
+    }
+
+    .download-options button:hover,
+    .download-options button:focus-visible {
+      background: rgba(35, 122, 120, 0.08);
+      outline: none;
+    }
+
+    .download-options button[disabled] {
+      color: var(--muted);
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .download-options button[disabled]:hover,
+    .download-options button[disabled]:focus-visible {
+      background: transparent;
     }
 
     .clear-button {
@@ -479,28 +551,6 @@
       font-weight: 700;
     }
 
-    .generated-empty {
-      display: grid;
-      min-height: 180px;
-      margin-top: 18px;
-      place-items: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
-      color: var(--muted);
-      padding: 24px;
-      text-align: center;
-    }
-
-    .generated-viewer {
-      margin-top: 18px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #ffffff;
-      min-height: 620px;
-      overflow: hidden;
-    }
-
     .missing-panel {
       margin-top: 36px;
       padding: 22px;
@@ -508,13 +558,6 @@
       border-radius: 8px;
       background: var(--panel);
       box-shadow: var(--shadow);
-    }
-
-    .generated-frame {
-      display: block;
-      width: 100%;
-      height: 620px;
-      border: 0;
     }
 
     .drawio-viewer[hidden] {

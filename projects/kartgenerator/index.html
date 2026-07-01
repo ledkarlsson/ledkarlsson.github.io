@@ -87,6 +87,29 @@
           <h2 class="panel-title" id="drawio-panel-title">draw.io-diagram</h2>
           <button class="clear-button" id="clear-drawio" type="button" hidden>Rensa</button>
         </div>
+        <div class="actions drawio-actions">
+          <button class="button secondary" id="show-clean-map" type="button" disabled>Visa karta utan BAS-info</button>
+          <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
+          <div class="download-menu" id="download-menu">
+            <button class="button" id="download-menu-button" type="button" aria-expanded="false" disabled>Ladda ner</button>
+            <div class="download-options" id="download-options" hidden>
+              <button type="button" id="download-clean-drawio" disabled>Karta utan BAS-info (.drawio)</button>
+              <button type="button" id="download-clean-png" disabled>Karta utan BAS-info (PNG)</button>
+              <button type="button" id="download-generated-drawio" disabled>Karta med BAS-info (.drawio)</button>
+              <button type="button" id="download-generated-png" disabled>Karta med BAS-info (PNG)</button>
+            </div>
+          </div>
+        </div>
+        <div class="generated-options" id="generated-options" aria-label="Inställningar för BAS-info" hidden>
+          <label>
+            <input type="checkbox" id="show-place-number" checked />
+            Visa platsnummer
+          </label>
+          <label>
+            <input type="checkbox" id="show-column-names" />
+            Visa kolumnnamn
+          </label>
+        </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
           <span class="drawio-title">Ladda upp draw.io-fil</span>
           <span class="drawio-help">Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att
@@ -98,32 +121,6 @@
             src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
           </iframe>
         </div>
-      </div>
-    </section>
-
-    <section class="generated-panel" aria-labelledby="generated-title">
-      <div class="generated-header">
-        <h2 class="panel-title" id="generated-title">Genererat draw.io-diagram</h2>
-        <div class="actions">
-          <button class="button" id="download-generated" type="button" disabled>Ladda ner draw.io</button>
-          <button class="button" id="download-generated-png" type="button" disabled>Ladda ner PNG</button>
-        </div>
-      </div>
-      <label class="generated-options">
-        <input type="checkbox" id="show-place-number" checked />
-        Visa platsnummer
-      </label>
-      <label class="generated-options">
-        <input type="checkbox" id="show-column-names" />
-        Visa kolumnnamn
-      </label>
-      <div class="generated-empty" id="generated-empty">
-        Ladda upp Excel-fil och drawio-fil.
-      </div>
-      <div class="generated-viewer" id="generated-viewer" hidden>
-        <iframe class="generated-frame" id="generated-frame" title="Genererat draw.io-diagram"
-          src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
-        </iframe>
       </div>
     </section>
 

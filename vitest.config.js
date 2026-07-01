@@ -1,6 +1,4 @@
-import { defineConfig } from "vitest/config";
-
-export default defineConfig({
+export default {
   test: {
     environment: "jsdom",
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
@@ -8,4 +6,4 @@ export default defineConfig({
       reporter: ["text", "html", "lcov"]
     }
   }
-});
+};

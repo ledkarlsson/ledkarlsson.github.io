@@ -15,7 +15,20 @@ async function mockExternalScripts(page) {
   await page.route("https://embed.diagrams.net/**", async (route) => {
     await route.fulfill({
       contentType: "text/html",
-      body: "<!doctype html><title>draw.io test frame</title>"
+      body: `<!doctype html>
+        <title>draw.io test frame</title>
+        <script>
+          window.addEventListener("message", (event) => {
+            const message = JSON.parse(event.data);
+
+            if (message.action === "export") {
+              window.parent.postMessage(JSON.stringify({
+                event: "export",
+                data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+              }), "*");
+            }
+          });
+        </script>`
     });
   });
 }
@@ -69,9 +82,10 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp draw.io-fil");
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
     await expect(page.locator("#feedback-email")).toHaveAttribute("href", "mailto:led.karlsson@gmail.com?subject=Feedback%20kartgenerator");
-    await expect(page.locator("#generated-empty")).toHaveText("Ladda upp Excel-fil och drawio-fil.");
-    await expect(page.locator("#download-generated")).toBeDisabled();
-    await expect(page.locator("#download-generated-png")).toBeDisabled();
+    await expect(page.locator("#show-clean-map")).toBeDisabled();
+    await expect(page.locator("#show-generated-map")).toBeDisabled();
+    await expect(page.locator("#generated-options")).toBeHidden();
+    await expect(page.locator("#download-menu-button")).toBeDisabled();
   });
 });
 
@@ -102,14 +116,40 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#selected-table")).toContainText("51");
   });
 
-  await test.step("Skrolla till genererat diagram", async () => {
-    await scrollToCenter(page, "#generated-title");
-  });
+  await test.step("Kontrollera draw.io-visning och nedladdningslägen", async () => {
+    await expect(page.locator("#drawio-viewer")).toBeVisible();
+    await expect(page.locator("#generated-options")).toBeVisible();
+    await expect(page.locator("#show-clean-map")).toBeEnabled();
+    await expect(page.locator("#show-generated-map")).toBeDisabled();
+    await expect(page.locator("#download-menu-button")).toBeEnabled();
 
-  await test.step("Kontrollera genererat diagram", async () => {
-    await expect(page.locator("#download-generated")).toBeEnabled();
-    await expect(page.locator("#download-generated-png")).toBeEnabled();
-    await expect(page.locator("#generated-viewer")).toBeVisible();
+    const cleanDownloadPromise = page.waitForEvent("download");
+
+    await page.locator("#download-menu-button").click();
+    await page.locator("#download-clean-drawio").click();
+
+    const cleanDownload = await cleanDownloadPromise;
+    const cleanPath = testInfo.outputPath(cleanDownload.suggestedFilename());
+
+    await cleanDownload.saveAs(cleanPath);
+
+    const cleanXml = await readFile(cleanPath, "utf8");
+
+    expect(cleanXml).toContain("51");
+    expect(cleanXml).not.toContain("Pelle Pelleson");
+
+    const cleanPngDownloadPromise = page.waitForEvent("download");
+
+    await page.locator("#download-menu-button").click();
+    await page.locator("#download-clean-png").click();
+
+    const cleanPngDownload = await cleanPngDownloadPromise;
+
+    expect(cleanPngDownload.suggestedFilename()).toMatch(/utan-bas-info\.png$/);
+
+    await page.locator("#show-clean-map").click();
+    await expect(page.locator("#generated-options")).toBeHidden();
+    await expect(page.locator("#show-generated-map")).toBeEnabled();
   });
 
   await test.step("Skrolla till rapport över saknade platser", async () => {
@@ -146,7 +186,8 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     const downloadPromise = page.waitForEvent("download");
 
-    await page.locator("#download-generated").click();
+    await page.locator("#download-menu-button").click();
+    await page.locator("#download-generated-drawio").click();
 
     const download = await downloadPromise;
     const generatedPath = testInfo.outputPath(download.suggestedFilename());
@@ -157,5 +198,14 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     expect(generatedXml).toContain("75");
     expect(generatedXml).toContain("Josefin Josefinsson");
+
+    const generatedPngDownloadPromise = page.waitForEvent("download");
+
+    await page.locator("#download-menu-button").click();
+    await page.locator("#download-generated-png").click();
+
+    const generatedPngDownload = await generatedPngDownloadPromise;
+
+    expect(generatedPngDownload.suggestedFilename()).toMatch(/genererad\.png$/);
   });
 });

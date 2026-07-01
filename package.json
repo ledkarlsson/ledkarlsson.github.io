@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:watch": "vitest --coverage",
+    "test": "vitest run --configLoader runner",
+    "test:watch": "vitest --configLoader runner",
+    "test:coverage": "vitest run --coverage --configLoader runner",
+    "test:coverage:watch": "vitest --coverage --configLoader runner",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

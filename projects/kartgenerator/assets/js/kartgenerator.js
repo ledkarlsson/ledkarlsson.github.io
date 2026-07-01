@@ -13,10 +13,14 @@ const drawioPanelTitle = document.querySelector("#drawio-panel-title");
 const clearDrawioButton = document.querySelector("#clear-drawio");
 const drawioViewer = document.querySelector("#drawio-viewer");
 const drawioFrame = document.querySelector("#drawio-frame");
-const generatedEmpty = document.querySelector("#generated-empty");
-const generatedViewer = document.querySelector("#generated-viewer");
-const generatedFrame = document.querySelector("#generated-frame");
-const downloadGeneratedButton = document.querySelector("#download-generated");
+const showCleanMapButton = document.querySelector("#show-clean-map");
+const showGeneratedMapButton = document.querySelector("#show-generated-map");
+const generatedOptions = document.querySelector("#generated-options");
+const downloadMenuButton = document.querySelector("#download-menu-button");
+const downloadOptions = document.querySelector("#download-options");
+const downloadCleanDrawioButton = document.querySelector("#download-clean-drawio");
+const downloadCleanPngButton = document.querySelector("#download-clean-png");
+const downloadGeneratedDrawioButton = document.querySelector("#download-generated-drawio");
 const downloadGeneratedPngButton = document.querySelector("#download-generated-png");
 const missingPanel = document.querySelector("#missing-panel");
 const missingMeta = document.querySelector("#missing-meta");
@@ -45,7 +49,11 @@ let parsedOmradePlatsColumnIndex = null;
 let sourceDrawioXml = "";
 let sourceDrawioFileName = "";
 let pendingDrawioXml = "";
-let pendingGeneratedDrawioXml = "";
+let generatedDrawioXml = "";
+let currentDrawioMode = "clean";
+let hasManualDrawioMode = false;
+let shouldReloadDrawioViewer = true;
+let pendingPngFileName = "";
 let missingPeopleRows = [];
 let selectedTableSortColumnIndex = null;
 let selectedTableSortDirection = "asc";
@@ -505,8 +513,12 @@ function showDrawioFile(file) {
     drawioUpload.value = "";
     sourceDrawioXml = "";
     sourceDrawioFileName = "";
+    generatedDrawioXml = "";
+    currentDrawioMode = "clean";
+    hasManualDrawioMode = false;
     drawioViewer.hidden = true;
     drawioUploadZone.hidden = false;
+    updateDrawioButtons();
     updateMissingPeopleList();
     updateGeneratedDiagram();
     return;
@@ -544,6 +556,10 @@ function clearDrawioFile() {
   sourceDrawioXml = "";
   sourceDrawioFileName = "";
   pendingDrawioXml = "";
+  generatedDrawioXml = "";
+  currentDrawioMode = "clean";
+  hasManualDrawioMode = false;
+  updateDrawioButtons();
   updateMissingPeopleList();
   updateGeneratedDiagram();
 }
@@ -578,92 +594,111 @@ function loadDrawioViewer(xml) {
   loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true });
 }
 
-function loadGeneratedViewer(xml) {
-  preserveWindowScroll(() => {
-    pendingGeneratedDrawioXml = xml;
-    generatedEmpty.hidden = true;
-    generatedViewer.hidden = false;
-    downloadGeneratedButton.disabled = false;
-    downloadGeneratedPngButton.disabled = false;
-    loadDrawioXmlWhenVisible(generatedFrame, xml);
-  });
-}
-
-function showGeneratedMessage(message) {
-  preserveWindowScroll(() => {
-    pendingGeneratedDrawioXml = "";
-    generatedViewer.hidden = true;
-    generatedEmpty.hidden = false;
-    generatedEmpty.textContent = message;
-    downloadGeneratedButton.disabled = true;
-    downloadGeneratedPngButton.disabled = true;
-  });
-}
-
-function downloadGeneratedDiagram() {
-  if (!pendingGeneratedDrawioXml) {
+function showCleanMap() {
+  if (!sourceDrawioXml) {
     return;
   }
 
-  const blob = new Blob([pendingGeneratedDrawioXml], { type: "application/xml" });
+  hasManualDrawioMode = true;
+  currentDrawioMode = "clean";
+  loadDrawioViewer(sourceDrawioXml);
+  updateDrawioButtons();
+}
+
+function showGeneratedMap() {
+  if (!generatedDrawioXml) {
+    return;
+  }
+
+  hasManualDrawioMode = true;
+  currentDrawioMode = "generated";
+  loadDrawioViewer(generatedDrawioXml);
+  updateDrawioButtons();
+}
+
+function updateDrawioButtons() {
+  const hasSource = Boolean(sourceDrawioXml);
+  const hasGenerated = Boolean(generatedDrawioXml);
+
+  showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
+  showGeneratedMapButton.disabled = !hasGenerated || currentDrawioMode === "generated";
+  generatedOptions.hidden = currentDrawioMode !== "generated" || !hasGenerated;
+  downloadMenuButton.disabled = !hasSource;
+  downloadCleanDrawioButton.disabled = !hasSource;
+  downloadCleanPngButton.disabled = !hasSource;
+  downloadGeneratedDrawioButton.disabled = !hasGenerated;
+  downloadGeneratedPngButton.disabled = !hasGenerated;
+  showCleanMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "clean"));
+  showGeneratedMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "generated"));
+
+  if (!hasSource) {
+    closeDownloadMenu();
+  }
+}
+
+function downloadDrawioXml(xml, fileName) {
+  if (!xml) {
+    return;
+  }
+
+  const blob = new Blob([xml], { type: "application/xml" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = getGeneratedDrawioFileName();
+  link.download = fileName;
   link.click();
   URL.revokeObjectURL(url);
 }
 
+function downloadCleanDiagram() {
+  downloadDrawioXml(createCleanDrawioXml(sourceDrawioXml), getCleanDrawioFileName());
+}
+
+function downloadGeneratedDiagram() {
+  downloadDrawioXml(generatedDrawioXml, getGeneratedDrawioFileName());
+}
+
+function downloadCleanPng() {
+  downloadDrawioPng(createCleanDrawioXml(sourceDrawioXml), getCleanPngFileName());
+}
+
 function downloadGeneratedPng() {
-  if (!pendingGeneratedDrawioXml) {
+  downloadDrawioPng(generatedDrawioXml, getGeneratedPngFileName());
+}
+
+function toggleDownloadMenu() {
+  const isOpening = downloadOptions.hidden;
+
+  downloadOptions.hidden = !isOpening;
+  downloadMenuButton.setAttribute("aria-expanded", String(isOpening));
+}
+
+function closeDownloadMenu() {
+  downloadOptions.hidden = true;
+  downloadMenuButton.setAttribute("aria-expanded", "false");
+}
+
+function runDownloadAction(action) {
+  action();
+  closeDownloadMenu();
+}
+
+function downloadDrawioPng(xml, fileName) {
+  if (!xml) {
     return;
   }
 
-  generatedFrame.contentWindow.postMessage(JSON.stringify({
+  pendingPngFileName = fileName;
+  drawioFrame.contentWindow.postMessage(JSON.stringify({
     action: "export",
     format: "png",
-    xml: pendingGeneratedDrawioXml,
+    xml,
     scale: 1,
     border: 8,
     bg: "#ffffff",
     background: "#ffffff"
   }), "*");
-}
-
-function getGeneratedDrawioFileName() {
-  const fallbackName = "genererad_karta.drawio";
-  const fileName = sourceDrawioFileName || fallbackName;
-  const drawioXmlSuffix = ".drawio.xml";
-
-  if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
-    return `${fileName.slice(0, -drawioXmlSuffix.length)}-genererad${drawioXmlSuffix}`;
-  }
-
-  const dotIndex = fileName.lastIndexOf(".");
-
-  if (dotIndex > 0) {
-    return `${fileName.slice(0, dotIndex)}-genererad${fileName.slice(dotIndex)}`;
-  }
-
-  return `${fileName}-genererad.drawio`;
-}
-
-function getGeneratedPngFileName() {
-  const drawioFileName = getGeneratedDrawioFileName();
-  const drawioXmlSuffix = ".drawio.xml";
-
-  if (drawioFileName.toLowerCase().endsWith(drawioXmlSuffix)) {
-    return `${drawioFileName.slice(0, -drawioXmlSuffix.length)}.png`;
-  }
-
-  const dotIndex = drawioFileName.lastIndexOf(".");
-
-  if (dotIndex > 0) {
-    return `${drawioFileName.slice(0, dotIndex)}.png`;
-  }
-
-  return `${drawioFileName}.png`;
 }
 
 function downloadDataUrl(dataUrl, fileName) {
@@ -694,6 +729,66 @@ function downloadPngWithWhiteBackground(dataUrl, fileName) {
   });
 
   image.src = dataUrl;
+}
+
+function getGeneratedDrawioFileName() {
+  const fallbackName = "genererad_karta.drawio";
+  const fileName = sourceDrawioFileName || fallbackName;
+  const drawioXmlSuffix = ".drawio.xml";
+
+  if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
+    return `${fileName.slice(0, -drawioXmlSuffix.length)}-genererad${drawioXmlSuffix}`;
+  }
+
+  const dotIndex = fileName.lastIndexOf(".");
+
+  if (dotIndex > 0) {
+    return `${fileName.slice(0, dotIndex)}-genererad${fileName.slice(dotIndex)}`;
+  }
+
+  return `${fileName}-genererad.drawio`;
+}
+
+function getCleanDrawioFileName() {
+  const fallbackName = "karta.drawio";
+  const fileName = sourceDrawioFileName || fallbackName;
+  const drawioXmlSuffix = ".drawio.xml";
+
+  if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
+    return `${fileName.slice(0, -drawioXmlSuffix.length)}-utan-bas-info${drawioXmlSuffix}`;
+  }
+
+  const dotIndex = fileName.lastIndexOf(".");
+
+  if (dotIndex > 0) {
+    return `${fileName.slice(0, dotIndex)}-utan-bas-info${fileName.slice(dotIndex)}`;
+  }
+
+  return `${fileName}-utan-bas-info.drawio`;
+}
+
+function getPngFileName(drawioFileName) {
+  const drawioXmlSuffix = ".drawio.xml";
+
+  if (drawioFileName.toLowerCase().endsWith(drawioXmlSuffix)) {
+    return `${drawioFileName.slice(0, -drawioXmlSuffix.length)}.png`;
+  }
+
+  const dotIndex = drawioFileName.lastIndexOf(".");
+
+  if (dotIndex > 0) {
+    return `${drawioFileName.slice(0, dotIndex)}.png`;
+  }
+
+  return `${drawioFileName}.png`;
+}
+
+function getCleanPngFileName() {
+  return getPngFileName(getCleanDrawioFileName());
+}
+
+function getGeneratedPngFileName() {
+  return getPngFileName(getGeneratedDrawioFileName());
 }
 
 function makeDrawioLabel(row) {
@@ -854,7 +949,7 @@ function updateMissingPeopleList() {
 }
 
 function updateSourceDrawioXml(xml) {
-  const updatedXml = String(xml || "").trim();
+  const updatedXml = createCleanDrawioXml(String(xml || "").trim()).trim();
 
   if (!updatedXml || updatedXml === sourceDrawioXml) {
     return;
@@ -864,11 +959,17 @@ function updateSourceDrawioXml(xml) {
   pendingDrawioXml = updatedXml;
 
   preserveWindowScroll(() => {
-    if (excelColumns.length > 0 && rawExcelRows.length > 0) {
-      reparseRows(true);
-    } else {
-      updateMissingPeopleList();
-      updateGeneratedDiagram();
+    shouldReloadDrawioViewer = false;
+
+    try {
+      if (excelColumns.length > 0 && rawExcelRows.length > 0) {
+        reparseRows(true);
+      } else {
+        updateMissingPeopleList();
+        updateGeneratedDiagram();
+      }
+    } finally {
+      shouldReloadDrawioViewer = true;
     }
   });
 }
@@ -887,6 +988,39 @@ function downloadMissingPeopleExcel() {
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Saknas i kartan");
   XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
+}
+
+function getPlaceCodeFromCellLabel(label) {
+  const text = drawioLabelToText(label);
+  const [firstLine] = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return firstLine && isPlaceBoxLabel(firstLine) ? firstLine : "";
+}
+
+function createCleanDrawioXml(xml) {
+  if (!xml) {
+    return "";
+  }
+
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return xml;
+  }
+
+  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value"));
+
+    if (placeCode) {
+      cell.setAttribute("value", placeCode);
+    }
+  });
+
+  return new XMLSerializer().serializeToString(documentXml);
 }
 
 function createGeneratedDrawioXml(xml, rows) {
@@ -944,27 +1078,55 @@ function markCellAsEmptyPlace(cell) {
 
 function updateGeneratedDiagram() {
   if (!sourceDrawioXml) {
-    showGeneratedMessage("Ladda upp Excel-fil och drawio-fil.");
+    generatedDrawioXml = "";
+    currentDrawioMode = "clean";
+    updateDrawioButtons();
     return;
   }
 
   if (parsedOmradePlatsColumnIndex === null || !selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)) {
-    showGeneratedMessage("Ladda upp Excel-fil och drawio-fil.");
+    generatedDrawioXml = "";
+    if (currentDrawioMode === "generated") {
+      currentDrawioMode = "clean";
+      if (shouldReloadDrawioViewer) {
+        loadDrawioViewer(sourceDrawioXml);
+      }
+    }
+    updateDrawioButtons();
     return;
   }
 
   const visibleRows = getVisibleRows();
 
   if (visibleRows.length === 0) {
-    showGeneratedMessage("Inga matchande rader för område/plats att placera i det genererade diagrammet.");
+    generatedDrawioXml = "";
+    if (currentDrawioMode === "generated") {
+      currentDrawioMode = "clean";
+      if (shouldReloadDrawioViewer) {
+        loadDrawioViewer(sourceDrawioXml);
+      }
+    }
+    updateDrawioButtons();
     return;
   }
 
   try {
-    loadGeneratedViewer(createGeneratedDrawioXml(sourceDrawioXml, visibleRows));
+    const hadGeneratedDrawioXml = Boolean(generatedDrawioXml);
+
+    generatedDrawioXml = createGeneratedDrawioXml(sourceDrawioXml, visibleRows);
+
+    if (!hadGeneratedDrawioXml && !hasManualDrawioMode) {
+      currentDrawioMode = "generated";
+    }
+
+    if (shouldReloadDrawioViewer && currentDrawioMode === "generated") {
+      loadDrawioViewer(generatedDrawioXml);
+    }
   } catch (error) {
-    showGeneratedMessage("Kunde inte generera ett draw.io-diagram från filen.");
+    generatedDrawioXml = "";
   }
+
+  updateDrawioButtons();
 }
 
 function readDrawioFile(file) {
@@ -978,15 +1140,21 @@ function readDrawioFile(file) {
       drawioUploadZone.classList.add("has-error");
       sourceDrawioXml = "";
       sourceDrawioFileName = "";
+      generatedDrawioXml = "";
+      currentDrawioMode = "clean";
+      hasManualDrawioMode = false;
       drawioViewer.hidden = true;
       drawioUploadZone.hidden = false;
+      updateDrawioButtons();
       updateMissingPeopleList();
       updateGeneratedDiagram();
       return;
     }
 
-    sourceDrawioXml = xml;
-    loadDrawioViewer(xml);
+    sourceDrawioXml = createCleanDrawioXml(xml);
+    currentDrawioMode = "clean";
+    hasManualDrawioMode = false;
+    loadDrawioViewer(sourceDrawioXml);
     if (excelColumns.length > 0 && rawExcelRows.length > 0) {
       reparseRows(true);
     } else {
@@ -1000,6 +1168,10 @@ function readDrawioFile(file) {
     drawioUploadZone.classList.add("has-error");
     sourceDrawioXml = "";
     sourceDrawioFileName = "";
+    generatedDrawioXml = "";
+    currentDrawioMode = "clean";
+    hasManualDrawioMode = false;
+    updateDrawioButtons();
     updateMissingPeopleList();
     updateGeneratedDiagram();
   });
@@ -1032,11 +1204,21 @@ showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updat
 exampleDownloadLinks.forEach((link) => {
   link.addEventListener("click", downloadExampleFile);
 });
-downloadGeneratedButton.addEventListener("click", downloadGeneratedDiagram);
-downloadGeneratedPngButton.addEventListener("click", downloadGeneratedPng);
+showCleanMapButton.addEventListener("click", showCleanMap);
+showGeneratedMapButton.addEventListener("click", showGeneratedMap);
+downloadMenuButton.addEventListener("click", toggleDownloadMenu);
+downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
+downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
+downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(downloadGeneratedDiagram));
+downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
 downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
 clearExcelButton.addEventListener("click", clearExcelFile);
 clearDrawioButton.addEventListener("click", clearDrawioFile);
+document.addEventListener("click", (event) => {
+  if (!downloadOptions.hidden && !event.target.closest("#download-menu")) {
+    closeDownloadMenu();
+  }
+});
 window.addEventListener("wheel", cancelPendingScrollRestore, { passive: true });
 window.addEventListener("touchmove", cancelPendingScrollRestore, { passive: true });
 window.addEventListener("keydown", (event) => {
@@ -1106,15 +1288,12 @@ window.addEventListener("message", (event) => {
     loadDrawioViewer(pendingDrawioXml);
   }
 
-  if (message.event === "init" && event.source === generatedFrame.contentWindow && pendingGeneratedDrawioXml) {
-    loadGeneratedViewer(pendingGeneratedDrawioXml);
-  }
-
   if (event.source === drawioFrame.contentWindow && typeof message.xml === "string" && ["autosave", "save"].includes(message.event)) {
     updateSourceDrawioXml(message.xml);
   }
 
-  if (message.event === "export" && event.source === generatedFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
-    downloadPngWithWhiteBackground(message.data, getGeneratedPngFileName());
+  if (message.event === "export" && event.source === drawioFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
+    downloadPngWithWhiteBackground(message.data, pendingPngFileName || "karta.png");
+    pendingPngFileName = "";
   }
 });
