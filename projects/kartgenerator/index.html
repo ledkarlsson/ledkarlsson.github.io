@@ -28,12 +28,10 @@
         skapa en rapport som innehåller kolumner som Förnamn, Efternamn och platsinformation.
 
         Skapa sedan en karta i draw.io, och rita boxar. Ladda gärna in exempel för Excel och kartan.
-        Du kan ändra direkt i kartan i högerpanelen, och den genererade kartan kommer att uppdateras. Glöm inte att
-        spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.
+        Du kan ändra direkt i kartan i högerpanelen, och den genererade kartan kommer att uppdateras.
 
         Du kan även ändra kartan i
         t.ex. Google Drive, eller via programmet draw.io, och ladda upp igen.
-        Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror.
       </p>
       <p class="feedback">Skicka återkoppling till <span>led.karlsson[snabela]gmail.com</span>.</p>
     </section>
@@ -147,7 +145,7 @@
         </label>
         <div class="drawio-viewer" id="drawio-viewer" hidden>
           <iframe class="drawio-frame" id="drawio-frame" title="Förhandsvisning av draw.io-fil"
-            src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1">
+            src="https://embed.diagrams.net/?embed=1&ui=min&proto=json&spin=1&noSaveBtn=1&noExitBtn=1&noSaveAndExit=1&saveAndExit=0">
           </iframe>
         </div>
       </div>
@@ -175,13 +173,15 @@
     <form method="dialog">
       <h2>Excel-data</h2>
       <p>Ladda upp en BAS-rapport som innehåller Förnamn, Efternamn och platsinformation. Platsinformationen används för matchningen och är alltid aktiv.</p>
+      <p>Område/plats sköter matchningen. Det spelar ingen roll om kolumnen för plats innehåller Brygga B - 75 eller Brygga C - 75. Se till att alla båtplatser i BAS har unika nummer.</p>
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>
   <dialog class="help-dialog" id="map-help">
     <form method="dialog">
       <h2>Karta</h2>
-      <p>Ladda upp en draw.io-karta med en box per plats. Du kan ändra kartan direkt här, men kom ihåg att ladda ner den när du är klar.</p>
+      <p>Ladda upp en draw.io-karta med en box per plats. Du kan ändra kartan direkt här.</p>
+      <p>Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror. Glöm inte att spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.</p>
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>

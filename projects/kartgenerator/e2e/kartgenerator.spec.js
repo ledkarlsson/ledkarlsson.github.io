@@ -106,7 +106,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
   await test.step("Kontrollera vald kolumntabell", async () => {
     await expect(page.locator("#columns-panel")).toBeVisible();
-    await expect(page.locator("#columns-meta")).toHaveText('4 kolumner hittades i "Rapport", förutom område/plats som sköter matchningen.');
+    await expect(page.locator("#columns-meta")).toHaveText('4 kolumner hittades i "Rapport". Samt matchningskolumn område/plats. Välj vilken data som ska in i kartan.');
     await expect(page.locator("#selected-columns")).toBeHidden();
     await expect(page.locator("#columns-list .column-button", { hasText: "Område/plats" })).toHaveCount(0);
     await expect(page.locator("#parse-controls")).toBeHidden();
@@ -207,6 +207,22 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(sourceFrame).not.toBeNull();
     await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
     await expect(sourceFrame.locator("#last-load-options")).toContainText('"action":"merge"');
+
+    await page.locator("#show-place-number").uncheck();
+    await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
+
+    const generatedWithoutPlaceNumber = await sourceFrame.locator("#loaded-xml").textContent();
+
+    await sourceFrame.evaluate((xml) => {
+      window.parent.postMessage(JSON.stringify({
+        event: "autosave",
+        xml
+      }), "*");
+    }, generatedWithoutPlaceNumber);
+
+    await page.locator("#show-place-number").check();
+    await expect(sourceFrame.locator("#loaded-xml")).toContainText("75");
+    await expect(sourceFrame.locator("#loaded-xml")).toContainText("Josefin Josefinsson");
 
     const downloadPromise = page.waitForEvent("download");
 

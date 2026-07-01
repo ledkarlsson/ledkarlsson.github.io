@@ -523,7 +523,7 @@ function renderColumns(columns, sheetName) {
   const requiredColumnCount = columns.filter(isRequiredColumn).length;
   const visibleColumnCount = columns.length - requiredColumnCount;
 
-  columnsMeta.textContent = `${visibleColumnCount} ${visibleColumnCount === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}", förutom område/plats som sköter matchningen.`;
+  columnsMeta.textContent = `${visibleColumnCount} ${visibleColumnCount === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}". Samt matchningskolumn område/plats. Välj vilken data som ska in i kartan.`;
 
   columns.forEach((columnName) => {
     if (isRequiredColumn(columnName)) {
@@ -1364,10 +1364,11 @@ function createCleanDrawioXml(xml) {
   }
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value"));
+    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
 
     if (placeCode) {
       cell.setAttribute("value", placeCode);
+      cell.removeAttribute("data-place-code");
     }
   });
 
@@ -1401,6 +1402,8 @@ function createGeneratedDrawioXml(xml, rows) {
     }
 
     const row = rowsByPlace.get(normalizePlaceCode(label));
+
+    cell.setAttribute("data-place-code", label);
 
     if (row) {
       const generatedLabel = makeDrawioLabel(row);
