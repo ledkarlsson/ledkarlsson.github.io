@@ -62,6 +62,8 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
 
   await test.step("Kontrollera startläget", async () => {
     await expect(page.getByRole("heading", { name: "kartgenerator" })).toBeVisible();
+    await expect(page.locator(".last-updated")).toContainText(/Senast uppdaterad: \d{1,2} [a-zåäö]+ \d{4}/i);
+    await expect(page.locator(".last-updated time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
     await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
     await expect(page.locator("#excel-example-menu")).toBeVisible();
     await expect(page.locator("#excel-example-button")).toHaveText("Exempel-Excel");
@@ -104,6 +106,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#columns-panel")).toBeVisible();
     await expect(page.locator("#columns-meta")).toHaveText('5 kolumner hittades i "Rapport".');
     await expect(page.locator("#selected-columns")).toHaveText("3 valda: Område/plats, Förnamn, Efternamn");
+    await expect(page.locator("#parse-controls")).toBeHidden();
     await expect(page.locator("#table-meta")).toHaveText("4 rader visas med 3 valda kolumner.");
     await expect(page.locator("#selected-table")).toContainText("Pelle");
     await expect(page.locator("#selected-table")).toContainText("Pelleson");

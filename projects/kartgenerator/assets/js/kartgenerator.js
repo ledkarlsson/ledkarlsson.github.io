@@ -41,6 +41,8 @@ const downloadMissingButton = document.querySelector("#download-missing");
 const feedbackForm = document.querySelector("#feedback-form");
 const feedbackMessage = document.querySelector("#feedback-message");
 const feedbackStatus = document.querySelector("#feedback-status");
+const lastUpdated = document.querySelector("#last-updated");
+const lastUpdatedDate = document.querySelector("#last-updated-date");
 const columnsMeta = document.querySelector("#columns-meta");
 const columnsPanel = document.querySelector("#columns-panel");
 const columnsList = document.querySelector("#columns-list");
@@ -108,6 +110,22 @@ function preserveWindowScroll(callback) {
 
 function cancelPendingScrollRestore() {
   scrollRestoreToken += 1;
+}
+
+function showLastUpdatedDate() {
+  const modifiedDate = new Date(document.lastModified);
+
+  if (Number.isNaN(modifiedDate.getTime())) {
+    return;
+  }
+
+  lastUpdatedDate.dateTime = modifiedDate.toISOString().slice(0, 10);
+  lastUpdatedDate.textContent = new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(modifiedDate);
+  lastUpdated.hidden = false;
 }
 
 async function copyFeedback(event) {
@@ -238,10 +256,20 @@ function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
   return matchedPlaces.size;
 }
 
+function getParseSourceMatchCounts(rows, omradePlatsColumnIndex) {
+  if (!sourceDrawioXml || omradePlatsColumnIndex === null) {
+    return { varvsomrade: 0, brygga: 0 };
+  }
+
+  return {
+    varvsomrade: countMatchingMapPlaces(rows, omradePlatsColumnIndex, "varvsomrade"),
+    brygga: countMatchingMapPlaces(rows, omradePlatsColumnIndex, "brygga")
+  };
+}
+
 function detectParseSource(rows, omradePlatsColumnIndex) {
   if (sourceDrawioXml) {
-    const varvsomradeMatches = countMatchingMapPlaces(rows, omradePlatsColumnIndex, "varvsomrade");
-    const bryggaMatches = countMatchingMapPlaces(rows, omradePlatsColumnIndex, "brygga");
+    const { varvsomrade: varvsomradeMatches, brygga: bryggaMatches } = getParseSourceMatchCounts(rows, omradePlatsColumnIndex);
 
     if (varvsomradeMatches !== bryggaMatches) {
       setSelectedParseSource(varvsomradeMatches > bryggaMatches ? "varvsomrade" : "brygga");
@@ -291,8 +319,22 @@ function reparseRows(shouldDetectParseSource = false) {
 }
 
 function updateParseControlsVisibility() {
-  const shouldShow = parsedOmradePlatsColumnIndex !== null
-    && selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex);
+  let shouldShow = false;
+
+  if (parsedOmradePlatsColumnIndex !== null
+    && selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
+    && rawExcelRows.length > 0
+    && sourceDrawioXml) {
+    const matchCounts = getParseSourceMatchCounts(rawExcelRows, parsedOmradePlatsColumnIndex);
+    const hasVarvsomradeMatches = matchCounts.varvsomrade > 0;
+    const hasBryggaMatches = matchCounts.brygga > 0;
+
+    shouldShow = hasVarvsomradeMatches && hasBryggaMatches;
+
+    if (!shouldShow && hasVarvsomradeMatches !== hasBryggaMatches) {
+      setSelectedParseSource(hasVarvsomradeMatches ? "varvsomrade" : "brygga");
+    }
+  }
 
   parseControls.classList.toggle("is-visible", shouldShow);
 }
@@ -1389,6 +1431,8 @@ drawioUpload.addEventListener("change", () => {
     showDrawioFile(file);
   }
 });
+
+showLastUpdatedDate();
 
 parseSourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
