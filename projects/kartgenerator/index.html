@@ -22,10 +22,16 @@
       <h1 id="project-title">kartgenerator</h1>
       <p class="last-updated" id="last-updated" hidden>Senast uppdaterad: <time id="last-updated-date"></time></p>
       <p>
-        En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar. Gör så här: Gå in i BAS,
-        skapa en rapport som innehåller kolumner som Förnamn, Efternamn, och område.
-        Skapa sedan upp en karta i drawio, och rita boxar. Ladda gärna in exempel för Excel och kartan.
-        Du kan ändra direkt i högerkolumnen, och den genererade kartan kommer att uppdateras. Du kan även ändra kartan i
+        En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar.
+        <br><br>
+        Gör så här: Gå in i BAS,
+        skapa en rapport som innehåller kolumner som Förnamn, Efternamn, och område/plats.
+
+        Skapa sedan en karta i draw.io, och rita boxar. Ladda gärna in exempel för Excel och kartan.
+        Du kan ändra direkt i kartan i högerpanelen, och den genererade kartan kommer att uppdateras. Glöm inte att
+        spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.
+
+        Du kan även ändra kartan i
         t.ex. Google Drive, eller via programmet draw.io, och ladda upp igen.
         Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror.
       </p>
@@ -51,7 +57,8 @@
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
         <div class="example-menu" id="excel-example-menu">
-          <button class="button secondary" id="excel-example-button" type="button" aria-expanded="false">Exempel-Excel</button>
+          <button class="button secondary" id="excel-example-button" type="button"
+            aria-expanded="false">Exempel-Excel</button>
           <div class="download-options example-options" id="excel-example-options" hidden>
             <button type="button" id="download-example-excel">Ladda ner Excel-filen</button>
             <button type="button" id="load-example-excel">Läs in Excel-filen direkt</button>
@@ -94,7 +101,8 @@
           <button class="button secondary" id="show-clean-map" type="button" disabled>Visa karta utan BAS-info</button>
           <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
           <div class="download-menu" id="download-menu">
-            <button class="button" id="download-menu-button" type="button" aria-expanded="false" disabled>Ladda ner</button>
+            <button class="button" id="download-menu-button" type="button" aria-expanded="false" disabled>Ladda
+              ner</button>
             <div class="download-options" id="download-options" hidden>
               <button type="button" id="download-clean-drawio" disabled>Karta utan BAS-info (.drawio)</button>
               <button type="button" id="download-clean-png" disabled>Karta utan BAS-info (PNG)</button>
@@ -120,7 +128,8 @@
           <input class="file-input" id="drawio-upload" type="file" accept=".drawio,.xml,application/xml,text/xml" />
         </label>
         <div class="example-menu" id="drawio-example-menu">
-          <button class="button secondary" id="drawio-example-button" type="button" aria-expanded="false">Exempel-draw.io</button>
+          <button class="button secondary" id="drawio-example-button" type="button"
+            aria-expanded="false">Exempel-draw.io</button>
           <div class="download-options example-options" id="drawio-example-options" hidden>
             <button type="button" id="download-example-drawio">Ladda ner draw.io-filen</button>
             <button type="button" id="load-example-drawio">Läs in draw.io-filen direkt</button>
