@@ -205,6 +205,22 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#generated-options")).toBeHidden();
     await expect(page.locator("#show-generated-map")).toBeEnabled();
     await expect(frame.locator("#last-load-options")).toContainText('"action":"merge"');
+
+    await page.evaluate(() => {
+      const workspace = document.querySelector(".workspace");
+      let fullscreenElement = workspace;
+
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => fullscreenElement
+      });
+
+      document.dispatchEvent(new Event("fullscreenchange"));
+      fullscreenElement = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    await expect(frame.locator("#last-load-options")).toContainText('"action":"load"');
   });
 
   await test.step("Skrolla till rapport över saknade platser", async () => {

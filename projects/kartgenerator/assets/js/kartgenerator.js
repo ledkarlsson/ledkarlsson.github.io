@@ -88,6 +88,7 @@ let generatedDrawioXml = "";
 let currentDrawioMode = "clean";
 let hasManualDrawioMode = false;
 let shouldReloadDrawioViewer = true;
+let wasMapFullscreen = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
 let emptyPlaceRows = [];
@@ -851,6 +852,34 @@ function updateFullscreenButton() {
 
   fullscreenMapButton.textContent = isFullscreen ? "Avsluta helskärm" : "Helskärm";
   fullscreenMapButton.setAttribute("aria-pressed", String(isFullscreen));
+}
+
+function getCurrentDrawioXml() {
+  return currentDrawioMode === "generated" && generatedDrawioXml ? generatedDrawioXml : sourceDrawioXml;
+}
+
+function refitMapAfterFullscreenExit() {
+  const xml = getCurrentDrawioXml();
+
+  if (!xml || document.fullscreenElement === mapWorkspace) {
+    return;
+  }
+
+  loadDrawioViewer(xml);
+}
+
+function handleFullscreenChange() {
+  const isMapFullscreen = document.fullscreenElement === mapWorkspace;
+
+  updateFullscreenButton();
+
+  if (wasMapFullscreen && !isMapFullscreen) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(refitMapAfterFullscreenExit);
+    });
+  }
+
+  wasMapFullscreen = isMapFullscreen;
 }
 
 async function toggleMapFullscreen() {
@@ -1827,7 +1856,7 @@ addMissingBoxesButton.addEventListener("click", addMissingBoxesToDrawio);
 downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
 clearExcelButton.addEventListener("click", clearExcelFile);
 clearDrawioButton.addEventListener("click", clearDrawioFile);
-document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("click", (event) => {
   if (!downloadOptions.hidden && !event.target.closest("#download-menu")) {
     closeDownloadMenu();
