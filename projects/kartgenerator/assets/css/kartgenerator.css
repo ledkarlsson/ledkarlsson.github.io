@@ -421,11 +421,13 @@
 
     .generated-options {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
       color: var(--muted);
       font-size: 0.9rem;
+      justify-self: end;
+      min-width: 145px;
     }
 
     .generated-options label {
@@ -436,7 +438,8 @@
     }
 
     .generated-options[hidden] {
-      display: none;
+      display: flex !important;
+      visibility: hidden;
     }
 
     .table-panel {
@@ -581,8 +584,12 @@
     }
 
     .drawio-actions {
+      display: grid;
+      grid-template-columns: repeat(4, auto) minmax(145px, 1fr);
       align-items: center;
       justify-content: flex-start;
+      column-gap: 12px;
+      row-gap: 8px;
       margin-top: 0;
     }
 
@@ -781,6 +788,16 @@
 
       .panel-header {
         flex-wrap: wrap;
+      }
+
+      .drawio-actions {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .generated-options {
+        justify-self: auto;
+        min-width: 0;
       }
 
       .title-panel,
