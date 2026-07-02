@@ -74,7 +74,7 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.locator("#drawio-example-menu")).toBeVisible();
     await expect(page.locator("#drawio-example-button")).toHaveText("Exempelkarta");
     await expect(page.locator(".feedback")).toHaveText("Skicka återkoppling till led.karlsson[snabela]gmail.com.");
-    await expect(page.locator("#toggle-map-focus")).toBeHidden();
+    await expect(page.locator("#toggle-map-focus")).toHaveCount(0);
     await expect(page.getByLabel("Hjälp för Excel-data")).toBeVisible();
     await expect(page.getByLabel("Hjälp för kartan")).toBeVisible();
     await expect(page.locator(".drawio-actions")).toBeHidden();
@@ -148,15 +148,6 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#add-place-box")).toBeEnabled();
     await expect(page.locator("#fullscreen-map")).toBeEnabled();
     await expect(page.locator("#fullscreen-map")).toHaveText("Helskärm");
-    await expect(page.locator("#toggle-map-focus")).toHaveText("Visa bara kartan");
-
-    await page.locator("#toggle-map-focus").click();
-    await expect(page.locator(".project")).toHaveClass(/is-map-focused/);
-    await expect(page.locator(".excel-panel")).toBeHidden();
-    await expect(page.locator("#toggle-map-focus")).toHaveText("Visa Excel och karta");
-    await page.locator("#toggle-map-focus").click();
-    await expect(page.locator(".excel-panel")).toBeVisible();
-
     await page.locator("#add-place-box").click();
     const frameElement = await page.locator("#drawio-frame").elementHandle();
     const frame = await frameElement.contentFrame();

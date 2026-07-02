@@ -72,14 +72,6 @@
       margin-top: 24px;
     }
 
-    .project.is-map-focused {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .project.is-map-focused .excel-panel {
-      display: none;
-    }
-
     .title-panel,
     .excel-panel,
     .workspace {
@@ -565,6 +557,18 @@
       height: 100%;
     }
 
+    .workspace:fullscreen .drawio-actions {
+      grid-template-columns: repeat(4, auto) minmax(145px, max-content);
+      justify-content: start;
+      align-self: flex-start;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .workspace:fullscreen .generated-options {
+      justify-self: start;
+    }
+
     .drawio-viewer {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -609,18 +613,12 @@
 
     .drawio-actions {
       display: grid;
-      grid-template-columns: repeat(5, auto) minmax(145px, 1fr);
+      grid-template-columns: repeat(4, auto) minmax(145px, 1fr);
       align-items: center;
       justify-content: flex-start;
       column-gap: 12px;
       row-gap: 8px;
       margin-top: 0;
-    }
-
-    .map-focus-button {
-      min-height: 34px;
-      padding: 0 12px;
-      font-size: 0.9rem;
     }
 
     .download-menu {

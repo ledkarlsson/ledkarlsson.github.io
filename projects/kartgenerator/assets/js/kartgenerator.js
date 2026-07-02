@@ -15,7 +15,6 @@ const drawioUploadZone = document.querySelector("#drawio-upload-zone");
 const drawioUpload = document.querySelector("#drawio-upload");
 const drawioPanelTitle = document.querySelector("#drawio-panel-title");
 const clearDrawioButton = document.querySelector("#clear-drawio");
-const projectWorkspace = document.querySelector(".project");
 const drawioExampleMenu = document.querySelector("#drawio-example-menu");
 const drawioExampleButton = document.querySelector("#drawio-example-button");
 const drawioExampleOptions = document.querySelector("#drawio-example-options");
@@ -25,7 +24,6 @@ const mapWorkspace = document.querySelector(".workspace");
 const drawioViewer = document.querySelector("#drawio-viewer");
 const drawioFrame = document.querySelector("#drawio-frame");
 const drawioActions = document.querySelector(".drawio-actions");
-const toggleMapFocusButton = document.querySelector("#toggle-map-focus");
 const addPlaceBoxButton = document.querySelector("#add-place-box");
 const showCleanMapButton = document.querySelector("#show-clean-map");
 const showGeneratedMapButton = document.querySelector("#show-generated-map");
@@ -90,7 +88,6 @@ let generatedDrawioXml = "";
 let currentDrawioMode = "clean";
 let hasManualDrawioMode = false;
 let shouldReloadDrawioViewer = true;
-let isMapFocused = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
 let emptyPlaceRows = [];
@@ -149,17 +146,6 @@ function showHelpDialog(event) {
   if (dialog instanceof HTMLDialogElement) {
     dialog.showModal();
   }
-}
-
-function updateMapFocus() {
-  projectWorkspace.classList.toggle("is-map-focused", isMapFocused);
-  toggleMapFocusButton.textContent = isMapFocused ? "Visa Excel och karta" : "Visa bara kartan";
-  toggleMapFocusButton.setAttribute("aria-pressed", String(isMapFocused));
-}
-
-function toggleMapFocus() {
-  isMapFocused = !isMapFocused;
-  updateMapFocus();
 }
 
 async function fetchExampleBlob(example) {
@@ -887,14 +873,8 @@ function updateDrawioButtons() {
   const hasSource = Boolean(sourceDrawioXml);
   const hasGenerated = Boolean(generatedDrawioXml);
 
-  if (!hasSource && isMapFocused) {
-    isMapFocused = false;
-    updateMapFocus();
-  }
-
   drawioActions.hidden = !hasSource;
   downloadMenu.hidden = !hasSource;
-  toggleMapFocusButton.hidden = !hasSource;
   addPlaceBoxButton.disabled = !hasSource;
   showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
   showGeneratedMapButton.disabled = !hasGenerated || currentDrawioMode === "generated";
@@ -1817,7 +1797,6 @@ drawioUpload.addEventListener("change", () => {
 });
 
 showLastUpdatedDate();
-updateMapFocus();
 
 parseSourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
@@ -1826,7 +1805,6 @@ parseSourceInputs.forEach((input) => {
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
-toggleMapFocusButton.addEventListener("click", toggleMapFocus);
 helpButtons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
