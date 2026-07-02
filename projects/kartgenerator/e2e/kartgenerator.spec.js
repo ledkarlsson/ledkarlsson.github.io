@@ -82,6 +82,7 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.locator("#show-generated-map")).toBeDisabled();
     await expect(page.locator("#generated-options")).toBeHidden();
     await expect(page.locator("#download-menu-button")).toBeDisabled();
+    await expect(page.locator("#fullscreen-map")).toBeDisabled();
   });
 });
 
@@ -145,6 +146,8 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#show-generated-map")).toBeEnabled();
     await expect(page.locator("#download-menu-button")).toBeEnabled();
     await expect(page.locator("#add-place-box")).toBeEnabled();
+    await expect(page.locator("#fullscreen-map")).toBeEnabled();
+    await expect(page.locator("#fullscreen-map")).toHaveText("Helskärm");
     await expect(page.locator("#toggle-map-focus")).toHaveText("Visa bara kartan");
 
     await page.locator("#toggle-map-focus").click();
@@ -195,6 +198,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#generated-options")).toBeVisible();
     await expect(page.locator("#show-clean-map")).toBeEnabled();
     await expect(frame.locator("#last-load-options")).toContainText('"action":"merge"');
+    await expect(frame.locator("#loaded-xml")).toContainText("Pelle Pelleson");
 
     const generatedXmlBeforeEmptyToggle = await frame.locator("#loaded-xml").textContent();
 

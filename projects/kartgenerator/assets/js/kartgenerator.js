@@ -21,6 +21,7 @@ const drawioExampleButton = document.querySelector("#drawio-example-button");
 const drawioExampleOptions = document.querySelector("#drawio-example-options");
 const downloadExampleDrawioButton = document.querySelector("#download-example-drawio");
 const loadExampleDrawioButton = document.querySelector("#load-example-drawio");
+const mapWorkspace = document.querySelector(".workspace");
 const drawioViewer = document.querySelector("#drawio-viewer");
 const drawioFrame = document.querySelector("#drawio-frame");
 const drawioActions = document.querySelector(".drawio-actions");
@@ -28,6 +29,7 @@ const toggleMapFocusButton = document.querySelector("#toggle-map-focus");
 const addPlaceBoxButton = document.querySelector("#add-place-box");
 const showCleanMapButton = document.querySelector("#show-clean-map");
 const showGeneratedMapButton = document.querySelector("#show-generated-map");
+const fullscreenMapButton = document.querySelector("#fullscreen-map");
 const generatedOptions = document.querySelector("#generated-options");
 const downloadMenu = document.querySelector("#download-menu");
 const downloadMenuButton = document.querySelector("#download-menu-button");
@@ -858,6 +860,29 @@ function showGeneratedMap() {
   updateDrawioButtons();
 }
 
+function updateFullscreenButton() {
+  const isFullscreen = document.fullscreenElement === mapWorkspace;
+
+  fullscreenMapButton.textContent = isFullscreen ? "Avsluta helskärm" : "Helskärm";
+  fullscreenMapButton.setAttribute("aria-pressed", String(isFullscreen));
+}
+
+async function toggleMapFullscreen() {
+  if (!sourceDrawioXml || !document.fullscreenEnabled) {
+    return;
+  }
+
+  try {
+    if (document.fullscreenElement === mapWorkspace) {
+      await document.exitFullscreen();
+    } else {
+      await mapWorkspace.requestFullscreen();
+    }
+  } finally {
+    updateFullscreenButton();
+  }
+}
+
 function updateDrawioButtons() {
   const hasSource = Boolean(sourceDrawioXml);
   const hasGenerated = Boolean(generatedDrawioXml);
@@ -879,8 +904,10 @@ function updateDrawioButtons() {
   downloadCleanPngButton.disabled = !hasSource;
   downloadGeneratedDrawioButton.disabled = !hasGenerated;
   downloadGeneratedPngButton.disabled = !hasGenerated;
+  fullscreenMapButton.disabled = !hasSource || !document.fullscreenEnabled;
   showCleanMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "clean"));
   showGeneratedMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "generated"));
+  updateFullscreenButton();
 
   if (!hasSource) {
     closeDownloadMenu();
@@ -1811,6 +1838,7 @@ loadExampleExcelButton.addEventListener("click", loadExcelExample);
 loadExampleDrawioButton.addEventListener("click", loadDrawioExample);
 showCleanMapButton.addEventListener("click", showCleanMap);
 showGeneratedMapButton.addEventListener("click", showGeneratedMap);
+fullscreenMapButton.addEventListener("click", toggleMapFullscreen);
 addPlaceBoxButton.addEventListener("click", addPlaceBoxToDrawio);
 downloadMenuButton.addEventListener("click", toggleDownloadMenu);
 downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
@@ -1821,6 +1849,7 @@ addMissingBoxesButton.addEventListener("click", addMissingBoxesToDrawio);
 downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
 clearExcelButton.addEventListener("click", clearExcelFile);
 clearDrawioButton.addEventListener("click", clearDrawioFile);
+document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("click", (event) => {
   if (!downloadOptions.hidden && !event.target.closest("#download-menu")) {
     closeDownloadMenu();
