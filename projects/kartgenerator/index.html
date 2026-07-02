@@ -24,14 +24,13 @@
       <p>
         En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar.
         <br><br>
-        Gör så här: Gå in i BAS,
-        skapa en rapport som innehåller kolumner som Förnamn, Efternamn och platsinformation.
-
-        Skapa sedan en karta med en ruta per båtplats. Ladda gärna in exempel för Excel och kartan.
-        Du kan ändra direkt i kartan i högerpanelen, och den genererade kartan kommer att uppdateras.
+        För att komma igång, klicka på Exempel-Excel och Exempelkarta nedan. Du kan ändra i kartan direkt i panelen.
+        <br><br>
+        För att få ut excel-data från BAS: Skapa en rapport som innehåller kolumnen Område/Plats. Lägg även till det som
+        du vill kunna se i kartan, som t.ex. Förnamn, Efternamn och mobilnummer
 
         Du kan även ändra kartan i
-        t.ex. Google Drive, eller via programmet draw.io, och ladda upp igen.
+        t.ex. Google Drive, eller via programmet draw.io, och ladda upp på sidan.
       </p>
       <p class="feedback">Skicka återkoppling till <span>led.karlsson[snabela]gmail.com</span>.</p>
     </section>
@@ -41,7 +40,8 @@
         <div class="panel-header">
           <div class="panel-title-row">
             <h2 class="panel-title" id="excel-panel-title">Excel-data från BAS-rapport</h2>
-            <button class="help-button" type="button" data-help-target="excel-help" aria-label="Hjälp för Excel-data">?</button>
+            <button class="help-button" type="button" data-help-target="excel-help"
+              aria-label="Hjälp för Excel-data">?</button>
           </div>
           <div class="panel-header-actions">
             <div class="example-menu" id="excel-example-menu">
@@ -81,11 +81,26 @@
           </fieldset>
         </section>
         <section class="table-panel" id="table-panel" aria-labelledby="table-title" hidden>
-          <h2 id="table-title">Vald data</h2>
+          <div class="table-panel-header">
+            <h2 id="table-title">Vald data</h2>
+            <label class="inline-checkbox">
+              <input type="checkbox" id="show-empty-excel-places" />
+              Visa tomma platser
+            </label>
+          </div>
           <p class="table-meta" id="table-meta" hidden></p>
           <p class="warning-meta" id="duplicate-place-warning" hidden></p>
           <div class="table-wrap" id="table-wrap" hidden>
             <table class="selected-table" id="selected-table"></table>
+          </div>
+        </section>
+        <section class="table-panel empty-places-panel" id="empty-places-panel" aria-labelledby="empty-places-title"
+          hidden>
+          <h2 id="empty-places-title">Finns i kartan men saknas i Excel</h2>
+          <p class="table-meta" id="empty-places-meta">Ladda upp Excel och karta för att se platser som saknas i Excel.
+          </p>
+          <div class="table-wrap empty-places-wrap" id="empty-places-wrap" hidden>
+            <table class="selected-table" id="empty-places-table"></table>
           </div>
         </section>
       </div>
@@ -94,7 +109,8 @@
         <div class="panel-header">
           <div class="panel-title-row">
             <h2 class="panel-title" id="drawio-panel-title">Karta</h2>
-            <button class="help-button" type="button" data-help-target="map-help" aria-label="Hjälp för kartan">?</button>
+            <button class="help-button" type="button" data-help-target="map-help"
+              aria-label="Hjälp för kartan">?</button>
           </div>
           <div class="panel-header-actions">
             <div class="example-menu" id="drawio-example-menu">
@@ -122,20 +138,21 @@
           </div>
         </div>
         <div class="actions drawio-actions" hidden>
-          <button class="button secondary map-focus-button" id="toggle-map-focus" type="button" hidden>Visa bara kartan</button>
+          <button class="button secondary map-focus-button" id="toggle-map-focus" type="button" hidden>Visa bara
+            kartan</button>
           <button class="button secondary" id="add-place-box" type="button" disabled>Lägg till plats</button>
           <button class="button secondary" id="show-clean-map" type="button" disabled>Visa karta utan BAS-info</button>
           <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
-        </div>
-        <div class="generated-options" id="generated-options" aria-label="Inställningar för BAS-info" hidden>
-          <label>
-            <input type="checkbox" id="show-place-number" checked />
-            Visa platsnummer
-          </label>
-          <label>
-            <input type="checkbox" id="show-column-names" />
-            Visa kolumnnamn
-          </label>
+          <div class="generated-options" id="generated-options" aria-label="Inställningar för BAS-info" hidden>
+            <label>
+              <input type="checkbox" id="show-place-number" checked />
+              Visa platsnummer
+            </label>
+            <label>
+              <input type="checkbox" id="show-column-names" />
+              Visa kolumnnamn
+            </label>
+          </div>
         </div>
         <label class="drawio-empty" id="drawio-upload-zone" for="drawio-upload">
           <span class="drawio-title">Ladda upp karta</span>
@@ -159,7 +176,8 @@
             aria-label="Hjälp för saknade platser">?</button>
         </div>
         <div class="generated-header-actions">
-          <button class="button secondary" id="add-missing-boxes" type="button" hidden>Lägg till platserna i kartan</button>
+          <button class="button secondary" id="add-missing-boxes" type="button" hidden>Lägg till platserna i
+            kartan</button>
           <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
         </div>
       </div>
@@ -172,8 +190,10 @@
   <dialog class="help-dialog" id="excel-help">
     <form method="dialog">
       <h2>Excel-data</h2>
-      <p>Ladda upp en BAS-rapport som innehåller Förnamn, Efternamn och platsinformation. Platsinformationen används för matchningen och är alltid aktiv.</p>
-      <p>Område/plats sköter matchningen. Det spelar ingen roll om kolumnen för plats innehåller Brygga B - 75 eller Brygga C - 75. Se till att alla båtplatser i BAS har unika nummer.</p>
+      <p>Ladda upp en BAS-rapport som innehåller Förnamn, Efternamn och platsinformation. Platsinformationen används för
+        matchningen och är alltid aktiv.</p>
+      <p>Område/plats sköter matchningen. Det spelar ingen roll om kolumnen för plats innehåller Brygga B - 75 eller
+        Brygga C - 75. Se till att alla båtplatser i BAS har unika nummer.</p>
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>
@@ -181,14 +201,17 @@
     <form method="dialog">
       <h2>Karta</h2>
       <p>Ladda upp en karta i draw.io-format med en box per plats. Du kan ändra kartan direkt här.</p>
-      <p>Lägg till nya boxar genom att kopiera de gamla boxarna, och dubbelklicka för att skriva in nya platssiffror. Glöm inte att spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.</p>
+      <p>Lägg till nya platser genom att klicka på "Lägg till plats". Dubbelklicka på boxen för att skriva in nya
+        platssiffror.
+        Glöm inte att spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.</p>
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>
   <dialog class="help-dialog" id="missing-help">
     <form method="dialog">
       <h2>Finns i BAS men saknas i kartan</h2>
-      <p>Personerna i listan går inte att matcha mot kartan. Det kan bero på att båtplatsen inte finns med i kartan. Du kan lägga till platserna i kartan via knappen, eller ladda ner en excel-fil med informationen.</p>
+      <p>Personerna i listan går inte att matcha mot kartan. Det kan bero på att båtplatsen inte finns med i kartan. Du
+        kan lägga till platserna i kartan via knappen, eller ladda ner en excel-fil med informationen.</p>
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>

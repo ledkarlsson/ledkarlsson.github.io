@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getMapPlaceLabels } from "../assets/js/drawio.js";
+import { getMapPlaceLabels, getMapPlaces } from "../assets/js/drawio.js";
 
 describe("getMapPlaceLabels", () => {
     it("Null ger tom set", () => {
@@ -35,6 +35,28 @@ describe("getMapPlaceLabels", () => {
         </mxGraphModel>
         `;
         expect(getMapPlaceLabels(input)).toStrictEqual(new Set(["12A", "12B"]))
+    });
+
+    it("Ger platslista med visningsvärde och normaliserad plats", () => {
+        const input = `
+        <mxGraphModel>
+        <root>
+            <mxCell id="1" vertex="1" value="12a" />
+        </root>
+        </mxGraphModel>
+        `;
+        expect(getMapPlaces(input)).toStrictEqual([{ place: "12a", normalizedPlace: "12A" }])
+    });
+
+    it("Tolkar första raden som plats om rutan har flera textrader", () => {
+        const input = `
+        <mxGraphModel>
+        <root>
+            <mxCell id="1" vertex="1" value="12A&lt;br&gt;Anna Andersson" />
+        </root>
+        </mxGraphModel>
+        `;
+        expect(getMapPlaceLabels(input)).toStrictEqual(new Set(["12A"]))
     });
 
 });

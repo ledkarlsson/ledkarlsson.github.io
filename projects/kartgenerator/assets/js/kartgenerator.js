@@ -1,5 +1,5 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
-import { getMapPlaceLabels } from "./drawio.js"
+import { getMapPlaceLabels, getMapPlaces } from "./drawio.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -53,12 +53,17 @@ const parseControls = document.querySelector("#parse-controls");
 const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
 const showPlaceNumberInput = document.querySelector("#show-place-number");
 const showColumnNamesInput = document.querySelector("#show-column-names");
+const showEmptyExcelPlacesInput = document.querySelector("#show-empty-excel-places");
 const tableMeta = document.querySelector("#table-meta");
 const duplicatePlaceWarning = document.querySelector("#duplicate-place-warning");
 const tablePanel = document.querySelector("#table-panel");
 const tableTitle = document.querySelector("#table-title");
 const tableWrap = document.querySelector("#table-wrap");
 const selectedTable = document.querySelector("#selected-table");
+const emptyPlacesPanel = document.querySelector("#empty-places-panel");
+const emptyPlacesMeta = document.querySelector("#empty-places-meta");
+const emptyPlacesWrap = document.querySelector("#empty-places-wrap");
+const emptyPlacesTable = document.querySelector("#empty-places-table");
 const excelTypes = [".xls", ".xlsx"];
 const drawioTypes = [".drawio", ".drawio.xml"];
 const excelExample = {
@@ -86,10 +91,13 @@ let shouldReloadDrawioViewer = true;
 let isMapFocused = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
+let emptyPlaceRows = [];
 let selectedTableSortColumnIndex = null;
 let selectedTableSortDirection = "asc";
 let missingSortColumn = "place";
 let missingSortDirection = "asc";
+let emptyPlacesSortColumn = "place";
+let emptyPlacesSortDirection = "asc";
 let scrollRestoreToken = 0;
 
 function preserveWindowScroll(callback) {
@@ -212,14 +220,18 @@ function clearColumns(message) {
   excelRows = [];
   rawExcelRows = [];
   missingPeopleRows = [];
+  emptyPlaceRows = [];
   selectedTableSortColumnIndex = null;
   selectedTableSortDirection = "asc";
+  emptyPlacesSortColumn = "place";
+  emptyPlacesSortDirection = "asc";
   parsedOmradePlatsColumnIndex = null;
   parseControls.classList.remove("is-visible");
   selectedColumnsStatus.textContent = "";
   renderSelectedTable();
   updateGeneratedDiagram();
   updateMissingPeopleList();
+  updateEmptyPlacesList();
 }
 
 function updateSelectedColumnsStatus() {
@@ -358,9 +370,44 @@ function getVisibleRows() {
   return selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
     ? excelRows.filter((row) => {
       const value = row[parsedOmradePlatsColumnIndex];
-      return value !== null && value !== undefined && String(value).trim() !== "";
+      const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
+
+      return hasPlace && (showEmptyExcelPlacesInput.checked || !isEmptyExcelPlaceRow(row));
     })
     : excelRows;
+}
+
+function getRowsForGeneratedDiagram() {
+  return selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
+    ? excelRows.filter((row) => {
+      const value = row[parsedOmradePlatsColumnIndex];
+      const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
+
+      return hasPlace && !isEmptyExcelPlaceRow(row);
+    })
+    : excelRows;
+}
+
+function hasExcelRowData(row) {
+  return excelColumns.some((column) => {
+    if (column.index === parsedOmradePlatsColumnIndex) {
+      return false;
+    }
+
+    const value = row[column.index];
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  });
+}
+
+function isEmptyExcelPlaceRow(row) {
+  if (parsedOmradePlatsColumnIndex === null) {
+    return false;
+  }
+
+  const place = row[parsedOmradePlatsColumnIndex];
+  const hasPlace = place !== null && place !== undefined && String(place).trim() !== "";
+
+  return hasPlace && !hasExcelRowData(row);
 }
 
 function getSortedSelectedRows(rows) {
@@ -430,7 +477,9 @@ function updateDuplicatePlaceWarning(rows) {
   duplicatePlaceWarning.textContent = `Varning: flera medlemmar har samma plats: ${duplicatePlaces.join(", ")}.`;
 }
 
-function renderSelectedTable() {
+function renderSelectedTable(options = {}) {
+  const shouldUpdateGeneratedDiagram = options.updateGeneratedDiagram !== false;
+
   selectedTable.replaceChildren();
   updateParseControlsVisibility();
 
@@ -444,19 +493,27 @@ function renderSelectedTable() {
     tableMeta.textContent = "Välj kolumner för att skapa en tabell.";
     duplicatePlaceWarning.hidden = true;
     tableWrap.hidden = true;
-    updateGeneratedDiagram();
+    updateMissingPeopleList();
+    updateEmptyPlacesList();
+    if (shouldUpdateGeneratedDiagram) {
+      updateGeneratedDiagram();
+    }
     return;
   }
 
   const visibleRows = getVisibleRows();
   updateMissingPeopleList();
+  updateEmptyPlacesList();
 
   if (visibleRows.length === 0) {
     tableTitle.textContent = "Vald data";
     tableMeta.textContent = "Inga datarader hittades under rubrikraden.";
     duplicatePlaceWarning.hidden = true;
     tableWrap.hidden = true;
-    updateGeneratedDiagram();
+    updateEmptyPlacesList();
+    if (shouldUpdateGeneratedDiagram) {
+      updateGeneratedDiagram();
+    }
     return;
   }
 
@@ -503,7 +560,9 @@ function renderSelectedTable() {
   tableTitle.textContent = `Vald data (${visibleRows.length} ${visibleRows.length === 1 ? "rad" : "rader"})`;
   tableMeta.textContent = "";
   tableWrap.hidden = false;
-  updateGeneratedDiagram();
+  if (shouldUpdateGeneratedDiagram) {
+    updateGeneratedDiagram();
+  }
 }
 
 function renderColumns(columns, sheetName) {
@@ -696,6 +755,7 @@ function showDrawioFile(file) {
     drawioUploadZone.hidden = false;
     updateDrawioButtons();
     updateMissingPeopleList();
+    updateEmptyPlacesList();
     updateGeneratedDiagram();
     return;
   }
@@ -740,6 +800,7 @@ function clearDrawioFile() {
   hasManualDrawioMode = false;
   updateDrawioButtons();
   updateMissingPeopleList();
+  updateEmptyPlacesList();
   updateGeneratedDiagram();
 }
 
@@ -782,7 +843,7 @@ function showCleanMap() {
 
   hasManualDrawioMode = true;
   currentDrawioMode = "clean";
-  loadDrawioViewer(sourceDrawioXml);
+  loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
   updateDrawioButtons();
 }
 
@@ -793,7 +854,7 @@ function showGeneratedMap() {
 
   hasManualDrawioMode = true;
   currentDrawioMode = "generated";
-  loadDrawioViewer(generatedDrawioXml);
+  loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
   updateDrawioButtons();
 }
 
@@ -1133,6 +1194,102 @@ function sortMissingPeople(columnKey) {
   renderMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
+function renderEmptyPlacesTable(rows) {
+  emptyPlacesTable.replaceChildren();
+
+  if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
+    emptyPlacesPanel.hidden = true;
+    emptyPlacesWrap.hidden = true;
+    emptyPlacesMeta.textContent = "Ladda upp Excel och karta för att se platser som saknas i Excel.";
+    return;
+  }
+
+  emptyPlacesPanel.hidden = false;
+
+  if (rows.length === 0) {
+    emptyPlacesMeta.textContent = "Alla platser i kartan finns i Excel.";
+    emptyPlacesWrap.hidden = true;
+    return;
+  }
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  const headerCell = document.createElement("th");
+  const button = document.createElement("button");
+  const directionMarker = emptyPlacesSortColumn === "place"
+    ? ` ${emptyPlacesSortDirection === "asc" ? "↑" : "↓"}`
+    : "";
+
+  button.className = "sort-button";
+  button.type = "button";
+  button.textContent = `Plats${directionMarker}`;
+  button.addEventListener("click", () => sortEmptyPlaces("place"));
+  headerCell.append(button);
+  headerRow.append(headerCell);
+  thead.append(headerRow);
+
+  const tbody = document.createElement("tbody");
+  const fragment = document.createDocumentFragment();
+
+  rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+    const cell = document.createElement("td");
+
+    cell.textContent = row.place;
+    tableRow.append(cell);
+    fragment.append(tableRow);
+  });
+
+  tbody.append(fragment);
+  emptyPlacesTable.append(thead, tbody);
+  emptyPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i Excel.`;
+  emptyPlacesWrap.hidden = false;
+}
+
+function getSortedEmptyPlaceRows() {
+  return [...emptyPlaceRows].sort((left, right) => {
+    const result = String(left[emptyPlacesSortColumn] || "").localeCompare(
+      String(right[emptyPlacesSortColumn] || ""),
+      "sv",
+      { numeric: true, sensitivity: "base" }
+    );
+
+    return emptyPlacesSortDirection === "asc" ? result : -result;
+  });
+}
+
+function sortEmptyPlaces(columnKey) {
+  preserveWindowScroll(() => {
+    if (emptyPlacesSortColumn === columnKey) {
+      emptyPlacesSortDirection = emptyPlacesSortDirection === "asc" ? "desc" : "asc";
+    } else {
+      emptyPlacesSortColumn = columnKey;
+      emptyPlacesSortDirection = "asc";
+    }
+
+    renderEmptyPlacesTable(getSortedEmptyPlaceRows());
+  });
+}
+
+function updateEmptyPlacesList() {
+  if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
+    emptyPlaceRows = [];
+    renderEmptyPlacesTable([]);
+    return;
+  }
+
+  const occupiedPlaces = new Set(
+    excelRows
+      .map((row) => normalizePlaceCode(row[parsedOmradePlatsColumnIndex]))
+      .filter(Boolean)
+  );
+
+  emptyPlaceRows = getMapPlaces(sourceDrawioXml)
+    .filter((place) => !occupiedPlaces.has(place.normalizedPlace));
+
+  renderEmptyPlacesTable(getSortedEmptyPlaceRows());
+}
+
 function updateMissingPeopleList() {
   const firstNameColumnIndex = getColumnIndexByName("fornamn");
   const lastNameColumnIndex = getColumnIndexByName("efternamn");
@@ -1179,6 +1336,7 @@ function updateSourceDrawioXml(xml) {
         reparseRows(true);
       } else {
         updateMissingPeopleList();
+        updateEmptyPlacesList();
         updateGeneratedDiagram();
       }
     } finally {
@@ -1529,7 +1687,7 @@ function updateGeneratedDiagram() {
     return;
   }
 
-  const visibleRows = getVisibleRows();
+  const visibleRows = getRowsForGeneratedDiagram();
 
   if (visibleRows.length === 0) {
     generatedDrawioXml = "";
@@ -1580,6 +1738,7 @@ function readDrawioFile(file) {
       drawioUploadZone.hidden = false;
       updateDrawioButtons();
       updateMissingPeopleList();
+      updateEmptyPlacesList();
       updateGeneratedDiagram();
       return;
     }
@@ -1592,6 +1751,7 @@ function readDrawioFile(file) {
       reparseRows(true);
     } else {
       updateMissingPeopleList();
+      updateEmptyPlacesList();
       updateGeneratedDiagram();
     }
   });
@@ -1606,6 +1766,7 @@ function readDrawioFile(file) {
     hasManualDrawioMode = false;
     updateDrawioButtons();
     updateMissingPeopleList();
+    updateEmptyPlacesList();
     updateGeneratedDiagram();
   });
 
@@ -1637,6 +1798,7 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
 toggleMapFocusButton.addEventListener("click", toggleMapFocus);
 helpButtons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
