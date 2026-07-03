@@ -310,3 +310,27 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(generatedPngDownload.suggestedFilename()).toMatch(/genererad\.png$/);
   });
 });
+
+test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", async ({ page }) => {
+  await page.goto("/projects/kartgenerator/");
+  await page.waitForFunction(() => window.XLSX);
+
+  await page.locator("#excel-upload").setInputFiles("projects/kartgenerator/assets/examples/exempel_mixad_brygga_varv_duplicerad.xlsx");
+  await page.locator("#drawio-upload").setInputFiles("projects/kartgenerator/assets/examples/exempel.drawio");
+
+  await expect(page.locator("#parse-controls")).toBeVisible();
+  await expect(page.locator("input[name='omrade-plats-source'][value='varvsomrade']")).toBeVisible();
+  await expect(page.locator("input[name='omrade-plats-source'][value='brygga']")).toBeVisible();
+  await expect(page.locator("input[name='omrade-plats-source'][value='vinterplats']")).toBeVisible();
+
+  await page.locator("input[name='omrade-plats-source'][value='varvsomrade']").check();
+  await expect(page.locator("#duplicate-place-warning")).toHaveText("Varning: flera medlemmar har samma plats: 54.");
+
+  await page.locator("input[name='omrade-plats-source'][value='brygga']").check();
+  await expect(page.locator("#duplicate-place-warning")).toBeHidden();
+  await expect(page.locator("#selected-table")).not.toContainText("Vinterplats");
+
+  await page.locator("#show-empty-excel-places").check();
+  await expect(page.locator("#selected-table")).toContainText("54");
+  await expect(page.locator("#selected-table")).toContainText("55");
+});

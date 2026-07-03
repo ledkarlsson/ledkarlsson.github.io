@@ -25,7 +25,17 @@ export function isPlaceBoxLabel(label) {
 
 export function parseOmradePlatsValue(value, source) {
   const text = value === null || value === undefined ? "" : String(value);
-  const sourcePattern = source === "brygga" ? "(?:brygga|vinterplats(?:er)?)" : "varvsomr(?:a|å)de";
+  const sourcePatterns = {
+    varvsomrade: "varvsomr(?:a|å)de",
+    brygga: "brygga",
+    vinterplats: "vinterplats(?:er)?"
+  };
+  const sourcePattern = sourcePatterns[source];
+
+  if (!sourcePattern) {
+    return "";
+  }
+
   const sourceMatch = text.match(new RegExp(`${sourcePattern}[\\s\\S]*?plats\\s*:\\s*([0-9A-Za-zÅÄÖåäö-]+)`, "i"));
 
   if (sourceMatch) {

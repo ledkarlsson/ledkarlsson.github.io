@@ -74,6 +74,20 @@ describe("parseOmradePlatsValue", () => {
         expect(parseOmradePlatsValue(input, source)).toBe(expected);
     });
 
+    it("Testa Vinterplats som egen källa", () => {
+        const input = "Vinterplats - 88";
+        const source = "vinterplats";
+        const expected = "88";
+        expect(parseOmradePlatsValue(input, source)).toBe(expected);
+    });
+
+    it("Matchar inte Vinterplats när brygga är vald", () => {
+        const input = "Vinterplats - 88";
+        const source = "brygga";
+        const expected = "";
+        expect(parseOmradePlatsValue(input, source)).toBe(expected);
+    });
+
     it("Testa med kolon", () => {
         const input = "Varvsområde: 12B";
         const source = "varvsomrade";

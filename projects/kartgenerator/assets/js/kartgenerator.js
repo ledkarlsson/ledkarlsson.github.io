@@ -77,6 +77,7 @@ const drawioExample = {
   fileName: "exempel.drawio",
   type: "application/xml"
 };
+const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 let selectedColumnIndexes = [];
 let excelColumns = [];
 let excelRows = [];
@@ -257,6 +258,16 @@ function setSelectedParseSource(source) {
   });
 }
 
+function getAvailableParseSources(rows, omradePlatsColumnIndex) {
+  if (omradePlatsColumnIndex === null) {
+    return [];
+  }
+
+  return parseSourceValues.filter((source) =>
+    rows.some((row) => parseOmradePlatsValue(row[omradePlatsColumnIndex], source))
+  );
+}
+
 function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
   const mapPlaces = getMapPlaceLabels(sourceDrawioXml);
   const matchedPlaces = new Set();
@@ -275,33 +286,38 @@ function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
 
 function getParseSourceMatchCounts(rows, omradePlatsColumnIndex) {
   if (!sourceDrawioXml || omradePlatsColumnIndex === null) {
-    return { varvsomrade: 0, brygga: 0 };
+    return Object.fromEntries(parseSourceValues.map((source) => [source, 0]));
   }
 
-  return {
-    varvsomrade: countMatchingMapPlaces(rows, omradePlatsColumnIndex, "varvsomrade"),
-    brygga: countMatchingMapPlaces(rows, omradePlatsColumnIndex, "brygga")
-  };
+  return Object.fromEntries(parseSourceValues.map((source) => [
+    source,
+    countMatchingMapPlaces(rows, omradePlatsColumnIndex, source)
+  ]));
 }
 
 function detectParseSource(rows, omradePlatsColumnIndex) {
-  if (sourceDrawioXml) {
-    const { varvsomrade: varvsomradeMatches, brygga: bryggaMatches } = getParseSourceMatchCounts(rows, omradePlatsColumnIndex);
+  const availableSources = getAvailableParseSources(rows, omradePlatsColumnIndex);
 
-    if (varvsomradeMatches !== bryggaMatches) {
-      setSelectedParseSource(varvsomradeMatches > bryggaMatches ? "varvsomrade" : "brygga");
+  if (availableSources.length === 0) {
+    return;
+  }
+
+  if (sourceDrawioXml) {
+    const matchCounts = getParseSourceMatchCounts(rows, omradePlatsColumnIndex);
+    const bestSource = availableSources
+      .map((source) => ({ source, count: matchCounts[source] || 0 }))
+      .sort((left, right) => right.count - left.count)[0];
+    const bestCount = bestSource ? bestSource.count : 0;
+    const sourcesWithBestCount = availableSources.filter((source) => (matchCounts[source] || 0) === bestCount);
+
+    if (bestCount > 0 && sourcesWithBestCount.length === 1) {
+      setSelectedParseSource(bestSource.source);
       return;
     }
   }
 
-  const sampleValues = rows
-    .slice(0, 50)
-    .map((row) => String(row[omradePlatsColumnIndex] || ""));
-  const hasVarvsomrade = sampleValues.some((value) => /varvsomr(?:a|å)de/i.test(value));
-  const hasBryggaDashPlace = sampleValues.some((value) => /(?:brygga|vinterplats(?:er)?)[\s\S]*?-\s*[0-9]+[A-Za-zÅÄÖåäö]?/i.test(value));
-
-  if (!hasVarvsomrade && hasBryggaDashPlace) {
-    setSelectedParseSource("brygga");
+  if (availableSources.length === 1) {
+    setSelectedParseSource(availableSources[0]);
   }
 }
 
@@ -337,21 +353,25 @@ function reparseRows(shouldDetectParseSource = false) {
 }
 
 function updateParseControlsVisibility() {
-  let shouldShow = false;
-
-  if (parsedOmradePlatsColumnIndex !== null
+  const availableSources = parsedOmradePlatsColumnIndex !== null
     && selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
     && rawExcelRows.length > 0
-    && sourceDrawioXml) {
-    const matchCounts = getParseSourceMatchCounts(rawExcelRows, parsedOmradePlatsColumnIndex);
-    const hasVarvsomradeMatches = matchCounts.varvsomrade > 0;
-    const hasBryggaMatches = matchCounts.brygga > 0;
+    ? getAvailableParseSources(rawExcelRows, parsedOmradePlatsColumnIndex)
+    : [];
+  const shouldShow = availableSources.length > 1;
 
-    shouldShow = hasVarvsomradeMatches && hasBryggaMatches;
+  parseSourceInputs.forEach((input) => {
+    const label = input.closest("label");
 
-    if (!shouldShow && hasVarvsomradeMatches !== hasBryggaMatches) {
-      setSelectedParseSource(hasVarvsomradeMatches ? "varvsomrade" : "brygga");
+    if (label) {
+      label.hidden = !availableSources.includes(input.value);
     }
+  });
+
+  if (availableSources.length === 1) {
+    setSelectedParseSource(availableSources[0]);
+  } else if (availableSources.length > 1 && !availableSources.includes(getSelectedParseSource())) {
+    setSelectedParseSource(availableSources[0]);
   }
 
   parseControls.classList.toggle("is-visible", shouldShow);
@@ -379,17 +399,6 @@ function getRowsForGeneratedDiagram() {
     : excelRows;
 }
 
-function hasExcelRowData(row) {
-  return excelColumns.some((column) => {
-    if (column.index === parsedOmradePlatsColumnIndex) {
-      return false;
-    }
-
-    const value = row[column.index];
-    return value !== null && value !== undefined && String(value).trim() !== "";
-  });
-}
-
 function isEmptyExcelPlaceRow(row) {
   if (parsedOmradePlatsColumnIndex === null) {
     return false;
@@ -397,8 +406,14 @@ function isEmptyExcelPlaceRow(row) {
 
   const place = row[parsedOmradePlatsColumnIndex];
   const hasPlace = place !== null && place !== undefined && String(place).trim() !== "";
+  const firstNameColumnIndex = getColumnIndexByName("fornamn");
+  const lastNameColumnIndex = getColumnIndexByName("efternamn");
+  const firstName = firstNameColumnIndex >= 0 ? row[firstNameColumnIndex] : "";
+  const lastName = lastNameColumnIndex >= 0 ? row[lastNameColumnIndex] : "";
+  const hasFirstName = firstName !== null && firstName !== undefined && String(firstName).trim() !== "";
+  const hasLastName = lastName !== null && lastName !== undefined && String(lastName).trim() !== "";
 
-  return hasPlace && !hasExcelRowData(row);
+  return hasPlace && (!hasFirstName || !hasLastName);
 }
 
 function getSortedSelectedRows(rows) {
