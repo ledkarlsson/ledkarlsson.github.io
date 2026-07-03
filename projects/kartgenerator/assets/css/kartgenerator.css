@@ -516,6 +516,15 @@
       font-weight: 700;
     }
 
+    .selected-table tr.has-duplicate-place td {
+      background: #fff1f0;
+      color: #8a1f17;
+    }
+
+    .selected-table tr.has-duplicate-place td:first-child {
+      box-shadow: inset 3px 0 0 #d6453d;
+    }
+
     .sort-button {
       padding: 0;
       border: 0;

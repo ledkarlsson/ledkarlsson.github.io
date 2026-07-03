@@ -430,32 +430,51 @@ function sortSelectedTable(columnIndex) {
   });
 }
 
-function getDuplicatePlaces(rows) {
+function getDuplicatePlaceInfo(rows) {
   if (parsedOmradePlatsColumnIndex === null) {
-    return [];
+    return { duplicatePlaces: [], duplicatePlaceCodes: new Set() };
   }
 
   const placeCounts = new Map();
+  const placeLabels = new Map();
 
   rows.forEach((row) => {
     const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
+    const normalizedPlace = normalizePlaceCode(place);
 
-    if (!place) {
+    if (!normalizedPlace) {
       return;
     }
 
-    placeCounts.set(place, (placeCounts.get(place) || 0) + 1);
+    placeCounts.set(normalizedPlace, (placeCounts.get(normalizedPlace) || 0) + 1);
+
+    if (!placeLabels.has(normalizedPlace)) {
+      placeLabels.set(normalizedPlace, place);
+    }
   });
 
-  return [...placeCounts.entries()]
-    .filter(([, count]) => count > 1)
-    .map(([place]) => place)
+  const duplicatePlaceCodes = new Set(
+    [...placeCounts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([place]) => place)
+  );
+  const duplicatePlaces = [...duplicatePlaceCodes]
+    .map((place) => placeLabels.get(place) || place)
+    .filter(Boolean)
     .sort((left, right) => left.localeCompare(right, "sv", { numeric: true, sensitivity: "base" }));
+
+  return { duplicatePlaces, duplicatePlaceCodes };
 }
 
-function updateDuplicatePlaceWarning(rows) {
-  const duplicatePlaces = getDuplicatePlaces(rows);
+function hasDuplicatePlace(row, duplicatePlaceCodes) {
+  if (parsedOmradePlatsColumnIndex === null || duplicatePlaceCodes.size === 0) {
+    return false;
+  }
 
+  return duplicatePlaceCodes.has(normalizePlaceCode(row[parsedOmradePlatsColumnIndex]));
+}
+
+function updateDuplicatePlaceWarning(duplicatePlaces) {
   duplicatePlaceWarning.hidden = duplicatePlaces.length === 0;
 
   if (duplicatePlaces.length === 0) {
@@ -507,7 +526,8 @@ function renderSelectedTable(options = {}) {
   }
 
   const sortedRows = getSortedSelectedRows(visibleRows);
-  updateDuplicatePlaceWarning(visibleRows);
+  const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows);
+  updateDuplicatePlaceWarning(duplicatePlaces);
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
@@ -533,6 +553,10 @@ function renderSelectedTable(options = {}) {
 
   sortedRows.forEach((row) => {
     const tableRow = document.createElement("tr");
+
+    if (hasDuplicatePlace(row, duplicatePlaceCodes)) {
+      tableRow.classList.add("has-duplicate-place");
+    }
 
     selectedColumnIndexes.forEach((columnIndex) => {
       const cell = document.createElement("td");
