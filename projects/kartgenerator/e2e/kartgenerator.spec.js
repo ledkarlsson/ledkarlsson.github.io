@@ -113,6 +113,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#parse-controls")).toBeHidden();
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
     await expect(page.locator("#show-empty-excel-places")).not.toBeChecked();
+    await expect(page.locator("#show-raw-omrade-plats")).not.toBeChecked();
     await expect(page.locator("#duplicate-place-warning")).toBeHidden();
     await expect(page.locator("#table-meta")).toBeHidden();
     await expect(page.locator("#selected-table thead")).toContainText("Plats");
@@ -130,6 +131,13 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await page.locator("#show-empty-excel-places").uncheck();
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
     await expect(page.locator("#selected-table tbody tr")).toHaveCount(4);
+
+    await page.locator("#show-raw-omrade-plats").check();
+    await expect(page.locator("#selected-table thead")).toContainText("Område/Plats");
+    await expect(page.locator("#selected-table tbody tr").first().locator("td").first()).toContainText("Brygga");
+
+    await page.locator("#show-raw-omrade-plats").uncheck();
+    await expect(page.locator("#selected-table thead")).not.toContainText("Område/Plats");
   });
 
   await test.step("Kontrollera platser som saknas i Excel", async () => {
@@ -199,6 +207,10 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     await page.locator("#show-empty-excel-places").uncheck();
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
+    expect(await frame.locator("#loaded-xml").textContent()).toBe(generatedXmlBeforeEmptyToggle);
+
+    await page.locator("#show-raw-omrade-plats").check();
+    await expect(page.locator("#selected-table thead")).toContainText("Område/Plats");
     expect(await frame.locator("#loaded-xml").textContent()).toBe(generatedXmlBeforeEmptyToggle);
 
     await page.locator("#show-clean-map").click();

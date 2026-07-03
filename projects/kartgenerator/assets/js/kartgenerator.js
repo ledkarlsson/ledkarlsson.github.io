@@ -54,6 +54,7 @@ const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-so
 const showPlaceNumberInput = document.querySelector("#show-place-number");
 const showColumnNamesInput = document.querySelector("#show-column-names");
 const showEmptyExcelPlacesInput = document.querySelector("#show-empty-excel-places");
+const showRawOmradePlatsInput = document.querySelector("#show-raw-omrade-plats");
 const tableMeta = document.querySelector("#table-meta");
 const duplicatePlaceWarning = document.querySelector("#duplicate-place-warning");
 const tablePanel = document.querySelector("#table-panel");
@@ -320,6 +321,7 @@ function parseRows(columns, rows, shouldDetectParseSource = true) {
 
   return rows.map((row) => {
     const parsedRow = [...row];
+    parsedRow.rawOmradePlats = row[omradePlatsColumn.index];
     parsedRow[omradePlatsColumn.index] = parseOmradePlatsValue(row[omradePlatsColumn.index], getSelectedParseSource());
     return parsedRow;
   });
@@ -531,6 +533,12 @@ function renderSelectedTable(options = {}) {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
+  if (showRawOmradePlatsInput.checked && parsedOmradePlatsColumnIndex !== null) {
+    const headerCell = document.createElement("th");
+    headerCell.textContent = "Område/Plats";
+    headerRow.append(headerCell);
+  }
+
   selectedColumnIndexes.forEach((columnIndex) => {
     const headerCell = document.createElement("th");
     const button = document.createElement("button");
@@ -556,6 +564,13 @@ function renderSelectedTable(options = {}) {
 
     if (hasDuplicatePlace(row, duplicatePlaceCodes)) {
       tableRow.classList.add("has-duplicate-place");
+    }
+
+    if (showRawOmradePlatsInput.checked && parsedOmradePlatsColumnIndex !== null) {
+      const cell = document.createElement("td");
+      const value = row.rawOmradePlats;
+      cell.textContent = value === null || value === undefined ? "" : String(value);
+      tableRow.append(cell);
     }
 
     selectedColumnIndexes.forEach((columnIndex) => {
@@ -1858,6 +1873,7 @@ parseSourceInputs.forEach((input) => {
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
+showRawOmradePlatsInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
 helpButtons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
