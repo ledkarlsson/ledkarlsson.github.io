@@ -54,7 +54,6 @@ const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-so
 const showPlaceNumberInput = document.querySelector("#show-place-number");
 const showColumnNamesInput = document.querySelector("#show-column-names");
 const showEmptyExcelPlacesInput = document.querySelector("#show-empty-excel-places");
-const showRawOmradePlatsInput = document.querySelector("#show-raw-omrade-plats");
 const tableMeta = document.querySelector("#table-meta");
 const duplicatePlaceWarning = document.querySelector("#duplicate-place-warning");
 const tablePanel = document.querySelector("#table-panel");
@@ -394,7 +393,7 @@ function getRowsForGeneratedDiagram() {
       const value = row[parsedOmradePlatsColumnIndex];
       const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
 
-      return hasPlace && !isEmptyExcelPlaceRow(row);
+      return hasPlace;
     })
     : excelRows;
 }
@@ -548,7 +547,7 @@ function renderSelectedTable(options = {}) {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
-  if (showRawOmradePlatsInput.checked && parsedOmradePlatsColumnIndex !== null) {
+  if (parsedOmradePlatsColumnIndex !== null) {
     const headerCell = document.createElement("th");
     headerCell.textContent = "Område/Plats";
     headerRow.append(headerCell);
@@ -581,7 +580,7 @@ function renderSelectedTable(options = {}) {
       tableRow.classList.add("has-duplicate-place");
     }
 
-    if (showRawOmradePlatsInput.checked && parsedOmradePlatsColumnIndex !== null) {
+    if (parsedOmradePlatsColumnIndex !== null) {
       const cell = document.createElement("td");
       const value = row.rawOmradePlats;
       cell.textContent = value === null || value === undefined ? "" : String(value);
@@ -886,7 +885,7 @@ function showCleanMap() {
 
   hasManualDrawioMode = true;
   currentDrawioMode = "clean";
-  loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+  loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
   updateDrawioButtons();
 }
 
@@ -909,7 +908,7 @@ function updateFullscreenButton() {
 }
 
 function getCurrentDrawioXml() {
-  return currentDrawioMode === "generated" && generatedDrawioXml ? generatedDrawioXml : sourceDrawioXml;
+  return currentDrawioMode === "generated" && generatedDrawioXml ? generatedDrawioXml : getCleanDrawioXmlForDisplay();
 }
 
 function refitMapAfterFullscreenExit() {
@@ -1332,7 +1331,7 @@ function renderEmptyPlacesTable(rows) {
 
   tbody.append(fragment);
   emptyPlacesTable.append(thead, tbody);
-  emptyPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i Excel.`;
+  emptyPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.`;
   emptyPlacesWrap.hidden = false;
 }
 
@@ -1365,6 +1364,9 @@ function updateEmptyPlacesList() {
   if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
     emptyPlaceRows = [];
     renderEmptyPlacesTable([]);
+    if (currentDrawioMode === "clean" && shouldReloadDrawioViewer && sourceDrawioXml) {
+      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
+    }
     return;
   }
 
@@ -1378,6 +1380,10 @@ function updateEmptyPlacesList() {
     .filter((place) => !occupiedPlaces.has(place.normalizedPlace));
 
   renderEmptyPlacesTable(getSortedEmptyPlaceRows());
+
+  if (currentDrawioMode === "clean" && shouldReloadDrawioViewer) {
+    loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
+  }
 }
 
 function updateMissingPeopleList() {
@@ -1635,7 +1641,7 @@ function addPlaceBoxToDrawio() {
       loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
     } else {
       currentDrawioMode = "clean";
-      loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
 
     updateDrawioButtons();
@@ -1659,7 +1665,7 @@ function addMissingBoxesToDrawio() {
     if (currentDrawioMode === "generated") {
       loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
     } else {
-      loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
 
     updateDrawioButtons();
@@ -1692,6 +1698,11 @@ function createCleanDrawioXml(xml) {
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
     const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const shouldRemoveMissingExcelHighlight = Boolean(placeCode) && hasMissingExcelHighlight(cell);
+
+    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || shouldRemoveMissingExcelHighlight) {
+      removeMissingExcelHighlight(cell);
+    }
 
     if (placeCode) {
       cell.setAttribute("value", placeCode);
@@ -1733,28 +1744,84 @@ function createGeneratedDrawioXml(xml, rows) {
     cell.setAttribute("data-place-code", label);
 
     if (row) {
-      const generatedLabel = makeDrawioLabel(row);
+      const generatedLabel = isEmptyExcelPlaceRow(row) ? "" : makeDrawioLabel(row);
       cell.setAttribute("value", generatedLabel || `${label}<br>Tom plats`);
-
-      if (!generatedLabel) {
-        markCellAsEmptyPlace(cell);
-      }
     } else if (label) {
       cell.setAttribute("value", `${label}<br>Tom plats`);
-      markCellAsEmptyPlace(cell);
+      markCellAsMissingExcelPlace(cell);
     }
   });
 
   return new XMLSerializer().serializeToString(documentXml);
 }
 
-function markCellAsEmptyPlace(cell) {
+function createDrawioXmlWithHighlightedPlaces(xml, places) {
+  if (!xml || places.size === 0) {
+    return xml;
+  }
+
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return xml;
+  }
+
+  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    const label = drawioLabelToText(cell.getAttribute("value"));
+
+    if (places.has(normalizePlaceCode(label))) {
+      markCellAsMissingExcelPlace(cell, { temporary: true });
+    }
+  });
+
+  return new XMLSerializer().serializeToString(documentXml);
+}
+
+function getCleanDrawioXmlForDisplay() {
+  return createDrawioXmlWithHighlightedPlaces(
+    sourceDrawioXml,
+    new Set(emptyPlaceRows.map((row) => row.normalizedPlace))
+  );
+}
+
+function setCellStyleWithoutMissingExcelHighlight(cell) {
   const style = cell.getAttribute("style") || "";
-  const styleParts = style
+  return style
     .split(";")
     .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
+}
 
-  cell.setAttribute("style", styleParts.join(";"));
+function hasMissingExcelHighlight(cell) {
+  const style = cell.getAttribute("style") || "";
+  return /(?:^|;)fillColor=#fff2cc(?:;|$)/i.test(style) && /(?:^|;)strokeColor=#d6b656(?:;|$)/i.test(style);
+}
+
+function removeMissingExcelHighlight(cell) {
+  const originalStyle = cell.getAttribute("data-kartgenerator-original-style");
+
+  cell.removeAttribute("data-kartgenerator-highlight");
+  cell.removeAttribute("data-kartgenerator-original-style");
+
+  if (originalStyle !== null) {
+    cell.setAttribute("style", originalStyle);
+    return;
+  }
+
+  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
+}
+
+function markCellAsMissingExcelPlace(cell, options = {}) {
+  const styleParts = setCellStyleWithoutMissingExcelHighlight(cell);
+
+  styleParts.push("fillColor=#fff2cc", "strokeColor=#d6b656");
+
+  if (options.temporary) {
+    cell.setAttribute("data-kartgenerator-highlight", "missing-excel");
+    cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
+  }
+
+  cell.setAttribute("style", `${styleParts.join(";")};`);
 }
 
 function updateGeneratedDiagram() {
@@ -1770,7 +1837,7 @@ function updateGeneratedDiagram() {
     if (currentDrawioMode === "generated") {
       currentDrawioMode = "clean";
       if (shouldReloadDrawioViewer) {
-        loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+        loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
     }
     updateDrawioButtons();
@@ -1784,7 +1851,7 @@ function updateGeneratedDiagram() {
     if (currentDrawioMode === "generated") {
       currentDrawioMode = "clean";
       if (shouldReloadDrawioViewer) {
-        loadDrawioViewer(sourceDrawioXml, { keepZoom: true });
+        loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
     }
     updateDrawioButtons();
@@ -1888,7 +1955,6 @@ parseSourceInputs.forEach((input) => {
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
-showRawOmradePlatsInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
 helpButtons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });

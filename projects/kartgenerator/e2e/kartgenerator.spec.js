@@ -113,11 +113,12 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#parse-controls")).toBeHidden();
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
     await expect(page.locator("#show-empty-excel-places")).not.toBeChecked();
-    await expect(page.locator("#show-raw-omrade-plats")).not.toBeChecked();
+    await expect(page.locator("#show-raw-omrade-plats")).toHaveCount(0);
     await expect(page.locator("#duplicate-place-warning")).toBeHidden();
     await expect(page.locator("#table-meta")).toBeHidden();
     await expect(page.locator("#selected-table thead")).toContainText("Plats");
-    await expect(page.locator("#selected-table thead")).not.toContainText("Område/plats");
+    await expect(page.locator("#selected-table thead")).toContainText("Område/Plats");
+    await expect(page.locator("#selected-table tbody tr").first().locator("td").first()).toContainText("Brygga");
     await expect(page.locator("#selected-table")).toContainText("Pelle");
     await expect(page.locator("#selected-table")).toContainText("Pelleson");
     await expect(page.locator("#selected-table")).toContainText("51");
@@ -131,13 +132,6 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await page.locator("#show-empty-excel-places").uncheck();
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
     await expect(page.locator("#selected-table tbody tr")).toHaveCount(4);
-
-    await page.locator("#show-raw-omrade-plats").check();
-    await expect(page.locator("#selected-table thead")).toContainText("Område/Plats");
-    await expect(page.locator("#selected-table tbody tr").first().locator("td").first()).toContainText("Brygga");
-
-    await page.locator("#show-raw-omrade-plats").uncheck();
-    await expect(page.locator("#selected-table thead")).not.toContainText("Område/Plats");
   });
 
   await test.step("Kontrollera platser som saknas i Excel", async () => {
@@ -162,9 +156,11 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 
     expect(frame).not.toBeNull();
     await expect(frame.locator("#loaded-xml")).toContainText("57");
-    await expect(page.locator("#empty-places-meta")).toHaveText("1 plats finns i kartan men saknas i Excel.");
+    await expect(page.locator("#empty-places-meta")).toHaveText("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
     await expect(page.locator("#empty-places-wrap")).toBeVisible();
     await expect(page.locator("#empty-places-table")).toContainText("57");
+    await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
+    await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
 
     const cleanDownloadPromise = page.waitForEvent("download");
 
@@ -183,6 +179,8 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(cleanXml).toContain("57");
     expect(cleanXml).toMatch(/value="57"[\s\S]*<mxGeometry x="-450" y="1240" width="120" height="40"/);
     expect(cleanXml).not.toContain("Pelle Pelleson");
+    expect(cleanXml).not.toContain("fillColor=#fff2cc");
+    expect(cleanXml).not.toContain("strokeColor=#d6b656");
 
     const cleanPngDownloadPromise = page.waitForEvent("download");
 
@@ -198,8 +196,19 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#show-clean-map")).toBeEnabled();
     await expect(frame.locator("#last-load-options")).toContainText('"action":"merge"');
     await expect(frame.locator("#loaded-xml")).toContainText("Pelle Pelleson");
+    await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
+    await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
+    const generatedXmlWithBasInfo = await frame.locator("#loaded-xml").textContent();
 
-    const generatedXmlBeforeEmptyToggle = await frame.locator("#loaded-xml").textContent();
+    expect(generatedXmlWithBasInfo).toMatch(/value="57&lt;br&gt;Tom plats"[^>]*style="[^"]*fillColor=#fff2cc[^"]*strokeColor=#d6b656/);
+    expect(generatedXmlWithBasInfo).toContain('value="54&lt;br&gt;Tom plats"');
+    expect(generatedXmlWithBasInfo).toContain('value="55&lt;br&gt;Tom plats"');
+    expect(generatedXmlWithBasInfo).toContain('value="56&lt;br&gt;Tom plats"');
+    expect(generatedXmlWithBasInfo).not.toMatch(/value="54"[^>]*style="[^"]*fillColor=#fff2cc/);
+    expect(generatedXmlWithBasInfo).not.toMatch(/value="55"[^>]*style="[^"]*fillColor=#fff2cc/);
+    expect(generatedXmlWithBasInfo).not.toMatch(/value="56"[^>]*style="[^"]*fillColor=#fff2cc/);
+
+    const generatedXmlBeforeEmptyToggle = generatedXmlWithBasInfo;
 
     await page.locator("#show-empty-excel-places").check();
     await expect(page.locator("#table-title")).toHaveText("Vald data (7 rader)");
@@ -209,7 +218,6 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#table-title")).toHaveText("Vald data (4 rader)");
     expect(await frame.locator("#loaded-xml").textContent()).toBe(generatedXmlBeforeEmptyToggle);
 
-    await page.locator("#show-raw-omrade-plats").check();
     await expect(page.locator("#selected-table thead")).toContainText("Område/Plats");
     expect(await frame.locator("#loaded-xml").textContent()).toBe(generatedXmlBeforeEmptyToggle);
 
@@ -329,6 +337,29 @@ test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", 
   await page.locator("input[name='omrade-plats-source'][value='brygga']").check();
   await expect(page.locator("#duplicate-place-warning")).toBeHidden();
   await expect(page.locator("#selected-table")).not.toContainText("Vinterplats");
+
+  const frameElement = await page.locator("#drawio-frame").elementHandle();
+  const frame = await frameElement.contentFrame();
+
+  expect(frame).not.toBeNull();
+
+  await page.locator("input[name='omrade-plats-source'][value='vinterplats']").check();
+  await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
+  await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
+
+  const highlightedWinterMap = await frame.locator("#loaded-xml").textContent();
+
+  await frame.evaluate((xml) => {
+    window.parent.postMessage(JSON.stringify({
+      event: "autosave",
+      xml
+    }), "*");
+  }, highlightedWinterMap);
+
+  await page.locator("input[name='omrade-plats-source'][value='brygga']").check();
+  await expect(page.locator("#empty-places-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+  await expect(frame.locator("#loaded-xml")).not.toContainText("fillColor=#fff2cc");
+  await expect(frame.locator("#loaded-xml")).not.toContainText("strokeColor=#d6b656");
 
   await page.locator("#show-empty-excel-places").check();
   await expect(page.locator("#selected-table")).toContainText("54");
