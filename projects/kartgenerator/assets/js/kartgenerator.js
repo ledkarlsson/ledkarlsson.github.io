@@ -76,6 +76,17 @@ const drawioExample = {
   fileName: "exempel.drawio",
   type: "application/xml"
 };
+const drawioEditorConfig = {
+  defaultPageVisible: false,
+  preserveViewState: true,
+  css: `
+    .geTabContainer > :not(:last-child),
+    .gePageTab,
+    .geFooterContainer .gePageTab {
+      display: none !important;
+    }
+  `
+};
 const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 let selectedColumnIndexes = [];
 let excelColumns = [];
@@ -2049,6 +2060,14 @@ window.addEventListener("message", (event) => {
   try {
     message = JSON.parse(event.data);
   } catch (error) {
+    return;
+  }
+
+  if (message.event === "configure" && event.source === drawioFrame.contentWindow) {
+    event.source.postMessage(JSON.stringify({
+      action: "configure",
+      config: drawioEditorConfig
+    }), event.origin);
     return;
   }
 

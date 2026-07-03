@@ -18,10 +18,33 @@ async function mockExternalScripts(page) {
       body: `<!doctype html>
         <title>draw.io test frame</title>
         <pre id="loaded-xml"></pre>
+        <pre id="editor-config"></pre>
         <pre id="last-load-options"></pre>
         <script>
+          let configureInterval = null;
+
+          if (new URL(window.location.href).searchParams.get("configure") === "1") {
+            configureInterval = setInterval(() => {
+              if (document.querySelector("#editor-config").textContent) {
+                clearInterval(configureInterval);
+                return;
+              }
+
+              window.parent.postMessage(JSON.stringify({ event: "configure" }), "*");
+            }, 50);
+          }
+
           window.addEventListener("message", (event) => {
             const message = JSON.parse(event.data);
+
+            if (message.action === "configure") {
+              if (configureInterval) {
+                clearInterval(configureInterval);
+              }
+
+              document.querySelector("#editor-config").textContent = JSON.stringify(message.config);
+              window.parent.postMessage(JSON.stringify({ event: "init" }), "*");
+            }
 
             if (["load", "merge"].includes(message.action)) {
               document.querySelector("#loaded-xml").textContent = message.xml;
@@ -69,6 +92,8 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
     await expect(page.locator("#excel-example-menu")).toBeVisible();
     await expect(page.locator("#excel-example-button")).toHaveText("Exempel-Excel");
+    await expect(page.locator("#drawio-frame")).toHaveAttribute("src", /configure=1/);
+    await expect(page.locator("#drawio-frame")).toHaveAttribute("src", /pages=0/);
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Ladda upp karta");
     await expect(page.getByLabel("Förhandsvisning av kartgeneratorns arbetsyta")).toContainText("Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja");
     await expect(page.locator("#drawio-example-menu")).toBeVisible();
@@ -83,6 +108,18 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.locator("#generated-options")).toBeHidden();
     await expect(page.locator("#download-menu-button")).toBeDisabled();
     await expect(page.locator("#fullscreen-map")).toBeDisabled();
+  });
+
+  await test.step("Kontrollera karteditorns inbäddningskonfiguration", async () => {
+    const frameElement = await page.locator("#drawio-frame").elementHandle();
+    const frame = await frameElement.contentFrame();
+
+    expect(frame).not.toBeNull();
+    await expect(frame.locator("#editor-config")).toContainText('"defaultPageVisible":false');
+    await expect(frame.locator("#editor-config")).toContainText('"preserveViewState":true');
+    await expect(frame.locator("#editor-config")).toContainText(".geTabContainer > :not(:last-child)");
+    await expect(frame.locator("#editor-config")).toContainText(".gePageTab");
+    await expect(frame.locator("#editor-config")).not.toContainText(".geToolbarButton");
   });
 });
 
