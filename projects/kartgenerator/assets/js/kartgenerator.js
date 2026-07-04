@@ -64,6 +64,10 @@ const emptyPlacesPanel = document.querySelector("#empty-places-panel");
 const emptyPlacesMeta = document.querySelector("#empty-places-meta");
 const emptyPlacesWrap = document.querySelector("#empty-places-wrap");
 const emptyPlacesTable = document.querySelector("#empty-places-table");
+const duplicateMapPlacesPanel = document.querySelector("#duplicate-map-places-panel");
+const duplicateMapPlacesMeta = document.querySelector("#duplicate-map-places-meta");
+const duplicateMapPlacesWrap = document.querySelector("#duplicate-map-places-wrap");
+const duplicateMapPlacesTable = document.querySelector("#duplicate-map-places-table");
 const excelTypes = [".xls", ".xlsx"];
 const drawioTypes = [".drawio", ".drawio.xml"];
 const excelExample = {
@@ -78,6 +82,14 @@ const drawioExample = {
 };
 const newPlacePlaceholder = "ny plats";
 const newPlaceBoxStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;";
+const missingExcelHighlight = {
+  fill: "#fff2cc",
+  stroke: "#d6b656"
+};
+const duplicateMapPlaceHighlight = {
+  fill: "#dae8fc",
+  stroke: "#6c8ebf"
+};
 const drawioEditorConfig = {
   defaultPageVisible: false,
   preserveViewState: true,
@@ -107,6 +119,7 @@ let wasMapFullscreen = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
 let emptyPlaceRows = [];
+let duplicateMapPlaceRows = [];
 let selectedTableSortColumnIndex = null;
 let selectedTableSortDirection = "asc";
 let missingSortColumn = "place";
@@ -225,6 +238,7 @@ function clearColumns(message) {
   rawExcelRows = [];
   missingPeopleRows = [];
   emptyPlaceRows = [];
+  duplicateMapPlaceRows = [];
   selectedTableSortColumnIndex = null;
   selectedTableSortDirection = "asc";
   emptyPlacesSortColumn = "place";
@@ -236,6 +250,7 @@ function clearColumns(message) {
   updateGeneratedDiagram();
   updateMissingPeopleList();
   updateEmptyPlacesList();
+  updateDuplicateMapPlacesList();
 }
 
 function updateSelectedColumnsStatus() {
@@ -812,6 +827,7 @@ function showDrawioFile(file) {
     updateDrawioButtons();
     updateMissingPeopleList();
     updateEmptyPlacesList();
+    updateDuplicateMapPlacesList();
     updateGeneratedDiagram();
     return;
   }
@@ -857,6 +873,7 @@ function clearDrawioFile() {
   updateDrawioButtons();
   updateMissingPeopleList();
   updateEmptyPlacesList();
+  updateDuplicateMapPlacesList();
   updateGeneratedDiagram();
 }
 
@@ -1385,6 +1402,111 @@ function sortEmptyPlaces(columnKey) {
   });
 }
 
+function renderDuplicateMapPlacesTable(rows) {
+  duplicateMapPlacesTable.replaceChildren();
+
+  if (!sourceDrawioXml) {
+    duplicateMapPlaceRows = [];
+    duplicateMapPlacesPanel.hidden = true;
+    duplicateMapPlacesWrap.hidden = true;
+    duplicateMapPlacesMeta.textContent = "Ladda upp en karta för att se duplicerade platser.";
+    return;
+  }
+
+  duplicateMapPlacesPanel.hidden = false;
+
+  if (rows.length === 0) {
+    duplicateMapPlacesMeta.textContent = "Inga duplicerade platser hittades i kartan.";
+    duplicateMapPlacesWrap.hidden = true;
+    return;
+  }
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  ["Plats", "Antal rutor"].forEach((header) => {
+    const headerCell = document.createElement("th");
+
+    headerCell.textContent = header;
+    headerRow.append(headerCell);
+  });
+
+  thead.append(headerRow);
+
+  const tbody = document.createElement("tbody");
+  const fragment = document.createDocumentFragment();
+
+  rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    [row.place, String(row.count)].forEach((value) => {
+      const cell = document.createElement("td");
+
+      cell.textContent = value;
+      tableRow.append(cell);
+    });
+
+    fragment.append(tableRow);
+  });
+
+  tbody.append(fragment);
+  duplicateMapPlacesTable.append(thead, tbody);
+  duplicateMapPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns på flera ställen i kartan. Dessa platser markeras med blått i kartan.`;
+  duplicateMapPlacesWrap.hidden = false;
+}
+
+function getDuplicateMapPlaceRows(xml) {
+  if (!xml) {
+    return [];
+  }
+
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return [];
+  }
+
+  const placesByCode = new Map();
+
+  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const normalizedPlace = normalizePlaceCode(place);
+
+    if (!normalizedPlace) {
+      return;
+    }
+
+    const entry = placesByCode.get(normalizedPlace) || { place, normalizedPlace, count: 0 };
+
+    entry.count += 1;
+    placesByCode.set(normalizedPlace, entry);
+  });
+
+  return [...placesByCode.values()]
+    .filter((row) => row.count > 1)
+    .sort((left, right) => String(left.place).localeCompare(String(right.place), "sv", { numeric: true, sensitivity: "base" }));
+}
+
+function getDuplicateMapPlaceKey(rows) {
+  return rows.map((row) => `${row.normalizedPlace}:${row.count}`).join("|");
+}
+
+function updateDuplicateMapPlacesList(options = {}) {
+  const previousKey = getDuplicateMapPlaceKey(duplicateMapPlaceRows);
+
+  duplicateMapPlaceRows = getDuplicateMapPlaceRows(sourceDrawioXml);
+  renderDuplicateMapPlacesTable(duplicateMapPlaceRows);
+
+  const hasChanged = getDuplicateMapPlaceKey(duplicateMapPlaceRows) !== previousKey;
+
+  if (options.reloadCleanMap && hasChanged && currentDrawioMode === "clean") {
+    scheduleCleanMapRefresh();
+  }
+
+  return hasChanged;
+}
+
 function updateEmptyPlacesList() {
   if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
     emptyPlaceRows = [];
@@ -1450,6 +1572,7 @@ function updateSourceDrawioXml(xml) {
 
   sourceDrawioXml = updatedXml;
   pendingDrawioXml = updatedXml;
+  const shouldRefreshDuplicateMapPlaces = updateDuplicateMapPlacesList();
 
   preserveWindowScroll(() => {
     shouldReloadDrawioViewer = shouldRefreshGeneratedView;
@@ -1468,6 +1591,10 @@ function updateSourceDrawioXml(xml) {
   });
 
   if (shouldRefreshRenamedNewPlace) {
+    scheduleCleanMapRefresh();
+  }
+
+  if (shouldRefreshDuplicateMapPlaces && currentDrawioMode === "clean") {
     scheduleCleanMapRefresh();
   }
 }
@@ -1725,7 +1852,12 @@ function createCleanDrawioXml(xml) {
     }
 
     const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const shouldRemoveDuplicateMapPlaceHighlight = Boolean(placeCode) && hasDuplicateMapPlaceHighlight(cell);
     const shouldRemoveMissingExcelHighlight = Boolean(placeCode) && hasMissingExcelHighlight(cell);
+
+    if (cell.getAttribute("data-kartgenerator-duplicate-highlight") === "duplicate-map-place" || shouldRemoveDuplicateMapPlaceHighlight) {
+      removeDuplicateMapPlaceHighlight(cell);
+    }
 
     if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || shouldRemoveMissingExcelHighlight) {
       removeMissingExcelHighlight(cell);
@@ -1821,10 +1953,38 @@ function createDrawioXmlWithHighlightedPlaces(xml, places) {
   return new XMLSerializer().serializeToString(documentXml);
 }
 
+function createDrawioXmlWithHighlightedDuplicatePlaces(xml, places) {
+  if (!xml || places.size === 0) {
+    return xml;
+  }
+
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return xml;
+  }
+
+  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    const label = drawioLabelToText(cell.getAttribute("value"));
+
+    if (places.has(normalizePlaceCode(label))) {
+      markCellAsDuplicateMapPlace(cell, { temporary: true });
+    }
+  });
+
+  return new XMLSerializer().serializeToString(documentXml);
+}
+
 function getCleanDrawioXmlForDisplay() {
-  return createDrawioXmlWithHighlightedPlaces(
+  const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
     sourceDrawioXml,
     new Set(emptyPlaceRows.map((row) => row.normalizedPlace))
+  );
+
+  return createDrawioXmlWithHighlightedDuplicatePlaces(
+    highlightedMissingPlacesXml,
+    new Set(duplicateMapPlaceRows.map((row) => row.normalizedPlace))
   );
 }
 
@@ -1842,7 +2002,19 @@ function removeNewPlacePlaceholder(cell) {
 
 function hasMissingExcelHighlight(cell) {
   const style = cell.getAttribute("style") || "";
-  return /(?:^|;)fillColor=#fff2cc(?:;|$)/i.test(style) && /(?:^|;)strokeColor=#d6b656(?:;|$)/i.test(style);
+  return hasCellHighlight(cell, missingExcelHighlight);
+}
+
+function hasDuplicateMapPlaceHighlight(cell) {
+  return hasCellHighlight(cell, duplicateMapPlaceHighlight);
+}
+
+function hasCellHighlight(cell, highlight) {
+  const style = cell.getAttribute("style") || "";
+  const fillPattern = new RegExp(`(?:^|;)fillColor=${highlight.fill}(?:;|$)`, "i");
+  const strokePattern = new RegExp(`(?:^|;)strokeColor=${highlight.stroke}(?:;|$)`, "i");
+
+  return fillPattern.test(style) && strokePattern.test(style);
 }
 
 function removeMissingExcelHighlight(cell) {
@@ -1862,11 +2034,42 @@ function removeMissingExcelHighlight(cell) {
 function markCellAsMissingExcelPlace(cell, options = {}) {
   const styleParts = setCellStyleWithoutMissingExcelHighlight(cell);
 
-  styleParts.push("fillColor=#fff2cc", "strokeColor=#d6b656");
+  styleParts.push(`fillColor=${missingExcelHighlight.fill}`, `strokeColor=${missingExcelHighlight.stroke}`);
 
   if (options.temporary) {
     cell.setAttribute("data-kartgenerator-highlight", "missing-excel");
-    cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
+    if (!cell.hasAttribute("data-kartgenerator-original-style")) {
+      cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
+    }
+  }
+
+  cell.setAttribute("style", `${styleParts.join(";")};`);
+}
+
+function removeDuplicateMapPlaceHighlight(cell) {
+  const originalStyle = cell.getAttribute("data-kartgenerator-original-style");
+
+  cell.removeAttribute("data-kartgenerator-duplicate-highlight");
+  cell.removeAttribute("data-kartgenerator-original-style");
+
+  if (originalStyle !== null) {
+    cell.setAttribute("style", originalStyle);
+    return;
+  }
+
+  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
+}
+
+function markCellAsDuplicateMapPlace(cell, options = {}) {
+  const styleParts = setCellStyleWithoutMissingExcelHighlight(cell);
+
+  styleParts.push(`fillColor=${duplicateMapPlaceHighlight.fill}`, `strokeColor=${duplicateMapPlaceHighlight.stroke}`);
+
+  if (options.temporary) {
+    cell.setAttribute("data-kartgenerator-duplicate-highlight", "duplicate-map-place");
+    if (!cell.hasAttribute("data-kartgenerator-original-style")) {
+      cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
+    }
   }
 
   cell.setAttribute("style", `${styleParts.join(";")};`);
@@ -1944,6 +2147,7 @@ function readDrawioFile(file) {
       updateDrawioButtons();
       updateMissingPeopleList();
       updateEmptyPlacesList();
+      updateDuplicateMapPlacesList();
       updateGeneratedDiagram();
       return;
     }
@@ -1951,7 +2155,8 @@ function readDrawioFile(file) {
     sourceDrawioXml = createCleanDrawioXml(xml);
     currentDrawioMode = "clean";
     hasManualDrawioMode = true;
-    loadDrawioViewer(sourceDrawioXml);
+    updateDuplicateMapPlacesList();
+    loadDrawioViewer(getCleanDrawioXmlForDisplay());
     if (excelColumns.length > 0 && rawExcelRows.length > 0) {
       reparseRows(true);
     } else {
@@ -1972,6 +2177,7 @@ function readDrawioFile(file) {
     updateDrawioButtons();
     updateMissingPeopleList();
     updateEmptyPlacesList();
+    updateDuplicateMapPlacesList();
     updateGeneratedDiagram();
   });
 

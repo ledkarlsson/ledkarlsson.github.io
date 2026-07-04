@@ -426,4 +426,20 @@ test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", 
   await page.locator("#show-empty-excel-places").check();
   await expect(page.locator("#selected-table")).toContainText("54");
   await expect(page.locator("#selected-table")).toContainText("55");
+
+  const mapWithDuplicatePlace = (await frame.locator("#loaded-xml").textContent()).replace(/value="53"/, 'value="54"');
+
+  await frame.evaluate((xml) => {
+    window.parent.postMessage(JSON.stringify({
+      event: "autosave",
+      xml
+    }), "*");
+  }, mapWithDuplicatePlace);
+
+  await expect(page.locator("#duplicate-map-places-panel")).toBeVisible();
+  await expect(page.locator("#duplicate-map-places-meta")).toHaveText("1 plats finns på flera ställen i kartan. Dessa platser markeras med blått i kartan.");
+  await expect(page.locator("#duplicate-map-places-table")).toContainText("54");
+  await expect(page.locator("#duplicate-map-places-table")).toContainText("2");
+  await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#dae8fc");
+  await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#6c8ebf");
 });
