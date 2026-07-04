@@ -25,6 +25,8 @@
         En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar.
         <br><br>
         För att komma igång, klicka på Exempel-Excel och Exempelkarta nedan. Du kan ändra i kartan direkt i panelen.
+        När du är nöjd behöver du ladda ner kartan till din dator via knappen "Ladda ner"; ändringar sparas inte
+        automatiskt när du stänger sidan.
         <br><br>
         För att få ut excel-data från BAS: Skapa en rapport som innehåller kolumnen Område/Plats. Lägg även till det som
         du vill kunna se i kartan, som t.ex. Förnamn, Efternamn och mobilnummer. Exportera som Excel-fil.
@@ -89,7 +91,7 @@
             <h2 id="table-title">Vald data</h2>
             <label class="inline-checkbox">
               <input type="checkbox" id="show-empty-excel-places" />
-              Visa tomma platser
+              Visa lediga platser
             </label>
           </div>
           <p class="table-meta" id="table-meta" hidden></p>
@@ -142,7 +144,7 @@
           </div>
         </div>
         <div class="actions drawio-actions" hidden>
-          <button class="button secondary" id="add-place-box" type="button" disabled>Lägg till plats</button>
+          <button class="button secondary" id="add-place-box" type="button" disabled>Skapa ny plats</button>
           <button class="button secondary" id="show-clean-map" type="button" disabled>Dölj BAS-info</button>
           <button class="button secondary" id="show-generated-map" type="button" disabled>Visa BAS-info</button>
           <button class="button secondary" id="fullscreen-map" type="button" disabled>Helskärm</button>
@@ -203,8 +205,11 @@
     <form method="dialog">
       <h2>Karta</h2>
       <p>Ladda upp en karta i draw.io-format med en box per plats. Du kan ändra kartan direkt här.</p>
-      <p>Lägg till nya platser genom att klicka på "Lägg till plats". Dubbelklicka på boxen för att skriva in nya
-        platssiffror.
+      <p>Lägg till nya platser genom att klicka på "Skapa ny plats". Dubbelklicka på boxen för att skriva in nya
+        platssiffror. Rutor med enbart siffror blir automatiskt en båtplats.</p>
+      <p>Lägg till bryggor eller andra strukturer genom att högerklicka på befintliga rutor och välja kopiera. Högerklicka
+        sedan och välj klistra in. Ge den nya rutan en beskrivning. För att gå runt i kartan, håll in höger musknapp och
+        rör musen. Det finns många avancerade funktioner i kartan. Du kommer åt dem genom raden precis ovanför ritytan.
         Glöm inte att spara kartan genom att klicka på "Ladda ner", ingenting sparas på sidan när du stänger den.</p>
       <button class="button" type="submit">Stäng</button>
     </form>

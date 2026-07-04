@@ -76,6 +76,8 @@ const drawioExample = {
   fileName: "exempel.drawio",
   type: "application/xml"
 };
+const newPlacePlaceholder = "ny plats";
+const newPlaceBoxStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;";
 const drawioEditorConfig = {
   defaultPageVisible: false,
   preserveViewState: true,
@@ -100,6 +102,7 @@ let generatedDrawioXml = "";
 let currentDrawioMode = "clean";
 let hasManualDrawioMode = false;
 let shouldReloadDrawioViewer = true;
+let cleanMapRefreshTimer = 0;
 let wasMapFullscreen = false;
 let pendingPngFileName = "";
 let missingPeopleRows = [];
@@ -911,6 +914,17 @@ function showGeneratedMap() {
   updateDrawioButtons();
 }
 
+function scheduleCleanMapRefresh() {
+  window.clearTimeout(cleanMapRefreshTimer);
+  cleanMapRefreshTimer = window.setTimeout(() => {
+    cleanMapRefreshTimer = 0;
+
+    if (currentDrawioMode === "clean" && sourceDrawioXml) {
+      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
+    }
+  }, 350);
+}
+
 function updateFullscreenButton() {
   const isFullscreen = document.fullscreenElement === mapWorkspace;
 
@@ -1424,7 +1438,9 @@ function updateMissingPeopleList() {
 }
 
 function updateSourceDrawioXml(xml) {
-  const updatedXml = createCleanDrawioXml(String(xml || "").trim()).trim();
+  const rawXml = String(xml || "").trim();
+  const shouldRefreshRenamedNewPlace = currentDrawioMode === "clean" && hasRenamedNewPlacePlaceholder(rawXml);
+  const updatedXml = createCleanDrawioXml(rawXml).trim();
 
   if (!updatedXml || updatedXml === sourceDrawioXml) {
     return;
@@ -1450,6 +1466,10 @@ function updateSourceDrawioXml(xml) {
       shouldReloadDrawioViewer = true;
     }
   });
+
+  if (shouldRefreshRenamedNewPlace) {
+    scheduleCleanMapRefresh();
+  }
 }
 
 function downloadMissingPeopleExcel() {
@@ -1579,12 +1599,17 @@ function createMissingBoxId(place, index) {
 function createDrawioCell(documentXml, row, index, x, y) {
   const cell = documentXml.createElement("mxCell");
   const geometry = documentXml.createElement("mxGeometry");
+  const isNewPlacePlaceholder = row.isNewPlacePlaceholder === true;
 
   cell.setAttribute("id", createMissingBoxId(row.place, index));
   cell.setAttribute("value", row.place);
-  cell.setAttribute("style", "rounded=0;whiteSpace=wrap;html=1;");
+  cell.setAttribute("style", isNewPlacePlaceholder ? newPlaceBoxStyle : "rounded=0;whiteSpace=wrap;html=1;");
   cell.setAttribute("vertex", "1");
   cell.setAttribute("parent", "1");
+
+  if (isNewPlacePlaceholder) {
+    cell.setAttribute("data-kartgenerator-placeholder", "new-place");
+  }
 
   geometry.setAttribute("x", String(x));
   geometry.setAttribute("y", String(y));
@@ -1620,32 +1645,16 @@ function createDrawioXmlWithMissingBoxes(xml, rows) {
   return new XMLSerializer().serializeToString(documentXml);
 }
 
-function getNextMapPlaceNumber(xml) {
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return 1;
-  }
-
-  const placeNumbers = [...documentXml.querySelectorAll("mxCell[vertex='1']")]
-    .map((cell) => drawioLabelToText(cell.getAttribute("value")))
-    .filter(isPlaceBoxLabel)
-    .map((label) => Number.parseInt(label, 10))
-    .filter(Number.isFinite);
-
-  return placeNumbers.length > 0 ? Math.max(...placeNumbers) + 1 : 1;
-}
-
 function addPlaceBoxToDrawio() {
   if (!sourceDrawioXml) {
     return;
   }
 
-  const place = String(getNextMapPlaceNumber(sourceDrawioXml));
-
   try {
-    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, [{ place }]));
+    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, [{
+      place: newPlacePlaceholder,
+      isNewPlacePlaceholder: true
+    }]));
     hasManualDrawioMode = true;
 
     if (currentDrawioMode === "generated" && generatedDrawioXml) {
@@ -1708,6 +1717,13 @@ function createCleanDrawioXml(xml) {
   }
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
+    if (
+      cell.getAttribute("data-kartgenerator-placeholder") === "new-place"
+      && drawioLabelToText(cell.getAttribute("value")).toLowerCase() !== newPlacePlaceholder
+    ) {
+      removeNewPlacePlaceholder(cell);
+    }
+
     const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
     const shouldRemoveMissingExcelHighlight = Boolean(placeCode) && hasMissingExcelHighlight(cell);
 
@@ -1722,6 +1738,22 @@ function createCleanDrawioXml(xml) {
   });
 
   return new XMLSerializer().serializeToString(documentXml);
+}
+
+function hasRenamedNewPlacePlaceholder(xml) {
+  if (!xml) {
+    return false;
+  }
+
+  const parser = new DOMParser();
+  const documentXml = parser.parseFromString(xml, "application/xml");
+
+  if (documentXml.querySelector("parsererror")) {
+    return false;
+  }
+
+  return [...documentXml.querySelectorAll("mxCell[data-kartgenerator-placeholder='new-place']")]
+    .some((cell) => drawioLabelToText(cell.getAttribute("value")).toLowerCase() !== newPlacePlaceholder);
 }
 
 function createGeneratedDrawioXml(xml, rows) {
@@ -1756,9 +1788,9 @@ function createGeneratedDrawioXml(xml, rows) {
 
     if (row) {
       const generatedLabel = isEmptyExcelPlaceRow(row) ? "" : makeDrawioLabel(row);
-      cell.setAttribute("value", generatedLabel || `${label}<br>Tom plats`);
+      cell.setAttribute("value", generatedLabel || `${label}<br>Ledig plats`);
     } else if (label) {
-      cell.setAttribute("value", `${label}<br>Tom plats`);
+      cell.setAttribute("value", `${label}<br>Ledig plats`);
       markCellAsMissingExcelPlace(cell);
     }
   });
@@ -1801,6 +1833,11 @@ function setCellStyleWithoutMissingExcelHighlight(cell) {
   return style
     .split(";")
     .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
+}
+
+function removeNewPlacePlaceholder(cell) {
+  cell.removeAttribute("data-kartgenerator-placeholder");
+  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
 }
 
 function hasMissingExcelHighlight(cell) {

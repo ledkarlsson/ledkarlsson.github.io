@@ -185,6 +185,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#show-generated-map")).toBeEnabled();
     await expect(page.locator("#download-menu-button")).toBeEnabled();
     await expect(page.locator("#add-place-box")).toBeEnabled();
+    await expect(page.locator("#add-place-box")).toHaveText("Skapa ny plats");
     await expect(page.locator("#fullscreen-map")).toBeEnabled();
     await expect(page.locator("#fullscreen-map")).toHaveText("Helskärm");
     await page.locator("#add-place-box").click();
@@ -192,10 +193,31 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     const frame = await frameElement.contentFrame();
 
     expect(frame).not.toBeNull();
-    await expect(frame.locator("#loaded-xml")).toContainText("57");
+    await expect(frame.locator("#loaded-xml")).toContainText("ny plats");
+    await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#f8cecc");
+    await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#b85450");
+    await expect(page.locator("#empty-places-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+
+    const newPlaceXml = await frame.locator("#loaded-xml").textContent();
+    const renamedPlaceXml = newPlaceXml.replace(/value="ny plats"/, 'value="57"');
+
+    await frame.evaluate((xml) => {
+      window.parent.postMessage(JSON.stringify({
+        event: "autosave",
+        xml
+      }), "*");
+    }, renamedPlaceXml);
+
+    expect(renamedPlaceXml).toContain('value="57"');
+    expect(renamedPlaceXml).not.toContain('value="ny plats"');
+
     await expect(page.locator("#empty-places-meta")).toHaveText("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
     await expect(page.locator("#empty-places-wrap")).toBeVisible();
     await expect(page.locator("#empty-places-table")).toContainText("57");
+    await expect(frame.locator("#loaded-xml")).toContainText("57");
+    await expect(frame.locator("#loaded-xml")).not.toContainText("ny plats");
+    await expect(frame.locator("#loaded-xml")).not.toContainText("fillColor=#f8cecc");
+    await expect(frame.locator("#loaded-xml")).not.toContainText("strokeColor=#b85450");
     await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
     await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
 
@@ -215,7 +237,10 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(cleanXml).toContain("51");
     expect(cleanXml).toContain("57");
     expect(cleanXml).toMatch(/value="57"[\s\S]*<mxGeometry x="-450" y="1240" width="120" height="40"/);
+    expect(cleanXml).not.toContain("ny plats");
     expect(cleanXml).not.toContain("Pelle Pelleson");
+    expect(cleanXml).not.toContain("fillColor=#f8cecc");
+    expect(cleanXml).not.toContain("strokeColor=#b85450");
     expect(cleanXml).not.toContain("fillColor=#fff2cc");
     expect(cleanXml).not.toContain("strokeColor=#d6b656");
 
@@ -237,10 +262,10 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
     const generatedXmlWithBasInfo = await frame.locator("#loaded-xml").textContent();
 
-    expect(generatedXmlWithBasInfo).toMatch(/value="57&lt;br&gt;Tom plats"[^>]*style="[^"]*fillColor=#fff2cc[^"]*strokeColor=#d6b656/);
-    expect(generatedXmlWithBasInfo).toContain('value="54&lt;br&gt;Tom plats"');
-    expect(generatedXmlWithBasInfo).toContain('value="55&lt;br&gt;Tom plats"');
-    expect(generatedXmlWithBasInfo).toContain('value="56&lt;br&gt;Tom plats"');
+    expect(generatedXmlWithBasInfo).toMatch(/value="57&lt;br&gt;Ledig plats"[^>]*style="[^"]*fillColor=#fff2cc[^"]*strokeColor=#d6b656/);
+    expect(generatedXmlWithBasInfo).toContain('value="54&lt;br&gt;Ledig plats"');
+    expect(generatedXmlWithBasInfo).toContain('value="55&lt;br&gt;Ledig plats"');
+    expect(generatedXmlWithBasInfo).toContain('value="56&lt;br&gt;Ledig plats"');
     expect(generatedXmlWithBasInfo).not.toMatch(/value="54"[^>]*style="[^"]*fillColor=#fff2cc/);
     expect(generatedXmlWithBasInfo).not.toMatch(/value="55"[^>]*style="[^"]*fillColor=#fff2cc/);
     expect(generatedXmlWithBasInfo).not.toMatch(/value="56"[^>]*style="[^"]*fillColor=#fff2cc/);
