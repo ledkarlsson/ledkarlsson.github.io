@@ -1,6 +1,15 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
 import { getMapPlaceLabels, getMapPlaces } from "./drawio.js"
-import { newPlacePlaceholder, newPlaceBoxStyle, removeNewPlacePlaceholder } from "./drawio-model.js"
+import {
+  createCleanDrawioXml,
+  createDrawioXmlWithHighlightedDuplicatePlaces,
+  createDrawioXmlWithHighlightedPlaces,
+  getPlaceCodeFromCellLabel,
+  hasRenamedNewPlacePlaceholder,
+  markCellAsMissingExcelPlace,
+  newPlaceBoxStyle,
+  newPlacePlaceholder
+} from "./drawio-model.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -82,14 +91,6 @@ const drawioExample = {
   type: "application/xml"
 };
 
-const missingExcelHighlight = {
-  fill: "#fff2cc",
-  stroke: "#d6b656"
-};
-const duplicateMapPlaceHighlight = {
-  fill: "#dae8fc",
-  stroke: "#6c8ebf"
-};
 const drawioEditorConfig = {
   defaultPageVisible: false,
   preserveViewState: true,
@@ -1821,73 +1822,6 @@ function addMissingBoxesToDrawio() {
   }
 }
 
-function getPlaceCodeFromCellLabel(label) {
-  const text = drawioLabelToText(label);
-  const [firstLine] = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return firstLine && isPlaceBoxLabel(firstLine) ? firstLine : "";
-}
-
-function createCleanDrawioXml(xml) {
-  if (!xml) {
-    return "";
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return xml;
-  }
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    if (
-      cell.getAttribute("data-kartgenerator-placeholder") === "new-place"
-      && drawioLabelToText(cell.getAttribute("value")).toLowerCase() !== newPlacePlaceholder
-    ) {
-      removeNewPlacePlaceholder(cell);
-    }
-
-    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
-    const shouldRemoveDuplicateMapPlaceHighlight = Boolean(placeCode) && hasDuplicateMapPlaceHighlight(cell);
-    const shouldRemoveMissingExcelHighlight = Boolean(placeCode) && hasMissingExcelHighlight(cell);
-
-    if (cell.getAttribute("data-kartgenerator-duplicate-highlight") === "duplicate-map-place" || shouldRemoveDuplicateMapPlaceHighlight) {
-      removeDuplicateMapPlaceHighlight(cell);
-    }
-
-    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || shouldRemoveMissingExcelHighlight) {
-      removeMissingExcelHighlight(cell);
-    }
-
-    if (placeCode) {
-      cell.setAttribute("value", placeCode);
-      cell.removeAttribute("data-place-code");
-    }
-  });
-
-  return new XMLSerializer().serializeToString(documentXml);
-}
-
-function hasRenamedNewPlacePlaceholder(xml) {
-  if (!xml) {
-    return false;
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return false;
-  }
-
-  return [...documentXml.querySelectorAll("mxCell[data-kartgenerator-placeholder='new-place']")]
-    .some((cell) => drawioLabelToText(cell.getAttribute("value")).toLowerCase() !== newPlacePlaceholder);
-}
-
 function createGeneratedDrawioXml(xml, rows) {
   const parser = new DOMParser();
   const documentXml = parser.parseFromString(xml, "application/xml");
@@ -1930,52 +1864,6 @@ function createGeneratedDrawioXml(xml, rows) {
   return new XMLSerializer().serializeToString(documentXml);
 }
 
-function createDrawioXmlWithHighlightedPlaces(xml, places) {
-  if (!xml || places.size === 0) {
-    return xml;
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return xml;
-  }
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
-
-    if (places.has(normalizePlaceCode(label))) {
-      markCellAsMissingExcelPlace(cell, { temporary: true });
-    }
-  });
-
-  return new XMLSerializer().serializeToString(documentXml);
-}
-
-function createDrawioXmlWithHighlightedDuplicatePlaces(xml, places) {
-  if (!xml || places.size === 0) {
-    return xml;
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return xml;
-  }
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
-
-    if (places.has(normalizePlaceCode(label))) {
-      markCellAsDuplicateMapPlace(cell, { temporary: true });
-    }
-  });
-
-  return new XMLSerializer().serializeToString(documentXml);
-}
-
 function getCleanDrawioXmlForDisplay() {
   const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
     sourceDrawioXml,
@@ -1986,88 +1874,6 @@ function getCleanDrawioXmlForDisplay() {
     highlightedMissingPlacesXml,
     new Set(duplicateMapPlaceRows.map((row) => row.normalizedPlace))
   );
-}
-
-function setCellStyleWithoutMissingExcelHighlight(cell) {
-  const style = cell.getAttribute("style") || "";
-  return style
-    .split(";")
-    .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
-}
-
-function hasMissingExcelHighlight(cell) {
-  const style = cell.getAttribute("style") || "";
-  return hasCellHighlight(cell, missingExcelHighlight);
-}
-
-function hasDuplicateMapPlaceHighlight(cell) {
-  return hasCellHighlight(cell, duplicateMapPlaceHighlight);
-}
-
-function hasCellHighlight(cell, highlight) {
-  const style = cell.getAttribute("style") || "";
-  const fillPattern = new RegExp(`(?:^|;)fillColor=${highlight.fill}(?:;|$)`, "i");
-  const strokePattern = new RegExp(`(?:^|;)strokeColor=${highlight.stroke}(?:;|$)`, "i");
-
-  return fillPattern.test(style) && strokePattern.test(style);
-}
-
-function removeMissingExcelHighlight(cell) {
-  const originalStyle = cell.getAttribute("data-kartgenerator-original-style");
-
-  cell.removeAttribute("data-kartgenerator-highlight");
-  cell.removeAttribute("data-kartgenerator-original-style");
-
-  if (originalStyle !== null) {
-    cell.setAttribute("style", originalStyle);
-    return;
-  }
-
-  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
-}
-
-function markCellAsMissingExcelPlace(cell, options = {}) {
-  const styleParts = setCellStyleWithoutMissingExcelHighlight(cell);
-
-  styleParts.push(`fillColor=${missingExcelHighlight.fill}`, `strokeColor=${missingExcelHighlight.stroke}`);
-
-  if (options.temporary) {
-    cell.setAttribute("data-kartgenerator-highlight", "missing-excel");
-    if (!cell.hasAttribute("data-kartgenerator-original-style")) {
-      cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
-    }
-  }
-
-  cell.setAttribute("style", `${styleParts.join(";")};`);
-}
-
-function removeDuplicateMapPlaceHighlight(cell) {
-  const originalStyle = cell.getAttribute("data-kartgenerator-original-style");
-
-  cell.removeAttribute("data-kartgenerator-duplicate-highlight");
-  cell.removeAttribute("data-kartgenerator-original-style");
-
-  if (originalStyle !== null) {
-    cell.setAttribute("style", originalStyle);
-    return;
-  }
-
-  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
-}
-
-function markCellAsDuplicateMapPlace(cell, options = {}) {
-  const styleParts = setCellStyleWithoutMissingExcelHighlight(cell);
-
-  styleParts.push(`fillColor=${duplicateMapPlaceHighlight.fill}`, `strokeColor=${duplicateMapPlaceHighlight.stroke}`);
-
-  if (options.temporary) {
-    cell.setAttribute("data-kartgenerator-duplicate-highlight", "duplicate-map-place");
-    if (!cell.hasAttribute("data-kartgenerator-original-style")) {
-      cell.setAttribute("data-kartgenerator-original-style", cell.getAttribute("style") || "");
-    }
-  }
-
-  cell.setAttribute("style", `${styleParts.join(";")};`);
 }
 
 function updateGeneratedDiagram() {
