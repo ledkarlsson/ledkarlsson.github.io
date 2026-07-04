@@ -1,5 +1,6 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
 import { getMapPlaceLabels, getMapPlaces } from "./drawio.js"
+import { newPlacePlaceholder, newPlaceBoxStyle, removeNewPlacePlaceholder } from "./drawio-model.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -80,8 +81,7 @@ const drawioExample = {
   fileName: "exempel.drawio",
   type: "application/xml"
 };
-const newPlacePlaceholder = "ny plats";
-const newPlaceBoxStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;";
+
 const missingExcelHighlight = {
   fill: "#fff2cc",
   stroke: "#d6b656"
@@ -157,7 +157,7 @@ function showLastUpdatedDate() {
   const modifiedDate = new Date(document.lastModified);
 
   if (Number.isNaN(modifiedDate.getTime())) {
-    return;
+    modifiedDate.setTime(Date.now());
   }
 
   lastUpdatedDate.dateTime = modifiedDate.toISOString().slice(0, 10);
@@ -1995,11 +1995,6 @@ function setCellStyleWithoutMissingExcelHighlight(cell) {
     .filter((part) => part && !part.startsWith("fillColor=") && !part.startsWith("strokeColor="));
 }
 
-function removeNewPlacePlaceholder(cell) {
-  cell.removeAttribute("data-kartgenerator-placeholder");
-  cell.setAttribute("style", `${setCellStyleWithoutMissingExcelHighlight(cell).join(";")};`);
-}
-
 function hasMissingExcelHighlight(cell) {
   const style = cell.getAttribute("style") || "";
   return hasCellHighlight(cell, missingExcelHighlight);
@@ -2201,6 +2196,7 @@ drawioUpload.addEventListener("change", () => {
 });
 
 showLastUpdatedDate();
+window.kartgeneratorReady = true;
 
 parseSourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));

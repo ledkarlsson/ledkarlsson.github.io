@@ -76,13 +76,18 @@ async function scrollToCenter(page, selector) {
   await page.waitForTimeout(100);
 }
 
+async function openKartgenerator(page) {
+  await page.goto("/projects/kartgenerator/");
+  await page.waitForFunction(() => window.kartgeneratorReady === true);
+}
+
 test.beforeEach(async ({ page }) => {
   await mockExternalScripts(page);
 });
 
 test("visar kartgeneratorns arbetsyta", async ({ page }) => {
   await test.step("Öppna kartgeneratorn", async () => {
-    await page.goto("/projects/kartgenerator/");
+    await openKartgenerator(page);
   });
 
   await test.step("Kontrollera startläget", async () => {
@@ -125,7 +130,7 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
 
 test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", async ({ page }, testInfo) => {
   await test.step("Öppna kartgeneratorn", async () => {
-    await page.goto("/projects/kartgenerator/");
+    await openKartgenerator(page);
   });
 
   await test.step("Läs in exempelfiler direkt", async () => {
@@ -382,7 +387,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
 });
 
 test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", async ({ page }) => {
-  await page.goto("/projects/kartgenerator/");
+  await openKartgenerator(page);
   await page.waitForFunction(() => window.XLSX);
 
   await page.locator("#excel-upload").setInputFiles("projects/kartgenerator/assets/examples/exempel_mixad_brygga_varv_duplicerad.xlsx");
