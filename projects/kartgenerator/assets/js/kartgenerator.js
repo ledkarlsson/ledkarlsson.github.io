@@ -1,5 +1,13 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
-import { getMapPlaceLabels, getMapPlaces } from "./drawio.js"
+import { getMapPlaceLabels } from "./drawio.js"
+import {
+  getDuplicateMapPlaceRows,
+  getDuplicatePlaceInfo,
+  getEmptyMapPlaceRows,
+  getMissingPeopleRows,
+  hasDuplicatePlace,
+  isEmptyExcelPlaceRow as isEmptyExcelPlaceRowByIndexes
+} from "./diagnostics.js"
 import {
   createCleanDrawioXml,
   createDrawioXmlWithHighlightedDuplicatePlaces,
@@ -429,20 +437,11 @@ function getRowsForGeneratedDiagram() {
 }
 
 function isEmptyExcelPlaceRow(row) {
-  if (parsedOmradePlatsColumnIndex === null) {
-    return false;
-  }
-
-  const place = row[parsedOmradePlatsColumnIndex];
-  const hasPlace = place !== null && place !== undefined && String(place).trim() !== "";
-  const firstNameColumnIndex = getColumnIndexByName("fornamn");
-  const lastNameColumnIndex = getColumnIndexByName("efternamn");
-  const firstName = firstNameColumnIndex >= 0 ? row[firstNameColumnIndex] : "";
-  const lastName = lastNameColumnIndex >= 0 ? row[lastNameColumnIndex] : "";
-  const hasFirstName = firstName !== null && firstName !== undefined && String(firstName).trim() !== "";
-  const hasLastName = lastName !== null && lastName !== undefined && String(lastName).trim() !== "";
-
-  return hasPlace && (!hasFirstName || !hasLastName);
+  return isEmptyExcelPlaceRowByIndexes(row, {
+    placeColumnIndex: parsedOmradePlatsColumnIndex,
+    firstNameColumnIndex: getColumnIndexByName("fornamn"),
+    lastNameColumnIndex: getColumnIndexByName("efternamn")
+  });
 }
 
 function getSortedSelectedRows(rows) {
@@ -474,50 +473,6 @@ function sortSelectedTable(columnIndex) {
 
     renderSelectedTable();
   });
-}
-
-function getDuplicatePlaceInfo(rows) {
-  if (parsedOmradePlatsColumnIndex === null) {
-    return { duplicatePlaces: [], duplicatePlaceCodes: new Set() };
-  }
-
-  const placeCounts = new Map();
-  const placeLabels = new Map();
-
-  rows.forEach((row) => {
-    const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
-    const normalizedPlace = normalizePlaceCode(place);
-
-    if (!normalizedPlace) {
-      return;
-    }
-
-    placeCounts.set(normalizedPlace, (placeCounts.get(normalizedPlace) || 0) + 1);
-
-    if (!placeLabels.has(normalizedPlace)) {
-      placeLabels.set(normalizedPlace, place);
-    }
-  });
-
-  const duplicatePlaceCodes = new Set(
-    [...placeCounts.entries()]
-      .filter(([, count]) => count > 1)
-      .map(([place]) => place)
-  );
-  const duplicatePlaces = [...duplicatePlaceCodes]
-    .map((place) => placeLabels.get(place) || place)
-    .filter(Boolean)
-    .sort((left, right) => left.localeCompare(right, "sv", { numeric: true, sensitivity: "base" }));
-
-  return { duplicatePlaces, duplicatePlaceCodes };
-}
-
-function hasDuplicatePlace(row, duplicatePlaceCodes) {
-  if (parsedOmradePlatsColumnIndex === null || duplicatePlaceCodes.size === 0) {
-    return false;
-  }
-
-  return duplicatePlaceCodes.has(normalizePlaceCode(row[parsedOmradePlatsColumnIndex]));
 }
 
 function updateDuplicatePlaceWarning(duplicatePlaces) {
@@ -572,7 +527,7 @@ function renderSelectedTable(options = {}) {
   }
 
   const sortedRows = getSortedSelectedRows(visibleRows);
-  const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows);
+  const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows, parsedOmradePlatsColumnIndex);
   updateDuplicatePlaceWarning(duplicatePlaces);
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
@@ -606,7 +561,7 @@ function renderSelectedTable(options = {}) {
   sortedRows.forEach((row) => {
     const tableRow = document.createElement("tr");
 
-    if (hasDuplicatePlace(row, duplicatePlaceCodes)) {
+    if (hasDuplicatePlace(row, duplicatePlaceCodes, parsedOmradePlatsColumnIndex)) {
       tableRow.classList.add("has-duplicate-place");
     }
 
@@ -1456,39 +1411,6 @@ function renderDuplicateMapPlacesTable(rows) {
   duplicateMapPlacesWrap.hidden = false;
 }
 
-function getDuplicateMapPlaceRows(xml) {
-  if (!xml) {
-    return [];
-  }
-
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    return [];
-  }
-
-  const placesByCode = new Map();
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
-    const normalizedPlace = normalizePlaceCode(place);
-
-    if (!normalizedPlace) {
-      return;
-    }
-
-    const entry = placesByCode.get(normalizedPlace) || { place, normalizedPlace, count: 0 };
-
-    entry.count += 1;
-    placesByCode.set(normalizedPlace, entry);
-  });
-
-  return [...placesByCode.values()]
-    .filter((row) => row.count > 1)
-    .sort((left, right) => String(left.place).localeCompare(String(right.place), "sv", { numeric: true, sensitivity: "base" }));
-}
-
 function getDuplicateMapPlaceKey(rows) {
   return rows.map((row) => `${row.normalizedPlace}:${row.count}`).join("|");
 }
@@ -1518,14 +1440,7 @@ function updateEmptyPlacesList() {
     return;
   }
 
-  const occupiedPlaces = new Set(
-    excelRows
-      .map((row) => normalizePlaceCode(row[parsedOmradePlatsColumnIndex]))
-      .filter(Boolean)
-  );
-
-  emptyPlaceRows = getMapPlaces(sourceDrawioXml)
-    .filter((place) => !occupiedPlaces.has(place.normalizedPlace));
+  emptyPlaceRows = getEmptyMapPlaceRows(sourceDrawioXml, excelRows, parsedOmradePlatsColumnIndex);
 
   renderEmptyPlacesTable(getSortedEmptyPlaceRows());
 
@@ -1546,17 +1461,12 @@ function updateMissingPeopleList() {
     return;
   }
 
-  const mapPlaces = getMapPlaceLabels(sourceDrawioXml);
-  const missingRows = excelRows
-    .map((row) => ({
-      place: String(row[parsedOmradePlatsColumnIndex] || "").trim(),
-      firstName: String(row[firstNameColumnIndex] || "").trim(),
-      lastName: String(row[lastNameColumnIndex] || "").trim()
-    }))
-    .filter((row) => row.place && row.firstName && row.lastName && !mapPlaces.has(normalizePlaceCode(row.place)));
-
   missingPanel.hidden = false;
-  missingPeopleRows = missingRows;
+  missingPeopleRows = getMissingPeopleRows(sourceDrawioXml, excelRows, {
+    placeColumnIndex: parsedOmradePlatsColumnIndex,
+    firstNameColumnIndex,
+    lastNameColumnIndex
+  });
   renderMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
