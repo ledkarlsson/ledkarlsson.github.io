@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   renderColumnsList,
+  renderClearedExcelState,
   renderDuplicateMapPlacesTable,
   renderEmptyPlacesTable,
   renderMissingPeopleTable,
+  renderSelectedColumnsStatus,
   renderSelectedDataTable
 } from "../assets/js/renderers.js";
 
@@ -75,6 +77,30 @@ function createSelectedTableElements() {
   };
 }
 
+function createClearedExcelElements() {
+  document.body.innerHTML = `
+    <p id="columns-meta"></p>
+    <section id="columns-panel"></section>
+    <section id="table-panel"></section>
+    <h2 id="table-title">Gammal titel</h2>
+    <p id="duplicate-warning">Gammal varning</p>
+    <ul id="columns-list"><li>Gammal kolumn</li></ul>
+    <div id="parse-controls" class="is-visible"></div>
+    <p id="selected-columns">2 valda</p>
+  `;
+
+  return {
+    columnsMeta: document.querySelector("#columns-meta"),
+    columnsPanel: document.querySelector("#columns-panel"),
+    tablePanel: document.querySelector("#table-panel"),
+    tableTitle: document.querySelector("#table-title"),
+    duplicateWarning: document.querySelector("#duplicate-warning"),
+    columnsList: document.querySelector("#columns-list"),
+    parseControls: document.querySelector("#parse-controls"),
+    selectedColumnsStatus: document.querySelector("#selected-columns")
+  };
+}
+
 describe("renderColumnsList", () => {
   it("renders an empty column message", () => {
     const elements = createColumnsElements();
@@ -124,6 +150,48 @@ describe("renderColumnsList", () => {
       { columnIndex: 1, isSelected: false },
       { columnIndex: 2, isSelected: true }
     ]);
+  });
+});
+
+describe("renderSelectedColumnsStatus", () => {
+  it("shows selected column names", () => {
+    const element = document.createElement("p");
+
+    renderSelectedColumnsStatus({
+      columnNames: ["Förnamn", "Efternamn"],
+      element
+    });
+
+    expect(element.textContent).toBe("2 valda: Förnamn, Efternamn");
+  });
+
+  it("clears the status when no columns are selected", () => {
+    const element = document.createElement("p");
+
+    element.textContent = "Gammal text";
+    renderSelectedColumnsStatus({ columnNames: [], element });
+
+    expect(element.textContent).toBe("");
+  });
+});
+
+describe("renderClearedExcelState", () => {
+  it("clears Excel panels and status text", () => {
+    const elements = createClearedExcelElements();
+
+    renderClearedExcelState({
+      message: "Ladda upp en Excel-fil för att visa kolumnerna.",
+      elements
+    });
+
+    expect(elements.columnsMeta.textContent).toBe("Ladda upp en Excel-fil för att visa kolumnerna.");
+    expect(elements.columnsPanel.hidden).toBe(true);
+    expect(elements.tablePanel.hidden).toBe(true);
+    expect(elements.tableTitle.textContent).toBe("Vald data");
+    expect(elements.duplicateWarning.hidden).toBe(true);
+    expect(elements.columnsList.children).toHaveLength(0);
+    expect(elements.parseControls.classList.contains("is-visible")).toBe(false);
+    expect(elements.selectedColumnsStatus.textContent).toBe("");
   });
 });
 

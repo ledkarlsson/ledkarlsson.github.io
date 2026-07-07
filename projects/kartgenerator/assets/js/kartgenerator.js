@@ -32,9 +32,11 @@ import {
 } from "./state.js"
 import {
   renderColumnsList,
+  renderClearedExcelState,
   renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
   renderEmptyPlacesTable as renderEmptyPlacesTableView,
   renderMissingPeopleTable as renderMissingPeopleTableView,
+  renderSelectedColumnsStatus,
   renderSelectedDataTable
 } from "./renderers.js"
 
@@ -115,6 +117,16 @@ const selectedTableElements = {
   wrap: tableWrap,
   table: selectedTable,
   duplicateWarning: duplicatePlaceWarning
+};
+const clearedExcelElements = {
+  columnsMeta,
+  columnsPanel,
+  tablePanel,
+  tableTitle,
+  duplicateWarning: duplicatePlaceWarning,
+  columnsList,
+  parseControls,
+  selectedColumnsStatus
 };
 const emptyPlacesPanel = document.querySelector("#empty-places-panel");
 const emptyPlacesMeta = document.querySelector("#empty-places-meta");
@@ -260,16 +272,9 @@ function downloadBlob(blob, fileName) {
 }
 
 function clearColumns(message) {
-  columnsMeta.textContent = message;
-  columnsPanel.hidden = true;
-  tablePanel.hidden = true;
-  tableTitle.textContent = "Vald data";
-  duplicatePlaceWarning.hidden = true;
-  columnsList.replaceChildren();
+  renderClearedExcelState({ message, elements: clearedExcelElements });
   resetExcelState();
   resetDiagnosticsState();
-  parseControls.classList.remove("is-visible");
-  selectedColumnsStatus.textContent = "";
   renderSelectedTable();
   updateGeneratedDiagram();
   updateMissingPeopleList();
@@ -283,12 +288,10 @@ function updateSelectedColumnsStatus() {
     .filter((column) => column && !isRequiredColumn(column))
     .map((column) => column.name);
 
-  if (visibleColumnNames.length === 0) {
-    selectedColumnsStatus.textContent = "";
-    return;
-  }
-
-  selectedColumnsStatus.textContent = `${visibleColumnNames.length} valda: ${visibleColumnNames.join(", ")}`;
+  renderSelectedColumnsStatus({
+    columnNames: visibleColumnNames,
+    element: selectedColumnsStatus
+  });
 }
 
 function isRequiredColumn(column) {

@@ -49,6 +49,34 @@ export function renderColumnsList({ columns, sheetName, selectedColumnIndexes, e
   });
 }
 
+export function renderSelectedColumnsStatus({ columnNames, element }) {
+  element.textContent = columnNames.length === 0
+    ? ""
+    : `${columnNames.length} valda: ${columnNames.join(", ")}`;
+}
+
+export function renderClearedExcelState({ message, elements }) {
+  const {
+    columnsMeta,
+    columnsPanel,
+    tablePanel,
+    tableTitle,
+    duplicateWarning,
+    columnsList,
+    parseControls,
+    selectedColumnsStatus
+  } = elements;
+
+  columnsMeta.textContent = message;
+  columnsPanel.hidden = true;
+  tablePanel.hidden = true;
+  tableTitle.textContent = "Vald data";
+  duplicateWarning.hidden = true;
+  columnsList.replaceChildren();
+  parseControls.classList.remove("is-visible");
+  selectedColumnsStatus.textContent = "";
+}
+
 export function renderSelectedDataTable({
   rows,
   visibleRowCount,
