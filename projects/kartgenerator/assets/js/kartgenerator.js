@@ -32,7 +32,8 @@ import {
 } from "./state.js"
 import {
   renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
-  renderEmptyPlacesTable as renderEmptyPlacesTableView
+  renderEmptyPlacesTable as renderEmptyPlacesTableView,
+  renderMissingPeopleTable as renderMissingPeopleTableView
 } from "./renderers.js"
 
 const uploadZone = document.querySelector("#upload-zone");
@@ -76,6 +77,14 @@ const missingWrap = document.querySelector("#missing-wrap");
 const missingTable = document.querySelector("#missing-table");
 const addMissingBoxesButton = document.querySelector("#add-missing-boxes");
 const downloadMissingButton = document.querySelector("#download-missing");
+const missingPeopleElements = {
+  panel: missingPanel,
+  meta: missingMeta,
+  wrap: missingWrap,
+  table: missingTable,
+  addButton: addMissingBoxesButton,
+  downloadButton: downloadMissingButton
+};
 const lastUpdated = document.querySelector("#last-updated");
 const lastUpdatedDate = document.querySelector("#last-updated-date");
 const helpButtons = document.querySelectorAll("[data-help-target]");
@@ -1181,64 +1190,13 @@ function getColumnIndexByName(columnName) {
 }
 
 function renderMissingPeopleTable(rows) {
-  missingTable.replaceChildren();
-
-  if (rows.length === 0) {
-    missingMeta.textContent = "Alla rader med förnamn, efternamn och plats finns i kartan.";
-    missingPanel.hidden = true;
-    missingWrap.hidden = true;
-    addMissingBoxesButton.hidden = true;
-    downloadMissingButton.disabled = true;
-    return;
-  }
-
-  missingPanel.hidden = false;
-  addMissingBoxesButton.hidden = false;
-  addMissingBoxesButton.textContent = `Lägg till ${rows.length} saknade platser i kartan`;
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  [
-    ["place", "Plats"],
-    ["firstName", "Fornamn"],
-    ["lastName", "Efternamn"]
-  ].forEach(([columnKey, header]) => {
-    const headerCell = document.createElement("th");
-    const button = document.createElement("button");
-    const directionMarker = state.missingSortColumn === columnKey
-      ? ` ${state.missingSortDirection === "asc" ? "^" : "v"}`
-      : "";
-
-    button.className = "sort-button";
-    button.type = "button";
-    button.textContent = `${header}${directionMarker}`;
-    button.addEventListener("click", () => sortMissingPeople(columnKey));
-    headerCell.append(button);
-    headerRow.append(headerCell);
+  renderMissingPeopleTableView({
+    rows,
+    sortColumn: state.missingSortColumn,
+    sortDirection: state.missingSortDirection,
+    elements: missingPeopleElements,
+    onSort: sortMissingPeople
   });
-
-  thead.append(headerRow);
-
-  const tbody = document.createElement("tbody");
-  const fragment = document.createDocumentFragment();
-
-  rows.forEach((row) => {
-    const tableRow = document.createElement("tr");
-
-    [row.place, row.firstName, row.lastName].forEach((value) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      tableRow.append(cell);
-    });
-
-    fragment.append(tableRow);
-  });
-
-  tbody.append(fragment);
-  missingTable.append(thead, tbody);
-  missingMeta.textContent = `${rows.length} person${rows.length === 1 ? "" : "er"} finns i BAS men saknas i kartan.`;
-  missingWrap.hidden = false;
-  downloadMissingButton.disabled = false;
 }
 
 function getSortedMissingPeopleRows() {

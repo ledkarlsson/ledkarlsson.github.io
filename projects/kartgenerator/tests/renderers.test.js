@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderDuplicateMapPlacesTable, renderEmptyPlacesTable } from "../assets/js/renderers.js";
+import { renderDuplicateMapPlacesTable, renderEmptyPlacesTable, renderMissingPeopleTable } from "../assets/js/renderers.js";
 
 function createTablePanelElements() {
   document.body.innerHTML = `
@@ -19,9 +19,72 @@ function createTablePanelElements() {
   };
 }
 
+function createMissingPeopleElements() {
+  const elements = createTablePanelElements();
+  const addButton = document.createElement("button");
+  const downloadButton = document.createElement("button");
+
+  addButton.hidden = true;
+  downloadButton.disabled = true;
+
+  return {
+    ...elements,
+    addButton,
+    downloadButton
+  };
+}
+
 function createDuplicateMapPlacesElements() {
   return createTablePanelElements();
 }
+
+describe("renderMissingPeopleTable", () => {
+  it("hides the panel and disables actions when there are no missing people", () => {
+    const elements = createMissingPeopleElements();
+
+    renderMissingPeopleTable({
+      rows: [],
+      sortColumn: "place",
+      sortDirection: "asc",
+      elements,
+      onSort: () => {}
+    });
+
+    expect(elements.panel.hidden).toBe(true);
+    expect(elements.wrap.hidden).toBe(true);
+    expect(elements.addButton.hidden).toBe(true);
+    expect(elements.downloadButton.disabled).toBe(true);
+    expect(elements.meta.textContent).toBe("Alla rader med förnamn, efternamn och plats finns i kartan.");
+  });
+
+  it("renders missing people and wires sort buttons", () => {
+    const elements = createMissingPeopleElements();
+    const sortedColumns = [];
+
+    renderMissingPeopleTable({
+      rows: [{ place: "75", firstName: "Josefin", lastName: "Josefinsson" }],
+      sortColumn: "firstName",
+      sortDirection: "desc",
+      elements,
+      onSort: (column) => sortedColumns.push(column)
+    });
+
+    expect(elements.panel.hidden).toBe(false);
+    expect(elements.wrap.hidden).toBe(false);
+    expect(elements.addButton.hidden).toBe(false);
+    expect(elements.addButton.textContent).toBe("Lägg till 1 saknade platser i kartan");
+    expect(elements.downloadButton.disabled).toBe(false);
+    expect(elements.meta.textContent).toBe("1 person finns i BAS men saknas i kartan.");
+    expect(elements.table.textContent).toContain("Fornamn v");
+    expect(elements.table.textContent).toContain("75");
+    expect(elements.table.textContent).toContain("Josefin");
+    expect(elements.table.textContent).toContain("Josefinsson");
+
+    elements.table.querySelector("button").click();
+
+    expect(sortedColumns).toEqual(["place"]);
+  });
+});
 
 describe("renderDuplicateMapPlacesTable", () => {
   it("hides the panel when no map is loaded", () => {

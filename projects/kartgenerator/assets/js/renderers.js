@@ -1,3 +1,67 @@
+export function renderMissingPeopleTable({ rows, sortColumn, sortDirection, elements, onSort }) {
+  const { panel, meta, wrap, table, addButton, downloadButton } = elements;
+
+  table.replaceChildren();
+
+  if (rows.length === 0) {
+    meta.textContent = "Alla rader med förnamn, efternamn och plats finns i kartan.";
+    panel.hidden = true;
+    wrap.hidden = true;
+    addButton.hidden = true;
+    downloadButton.disabled = true;
+    return;
+  }
+
+  panel.hidden = false;
+  addButton.hidden = false;
+  addButton.textContent = `Lägg till ${rows.length} saknade platser i kartan`;
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  [
+    ["place", "Plats"],
+    ["firstName", "Fornamn"],
+    ["lastName", "Efternamn"]
+  ].forEach(([columnKey, header]) => {
+    const headerCell = document.createElement("th");
+    const button = document.createElement("button");
+    const directionMarker = sortColumn === columnKey
+      ? ` ${sortDirection === "asc" ? "^" : "v"}`
+      : "";
+
+    button.className = "sort-button";
+    button.type = "button";
+    button.textContent = `${header}${directionMarker}`;
+    button.addEventListener("click", () => onSort(columnKey));
+    headerCell.append(button);
+    headerRow.append(headerCell);
+  });
+
+  thead.append(headerRow);
+
+  const tbody = document.createElement("tbody");
+  const fragment = document.createDocumentFragment();
+
+  rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    [row.place, row.firstName, row.lastName].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      tableRow.append(cell);
+    });
+
+    fragment.append(tableRow);
+  });
+
+  tbody.append(fragment);
+  table.append(thead, tbody);
+  meta.textContent = `${rows.length} person${rows.length === 1 ? "" : "er"} finns i BAS men saknas i kartan.`;
+  wrap.hidden = false;
+  downloadButton.disabled = false;
+}
+
 export function renderEmptyPlacesTable({ rows, hasRequiredInput, sortColumn, sortDirection, elements, onSort }) {
   const { panel, meta, wrap, table } = elements;
 
