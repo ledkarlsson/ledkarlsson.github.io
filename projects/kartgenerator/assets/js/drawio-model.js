@@ -92,7 +92,7 @@ export function hasRenamedNewPlacePlaceholder(xml) {
 }
 
 export function createDrawioXmlWithHighlightedPlaces(xml, places) {
-  if (!xml || places.size === 0) {
+  if (!xml) {
     return xml;
   }
 
@@ -104,9 +104,13 @@ export function createDrawioXmlWithHighlightedPlaces(xml, places) {
   }
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
+    const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
 
-    if (places.has(normalizePlaceCode(label))) {
+    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || hasMissingExcelHighlight(cell)) {
+      removeMissingExcelHighlight(cell);
+    }
+
+    if (places.has(normalizePlaceCode(place))) {
       markCellAsMissingExcelPlace(cell, { temporary: true });
     }
   });
@@ -115,7 +119,7 @@ export function createDrawioXmlWithHighlightedPlaces(xml, places) {
 }
 
 export function createDrawioXmlWithHighlightedDuplicatePlaces(xml, places) {
-  if (!xml || places.size === 0) {
+  if (!xml) {
     return xml;
   }
 
@@ -127,9 +131,13 @@ export function createDrawioXmlWithHighlightedDuplicatePlaces(xml, places) {
   }
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
+    const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
 
-    if (places.has(normalizePlaceCode(label))) {
+    if (cell.getAttribute("data-kartgenerator-duplicate-highlight") === "duplicate-map-place" || hasDuplicateMapPlaceHighlight(cell)) {
+      removeDuplicateMapPlaceHighlight(cell);
+    }
+
+    if (places.has(normalizePlaceCode(place))) {
       markCellAsDuplicateMapPlace(cell, { temporary: true });
     }
   });

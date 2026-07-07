@@ -18,6 +18,7 @@ import {
   newPlaceBoxStyle,
   newPlacePlaceholder
 } from "./drawio-model.js"
+import { resetDiagnosticsState, resetDrawioState, resetExcelState, resetSelectedTableSort, state } from "./state.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -111,38 +112,13 @@ const drawioEditorConfig = {
   `
 };
 const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
-let selectedColumnIndexes = [];
-let excelColumns = [];
-let excelRows = [];
-let rawExcelRows = [];
-let parsedOmradePlatsColumnIndex = null;
-let sourceDrawioXml = "";
-let sourceDrawioFileName = "";
-let pendingDrawioXml = "";
-let generatedDrawioXml = "";
-let currentDrawioMode = "clean";
-let hasManualDrawioMode = false;
-let shouldReloadDrawioViewer = true;
-let cleanMapRefreshTimer = 0;
-let wasMapFullscreen = false;
-let pendingPngFileName = "";
-let missingPeopleRows = [];
-let emptyPlaceRows = [];
-let duplicateMapPlaceRows = [];
-let selectedTableSortColumnIndex = null;
-let selectedTableSortDirection = "asc";
-let missingSortColumn = "place";
-let missingSortDirection = "asc";
-let emptyPlacesSortColumn = "place";
-let emptyPlacesSortDirection = "asc";
-let scrollRestoreToken = 0;
 
 function preserveWindowScroll(callback) {
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
-  const token = ++scrollRestoreToken;
+  const token = ++state.scrollRestoreToken;
   const restoreScroll = () => {
-    if (token === scrollRestoreToken) {
+    if (token === state.scrollRestoreToken) {
       window.scrollTo(scrollX, scrollY);
     }
   };
@@ -159,7 +135,7 @@ function preserveWindowScroll(callback) {
 }
 
 function cancelPendingScrollRestore() {
-  scrollRestoreToken += 1;
+  state.scrollRestoreToken += 1;
 }
 
 function showLastUpdatedDate() {
@@ -241,18 +217,8 @@ function clearColumns(message) {
   tableTitle.textContent = "Vald data";
   duplicatePlaceWarning.hidden = true;
   columnsList.replaceChildren();
-  selectedColumnIndexes = [];
-  excelColumns = [];
-  excelRows = [];
-  rawExcelRows = [];
-  missingPeopleRows = [];
-  emptyPlaceRows = [];
-  duplicateMapPlaceRows = [];
-  selectedTableSortColumnIndex = null;
-  selectedTableSortDirection = "asc";
-  emptyPlacesSortColumn = "place";
-  emptyPlacesSortDirection = "asc";
-  parsedOmradePlatsColumnIndex = null;
+  resetExcelState();
+  resetDiagnosticsState();
   parseControls.classList.remove("is-visible");
   selectedColumnsStatus.textContent = "";
   renderSelectedTable();
@@ -263,8 +229,8 @@ function clearColumns(message) {
 }
 
 function updateSelectedColumnsStatus() {
-  const visibleColumnNames = selectedColumnIndexes
-    .map((columnIndex) => excelColumns[columnIndex])
+  const visibleColumnNames = state.selectedColumnIndexes
+    .map((columnIndex) => state.excelColumns[columnIndex])
     .filter((column) => column && !isRequiredColumn(column))
     .map((column) => column.name);
 
@@ -306,7 +272,7 @@ function getAvailableParseSources(rows, omradePlatsColumnIndex) {
 }
 
 function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
-  const mapPlaces = getMapPlaceLabels(sourceDrawioXml);
+  const mapPlaces = getMapPlaceLabels(state.sourceDrawioXml);
   const matchedPlaces = new Set();
 
   rows.forEach((row) => {
@@ -322,7 +288,7 @@ function countMatchingMapPlaces(rows, omradePlatsColumnIndex, source) {
 }
 
 function getParseSourceMatchCounts(rows, omradePlatsColumnIndex) {
-  if (!sourceDrawioXml || omradePlatsColumnIndex === null) {
+  if (!state.sourceDrawioXml || omradePlatsColumnIndex === null) {
     return Object.fromEntries(parseSourceValues.map((source) => [source, 0]));
   }
 
@@ -339,7 +305,7 @@ function detectParseSource(rows, omradePlatsColumnIndex) {
     return;
   }
 
-  if (sourceDrawioXml) {
+  if (state.sourceDrawioXml) {
     const matchCounts = getParseSourceMatchCounts(rows, omradePlatsColumnIndex);
     const bestSource = availableSources
       .map((source) => ({ source, count: matchCounts[source] || 0 }))
@@ -362,11 +328,11 @@ function parseRows(columns, rows, shouldDetectParseSource = true) {
   const omradePlatsColumn = columns.find((column) => normalizeColumnName(column.name) === "omrade/plats");
 
   if (!omradePlatsColumn) {
-    parsedOmradePlatsColumnIndex = null;
+    state.parsedOmradePlatsColumnIndex = null;
     return rows;
   }
 
-  parsedOmradePlatsColumnIndex = omradePlatsColumn.index;
+  state.parsedOmradePlatsColumnIndex = omradePlatsColumn.index;
 
   if (shouldDetectParseSource) {
     detectParseSource(rows, omradePlatsColumn.index);
@@ -381,19 +347,19 @@ function parseRows(columns, rows, shouldDetectParseSource = true) {
 }
 
 function reparseRows(shouldDetectParseSource = false) {
-  if (excelColumns.length === 0 || rawExcelRows.length === 0) {
+  if (state.excelColumns.length === 0 || state.rawExcelRows.length === 0) {
     return;
   }
 
-  excelRows = parseRows(excelColumns, rawExcelRows, shouldDetectParseSource);
+  state.excelRows = parseRows(state.excelColumns, state.rawExcelRows, shouldDetectParseSource);
   renderSelectedTable();
 }
 
 function updateParseControlsVisibility() {
-  const availableSources = parsedOmradePlatsColumnIndex !== null
-    && selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
-    && rawExcelRows.length > 0
-    ? getAvailableParseSources(rawExcelRows, parsedOmradePlatsColumnIndex)
+  const availableSources = state.parsedOmradePlatsColumnIndex !== null
+    && state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)
+    && state.rawExcelRows.length > 0
+    ? getAvailableParseSources(state.rawExcelRows, state.parsedOmradePlatsColumnIndex)
     : [];
   const shouldShow = availableSources.length > 1;
 
@@ -415,60 +381,60 @@ function updateParseControlsVisibility() {
 }
 
 function getVisibleRows() {
-  return selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
-    ? excelRows.filter((row) => {
-      const value = row[parsedOmradePlatsColumnIndex];
+  return state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)
+    ? state.excelRows.filter((row) => {
+      const value = row[state.parsedOmradePlatsColumnIndex];
       const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
 
       return hasPlace && (showEmptyExcelPlacesInput.checked || !isEmptyExcelPlaceRow(row));
     })
-    : excelRows;
+    : state.excelRows;
 }
 
 function getRowsForGeneratedDiagram() {
-  return selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)
-    ? excelRows.filter((row) => {
-      const value = row[parsedOmradePlatsColumnIndex];
+  return state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)
+    ? state.excelRows.filter((row) => {
+      const value = row[state.parsedOmradePlatsColumnIndex];
       const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
 
       return hasPlace;
     })
-    : excelRows;
+    : state.excelRows;
 }
 
 function isEmptyExcelPlaceRow(row) {
   return isEmptyExcelPlaceRowByIndexes(row, {
-    placeColumnIndex: parsedOmradePlatsColumnIndex,
+    placeColumnIndex: state.parsedOmradePlatsColumnIndex,
     firstNameColumnIndex: getColumnIndexByName("fornamn"),
     lastNameColumnIndex: getColumnIndexByName("efternamn")
   });
 }
 
 function getSortedSelectedRows(rows) {
-  if (selectedTableSortColumnIndex === null || !selectedColumnIndexes.includes(selectedTableSortColumnIndex)) {
+  if (state.selectedTableSortColumnIndex === null || !state.selectedColumnIndexes.includes(state.selectedTableSortColumnIndex)) {
     return rows;
   }
 
   return [...rows].sort((left, right) => {
-    const leftValue = left[selectedTableSortColumnIndex] === null || left[selectedTableSortColumnIndex] === undefined
+    const leftValue = left[state.selectedTableSortColumnIndex] === null || left[state.selectedTableSortColumnIndex] === undefined
       ? ""
-      : String(left[selectedTableSortColumnIndex]);
-    const rightValue = right[selectedTableSortColumnIndex] === null || right[selectedTableSortColumnIndex] === undefined
+      : String(left[state.selectedTableSortColumnIndex]);
+    const rightValue = right[state.selectedTableSortColumnIndex] === null || right[state.selectedTableSortColumnIndex] === undefined
       ? ""
-      : String(right[selectedTableSortColumnIndex]);
+      : String(right[state.selectedTableSortColumnIndex]);
     const result = leftValue.localeCompare(rightValue, "sv", { numeric: true, sensitivity: "base" });
 
-    return selectedTableSortDirection === "asc" ? result : -result;
+    return state.selectedTableSortDirection === "asc" ? result : -result;
   });
 }
 
 function sortSelectedTable(columnIndex) {
   preserveWindowScroll(() => {
-    if (selectedTableSortColumnIndex === columnIndex) {
-      selectedTableSortDirection = selectedTableSortDirection === "asc" ? "desc" : "asc";
+    if (state.selectedTableSortColumnIndex === columnIndex) {
+      state.selectedTableSortDirection = state.selectedTableSortDirection === "asc" ? "desc" : "asc";
     } else {
-      selectedTableSortColumnIndex = columnIndex;
-      selectedTableSortDirection = "asc";
+      state.selectedTableSortColumnIndex = columnIndex;
+      state.selectedTableSortDirection = "asc";
     }
 
     renderSelectedTable();
@@ -492,12 +458,11 @@ function renderSelectedTable(options = {}) {
   selectedTable.replaceChildren();
   updateParseControlsVisibility();
 
-  if (selectedTableSortColumnIndex !== null && !selectedColumnIndexes.includes(selectedTableSortColumnIndex)) {
-    selectedTableSortColumnIndex = null;
-    selectedTableSortDirection = "asc";
+  if (state.selectedTableSortColumnIndex !== null && !state.selectedColumnIndexes.includes(state.selectedTableSortColumnIndex)) {
+    resetSelectedTableSort();
   }
 
-  if (selectedColumnIndexes.length === 0) {
+  if (state.selectedColumnIndexes.length === 0) {
     tableTitle.textContent = "Vald data";
     tableMeta.textContent = "Välj kolumner för att skapa en tabell.";
     duplicatePlaceWarning.hidden = true;
@@ -527,27 +492,27 @@ function renderSelectedTable(options = {}) {
   }
 
   const sortedRows = getSortedSelectedRows(visibleRows);
-  const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows, parsedOmradePlatsColumnIndex);
+  const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows, state.parsedOmradePlatsColumnIndex);
   updateDuplicatePlaceWarning(duplicatePlaces);
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
-  if (parsedOmradePlatsColumnIndex !== null) {
+  if (state.parsedOmradePlatsColumnIndex !== null) {
     const headerCell = document.createElement("th");
     headerCell.textContent = "Område/Plats";
     headerRow.append(headerCell);
   }
 
-  selectedColumnIndexes.forEach((columnIndex) => {
+  state.selectedColumnIndexes.forEach((columnIndex) => {
     const headerCell = document.createElement("th");
     const button = document.createElement("button");
-    const directionMarker = selectedTableSortColumnIndex === columnIndex
-      ? ` ${selectedTableSortDirection === "asc" ? "↑" : "↓"}`
+    const directionMarker = state.selectedTableSortColumnIndex === columnIndex
+      ? ` ${state.selectedTableSortDirection === "asc" ? "^" : "v"}`
       : "";
 
     button.className = "sort-button";
     button.type = "button";
-    button.textContent = `${getColumnDisplayName(excelColumns[columnIndex])}${directionMarker}`;
+    button.textContent = `${getColumnDisplayName(state.excelColumns[columnIndex])}${directionMarker}`;
     button.addEventListener("click", () => sortSelectedTable(columnIndex));
     headerCell.append(button);
     headerRow.append(headerCell);
@@ -561,18 +526,18 @@ function renderSelectedTable(options = {}) {
   sortedRows.forEach((row) => {
     const tableRow = document.createElement("tr");
 
-    if (hasDuplicatePlace(row, duplicatePlaceCodes, parsedOmradePlatsColumnIndex)) {
+    if (hasDuplicatePlace(row, duplicatePlaceCodes, state.parsedOmradePlatsColumnIndex)) {
       tableRow.classList.add("has-duplicate-place");
     }
 
-    if (parsedOmradePlatsColumnIndex !== null) {
+    if (state.parsedOmradePlatsColumnIndex !== null) {
       const cell = document.createElement("td");
       const value = row.rawOmradePlats;
       cell.textContent = value === null || value === undefined ? "" : String(value);
       tableRow.append(cell);
     }
 
-    selectedColumnIndexes.forEach((columnIndex) => {
+    state.selectedColumnIndexes.forEach((columnIndex) => {
       const cell = document.createElement("td");
       const value = row[columnIndex];
       cell.textContent = value === null || value === undefined ? "" : String(value);
@@ -594,8 +559,8 @@ function renderSelectedTable(options = {}) {
 
 function renderColumns(columns, sheetName) {
   columnsList.replaceChildren();
-  excelColumns = columns;
-  selectedColumnIndexes = ["omrade/plats", "fornamn", "efternamn"]
+  state.excelColumns = columns;
+  state.selectedColumnIndexes = ["omrade/plats", "fornamn", "efternamn"]
     .map((columnName) => columns.find((column) => normalizeColumnName(column.name) === columnName))
     .filter(Boolean)
     .map((column) => column.index);
@@ -625,7 +590,7 @@ function renderColumns(columns, sheetName) {
     button.type = "button";
     button.textContent = columnName.name;
 
-    if (selectedColumnIndexes.includes(columnIndex)) {
+    if (state.selectedColumnIndexes.includes(columnIndex)) {
       button.classList.add("is-selected");
       button.setAttribute("aria-pressed", "true");
     } else {
@@ -643,9 +608,9 @@ function renderColumns(columns, sheetName) {
         button.setAttribute("aria-pressed", String(isSelected));
 
         if (isSelected) {
-          selectedColumnIndexes.push(columnIndex);
+          state.selectedColumnIndexes.push(columnIndex);
         } else {
-          selectedColumnIndexes = selectedColumnIndexes.filter((selectedColumnIndex) => selectedColumnIndex !== columnIndex);
+          state.selectedColumnIndexes = state.selectedColumnIndexes.filter((selectedColumnIndex) => selectedColumnIndex !== columnIndex);
         }
 
         updateSelectedColumnsStatus();
@@ -694,8 +659,8 @@ function readColumns(file) {
         };
       });
 
-      rawExcelRows = rows.slice(headerRowIndex + 1);
-      excelRows = parseRows(columns, rawExcelRows);
+      state.rawExcelRows = rows.slice(headerRowIndex + 1);
+      state.excelRows = parseRows(columns, state.rawExcelRows);
       renderColumns(columns, firstSheetName);
     } catch (error) {
       fileStatus.textContent = "Kunde inte läsa Excel-filen.";
@@ -773,11 +738,7 @@ function showDrawioFile(file) {
     drawioUploadZone.classList.add("has-error");
     drawioPanelTitle.textContent = "Karta";
     drawioUpload.value = "";
-    sourceDrawioXml = "";
-    sourceDrawioFileName = "";
-    generatedDrawioXml = "";
-    currentDrawioMode = "clean";
-    hasManualDrawioMode = false;
+    resetDrawioState();
     drawioViewer.hidden = true;
     drawioUploadZone.hidden = false;
     updateDrawioButtons();
@@ -791,7 +752,7 @@ function showDrawioFile(file) {
   drawioPanelTitle.textContent = file.name;
   clearDrawioButton.hidden = false;
   drawioExampleMenu.hidden = true;
-  sourceDrawioFileName = file.name;
+  state.sourceDrawioFileName = file.name;
   drawioUploadZone.replaceChildren();
   drawioUploadZone.classList.add("has-file");
   drawioUploadZone.append(drawioUpload);
@@ -820,12 +781,7 @@ function clearDrawioFile() {
   drawioUploadZone.classList.remove("has-file", "has-error");
   resetDrawioUploadMessage();
   drawioViewer.hidden = true;
-  sourceDrawioXml = "";
-  sourceDrawioFileName = "";
-  pendingDrawioXml = "";
-  generatedDrawioXml = "";
-  currentDrawioMode = "clean";
-  hasManualDrawioMode = false;
+  resetDrawioState();
   updateDrawioButtons();
   updateMissingPeopleList();
   updateEmptyPlacesList();
@@ -860,39 +816,39 @@ function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12, options = {}) {
 }
 
 function loadDrawioViewer(xml, options = {}) {
-  pendingDrawioXml = xml;
+  state.pendingDrawioXml = xml;
   drawioViewer.hidden = false;
   loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true, keepZoom: options.keepZoom });
 }
 
 function showCleanMap() {
-  if (!sourceDrawioXml) {
+  if (!state.sourceDrawioXml) {
     return;
   }
 
-  hasManualDrawioMode = true;
-  currentDrawioMode = "clean";
+  state.hasManualDrawioMode = true;
+  state.currentDrawioMode = "clean";
   loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
   updateDrawioButtons();
 }
 
 function showGeneratedMap() {
-  if (!generatedDrawioXml) {
+  if (!state.generatedDrawioXml) {
     return;
   }
 
-  hasManualDrawioMode = true;
-  currentDrawioMode = "generated";
-  loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
+  state.hasManualDrawioMode = true;
+  state.currentDrawioMode = "generated";
+  loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
   updateDrawioButtons();
 }
 
 function scheduleCleanMapRefresh() {
-  window.clearTimeout(cleanMapRefreshTimer);
-  cleanMapRefreshTimer = window.setTimeout(() => {
-    cleanMapRefreshTimer = 0;
+  window.clearTimeout(state.cleanMapRefreshTimer);
+  state.cleanMapRefreshTimer = window.setTimeout(() => {
+    state.cleanMapRefreshTimer = 0;
 
-    if (currentDrawioMode === "clean" && sourceDrawioXml) {
+    if (state.currentDrawioMode === "clean" && state.sourceDrawioXml) {
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
   }, 350);
@@ -906,7 +862,7 @@ function updateFullscreenButton() {
 }
 
 function getCurrentDrawioXml() {
-  return currentDrawioMode === "generated" && generatedDrawioXml ? generatedDrawioXml : getCleanDrawioXmlForDisplay();
+  return state.currentDrawioMode === "generated" && state.generatedDrawioXml ? state.generatedDrawioXml : getCleanDrawioXmlForDisplay();
 }
 
 function refitMapAfterFullscreenExit() {
@@ -924,17 +880,17 @@ function handleFullscreenChange() {
 
   updateFullscreenButton();
 
-  if (wasMapFullscreen && !isMapFullscreen) {
+  if (state.wasMapFullscreen && !isMapFullscreen) {
     requestAnimationFrame(() => {
       requestAnimationFrame(refitMapAfterFullscreenExit);
     });
   }
 
-  wasMapFullscreen = isMapFullscreen;
+  state.wasMapFullscreen = isMapFullscreen;
 }
 
 async function toggleMapFullscreen() {
-  if (!sourceDrawioXml || !document.fullscreenEnabled) {
+  if (!state.sourceDrawioXml || !document.fullscreenEnabled) {
     return;
   }
 
@@ -950,23 +906,23 @@ async function toggleMapFullscreen() {
 }
 
 function updateDrawioButtons() {
-  const hasSource = Boolean(sourceDrawioXml);
-  const hasGenerated = Boolean(generatedDrawioXml);
+  const hasSource = Boolean(state.sourceDrawioXml);
+  const hasGenerated = Boolean(state.generatedDrawioXml);
 
   drawioActions.hidden = !hasSource;
   downloadMenu.hidden = !hasSource;
   addPlaceBoxButton.disabled = !hasSource;
-  showCleanMapButton.disabled = !hasSource || currentDrawioMode === "clean";
-  showGeneratedMapButton.disabled = !hasGenerated || currentDrawioMode === "generated";
-  generatedOptions.hidden = currentDrawioMode !== "generated" || !hasGenerated;
+  showCleanMapButton.disabled = !hasSource || state.currentDrawioMode === "clean";
+  showGeneratedMapButton.disabled = !hasGenerated || state.currentDrawioMode === "generated";
+  generatedOptions.hidden = state.currentDrawioMode !== "generated" || !hasGenerated;
   downloadMenuButton.disabled = !hasSource;
   downloadCleanDrawioButton.disabled = !hasSource;
   downloadCleanPngButton.disabled = !hasSource;
   downloadGeneratedDrawioButton.disabled = !hasGenerated;
   downloadGeneratedPngButton.disabled = !hasGenerated;
   fullscreenMapButton.disabled = !hasSource || !document.fullscreenEnabled;
-  showCleanMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "clean"));
-  showGeneratedMapButton.setAttribute("aria-pressed", String(currentDrawioMode === "generated"));
+  showCleanMapButton.setAttribute("aria-pressed", String(state.currentDrawioMode === "clean"));
+  showGeneratedMapButton.setAttribute("aria-pressed", String(state.currentDrawioMode === "generated"));
   updateFullscreenButton();
 
   if (!hasSource) {
@@ -990,19 +946,19 @@ function downloadDrawioXml(xml, fileName) {
 }
 
 function downloadCleanDiagram() {
-  downloadDrawioXml(createCleanDrawioXml(sourceDrawioXml), getCleanDrawioFileName());
+  downloadDrawioXml(createCleanDrawioXml(state.sourceDrawioXml), getCleanDrawioFileName());
 }
 
 function downloadGeneratedDiagram() {
-  downloadDrawioXml(generatedDrawioXml, getGeneratedDrawioFileName());
+  downloadDrawioXml(state.generatedDrawioXml, getGeneratedDrawioFileName());
 }
 
 function downloadCleanPng() {
-  downloadDrawioPng(createCleanDrawioXml(sourceDrawioXml), getCleanPngFileName());
+  downloadDrawioPng(createCleanDrawioXml(state.sourceDrawioXml), getCleanPngFileName());
 }
 
 function downloadGeneratedPng() {
-  downloadDrawioPng(generatedDrawioXml, getGeneratedPngFileName());
+  downloadDrawioPng(state.generatedDrawioXml, getGeneratedPngFileName());
 }
 
 function toggleDownloadMenu() {
@@ -1044,7 +1000,7 @@ function downloadDrawioPng(xml, fileName) {
     return;
   }
 
-  pendingPngFileName = fileName;
+  state.pendingPngFileName = fileName;
   drawioFrame.contentWindow.postMessage(JSON.stringify({
     action: "export",
     format: "png",
@@ -1088,7 +1044,7 @@ function downloadPngWithWhiteBackground(dataUrl, fileName) {
 
 function getGeneratedDrawioFileName() {
   const fallbackName = "genererad_karta.drawio";
-  const fileName = sourceDrawioFileName || fallbackName;
+  const fileName = state.sourceDrawioFileName || fallbackName;
   const drawioXmlSuffix = ".drawio.xml";
 
   if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
@@ -1106,7 +1062,7 @@ function getGeneratedDrawioFileName() {
 
 function getCleanDrawioFileName() {
   const fallbackName = "karta.drawio";
-  const fileName = sourceDrawioFileName || fallbackName;
+  const fileName = state.sourceDrawioFileName || fallbackName;
   const drawioXmlSuffix = ".drawio.xml";
 
   if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
@@ -1147,20 +1103,20 @@ function getGeneratedPngFileName() {
 }
 
 function makeDrawioLabel(row) {
-  const fornamnColumnIndex = excelColumns.findIndex((column) => normalizeColumnName(column.name) === "fornamn");
-  const efternamnColumnIndex = excelColumns.findIndex((column) => normalizeColumnName(column.name) === "efternamn");
-  const shouldCombineName = selectedColumnIndexes.includes(fornamnColumnIndex)
-    && selectedColumnIndexes.includes(efternamnColumnIndex);
+  const fornamnColumnIndex = state.excelColumns.findIndex((column) => normalizeColumnName(column.name) === "fornamn");
+  const efternamnColumnIndex = state.excelColumns.findIndex((column) => normalizeColumnName(column.name) === "efternamn");
+  const shouldCombineName = state.selectedColumnIndexes.includes(fornamnColumnIndex)
+    && state.selectedColumnIndexes.includes(efternamnColumnIndex);
   const lines = [];
 
-  selectedColumnIndexes.forEach((columnIndex) => {
+  state.selectedColumnIndexes.forEach((columnIndex) => {
     const value = row[columnIndex];
 
     if (value === null || value === undefined || String(value).trim() === "") {
       return;
     }
 
-    if (columnIndex === parsedOmradePlatsColumnIndex) {
+    if (columnIndex === state.parsedOmradePlatsColumnIndex) {
       if (showPlaceNumberInput.checked) {
         lines.push(String(value).trim());
       }
@@ -1184,7 +1140,7 @@ function makeDrawioLabel(row) {
     }
 
     lines.push(showColumnNamesInput.checked
-      ? `${excelColumns[columnIndex].name}: ${String(value).trim()}`
+      ? `${state.excelColumns[columnIndex].name}: ${String(value).trim()}`
       : String(value).trim());
   });
 
@@ -1194,7 +1150,7 @@ function makeDrawioLabel(row) {
 
 function getColumnIndexByName(columnName) {
   const normalizedName = normalizeColumnName(columnName);
-  return excelColumns.findIndex((column) => normalizeColumnName(column.name) === normalizedName);
+  return state.excelColumns.findIndex((column) => normalizeColumnName(column.name) === normalizedName);
 }
 
 function renderMissingPeopleTable(rows) {
@@ -1222,8 +1178,8 @@ function renderMissingPeopleTable(rows) {
   ].forEach(([columnKey, header]) => {
     const headerCell = document.createElement("th");
     const button = document.createElement("button");
-    const directionMarker = missingSortColumn === columnKey
-      ? ` ${missingSortDirection === "asc" ? "↑" : "↓"}`
+    const directionMarker = state.missingSortColumn === columnKey
+      ? ` ${state.missingSortDirection === "asc" ? "^" : "v"}`
       : "";
 
     button.className = "sort-button";
@@ -1259,23 +1215,23 @@ function renderMissingPeopleTable(rows) {
 }
 
 function getSortedMissingPeopleRows() {
-  return [...missingPeopleRows].sort((left, right) => {
-    const leftValue = String(left[missingSortColumn] || "").localeCompare(
-      String(right[missingSortColumn] || ""),
+  return [...state.missingPeopleRows].sort((left, right) => {
+    const leftValue = String(left[state.missingSortColumn] || "").localeCompare(
+      String(right[state.missingSortColumn] || ""),
       "sv",
       { numeric: true, sensitivity: "base" }
     );
 
-    return missingSortDirection === "asc" ? leftValue : -leftValue;
+    return state.missingSortDirection === "asc" ? leftValue : -leftValue;
   });
 }
 
 function sortMissingPeople(columnKey) {
-  if (missingSortColumn === columnKey) {
-    missingSortDirection = missingSortDirection === "asc" ? "desc" : "asc";
+  if (state.missingSortColumn === columnKey) {
+    state.missingSortDirection = state.missingSortDirection === "asc" ? "desc" : "asc";
   } else {
-    missingSortColumn = columnKey;
-    missingSortDirection = "asc";
+    state.missingSortColumn = columnKey;
+    state.missingSortDirection = "asc";
   }
 
   renderMissingPeopleTable(getSortedMissingPeopleRows());
@@ -1284,7 +1240,7 @@ function sortMissingPeople(columnKey) {
 function renderEmptyPlacesTable(rows) {
   emptyPlacesTable.replaceChildren();
 
-  if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
+  if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
     emptyPlacesPanel.hidden = true;
     emptyPlacesWrap.hidden = true;
     emptyPlacesMeta.textContent = "Ladda upp Excel och karta för att se platser som saknas i Excel.";
@@ -1303,8 +1259,8 @@ function renderEmptyPlacesTable(rows) {
   const headerRow = document.createElement("tr");
   const headerCell = document.createElement("th");
   const button = document.createElement("button");
-  const directionMarker = emptyPlacesSortColumn === "place"
-    ? ` ${emptyPlacesSortDirection === "asc" ? "↑" : "↓"}`
+  const directionMarker = state.emptyPlacesSortColumn === "place"
+    ? ` ${state.emptyPlacesSortDirection === "asc" ? "^" : "v"}`
     : "";
 
   button.className = "sort-button";
@@ -1334,24 +1290,24 @@ function renderEmptyPlacesTable(rows) {
 }
 
 function getSortedEmptyPlaceRows() {
-  return [...emptyPlaceRows].sort((left, right) => {
-    const result = String(left[emptyPlacesSortColumn] || "").localeCompare(
-      String(right[emptyPlacesSortColumn] || ""),
+  return [...state.emptyPlaceRows].sort((left, right) => {
+    const result = String(left[state.emptyPlacesSortColumn] || "").localeCompare(
+      String(right[state.emptyPlacesSortColumn] || ""),
       "sv",
       { numeric: true, sensitivity: "base" }
     );
 
-    return emptyPlacesSortDirection === "asc" ? result : -result;
+    return state.emptyPlacesSortDirection === "asc" ? result : -result;
   });
 }
 
 function sortEmptyPlaces(columnKey) {
   preserveWindowScroll(() => {
-    if (emptyPlacesSortColumn === columnKey) {
-      emptyPlacesSortDirection = emptyPlacesSortDirection === "asc" ? "desc" : "asc";
+    if (state.emptyPlacesSortColumn === columnKey) {
+      state.emptyPlacesSortDirection = state.emptyPlacesSortDirection === "asc" ? "desc" : "asc";
     } else {
-      emptyPlacesSortColumn = columnKey;
-      emptyPlacesSortDirection = "asc";
+      state.emptyPlacesSortColumn = columnKey;
+      state.emptyPlacesSortDirection = "asc";
     }
 
     renderEmptyPlacesTable(getSortedEmptyPlaceRows());
@@ -1361,8 +1317,8 @@ function sortEmptyPlaces(columnKey) {
 function renderDuplicateMapPlacesTable(rows) {
   duplicateMapPlacesTable.replaceChildren();
 
-  if (!sourceDrawioXml) {
-    duplicateMapPlaceRows = [];
+  if (!state.sourceDrawioXml) {
+    state.duplicateMapPlaceRows = [];
     duplicateMapPlacesPanel.hidden = true;
     duplicateMapPlacesWrap.hidden = true;
     duplicateMapPlacesMeta.textContent = "Ladda upp en karta för att se duplicerade platser.";
@@ -1415,15 +1371,19 @@ function getDuplicateMapPlaceKey(rows) {
   return rows.map((row) => `${row.normalizedPlace}:${row.count}`).join("|");
 }
 
+function getEmptyPlaceKey(rows) {
+  return rows.map((row) => row.normalizedPlace).join("|");
+}
+
 function updateDuplicateMapPlacesList(options = {}) {
-  const previousKey = getDuplicateMapPlaceKey(duplicateMapPlaceRows);
+  const previousKey = getDuplicateMapPlaceKey(state.duplicateMapPlaceRows);
 
-  duplicateMapPlaceRows = getDuplicateMapPlaceRows(sourceDrawioXml);
-  renderDuplicateMapPlacesTable(duplicateMapPlaceRows);
+  state.duplicateMapPlaceRows = getDuplicateMapPlaceRows(state.sourceDrawioXml);
+  renderDuplicateMapPlacesTable(state.duplicateMapPlaceRows);
 
-  const hasChanged = getDuplicateMapPlaceKey(duplicateMapPlaceRows) !== previousKey;
+  const hasChanged = getDuplicateMapPlaceKey(state.duplicateMapPlaceRows) !== previousKey;
 
-  if (options.reloadCleanMap && hasChanged && currentDrawioMode === "clean") {
+  if (options.reloadCleanMap && hasChanged && state.currentDrawioMode === "clean") {
     scheduleCleanMapRefresh();
   }
 
@@ -1431,20 +1391,20 @@ function updateDuplicateMapPlacesList(options = {}) {
 }
 
 function updateEmptyPlacesList() {
-  if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || excelRows.length === 0) {
-    emptyPlaceRows = [];
+  if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
+    state.emptyPlaceRows = [];
     renderEmptyPlacesTable([]);
-    if (currentDrawioMode === "clean" && shouldReloadDrawioViewer && sourceDrawioXml) {
+    if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer && state.sourceDrawioXml) {
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
     return;
   }
 
-  emptyPlaceRows = getEmptyMapPlaceRows(sourceDrawioXml, excelRows, parsedOmradePlatsColumnIndex);
+  state.emptyPlaceRows = getEmptyMapPlaceRows(state.sourceDrawioXml, state.excelRows, state.parsedOmradePlatsColumnIndex);
 
   renderEmptyPlacesTable(getSortedEmptyPlaceRows());
 
-  if (currentDrawioMode === "clean" && shouldReloadDrawioViewer) {
+  if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer) {
     loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
   }
 }
@@ -1453,17 +1413,17 @@ function updateMissingPeopleList() {
   const firstNameColumnIndex = getColumnIndexByName("fornamn");
   const lastNameColumnIndex = getColumnIndexByName("efternamn");
 
-  if (!sourceDrawioXml || parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || excelRows.length === 0) {
+  if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || state.excelRows.length === 0) {
     missingPanel.hidden = true;
-    missingPeopleRows = [];
+    state.missingPeopleRows = [];
     addMissingBoxesButton.hidden = true;
     downloadMissingButton.disabled = true;
     return;
   }
 
   missingPanel.hidden = false;
-  missingPeopleRows = getMissingPeopleRows(sourceDrawioXml, excelRows, {
-    placeColumnIndex: parsedOmradePlatsColumnIndex,
+  state.missingPeopleRows = getMissingPeopleRows(state.sourceDrawioXml, state.excelRows, {
+    placeColumnIndex: state.parsedOmradePlatsColumnIndex,
     firstNameColumnIndex,
     lastNameColumnIndex
   });
@@ -1472,24 +1432,25 @@ function updateMissingPeopleList() {
 
 function updateSourceDrawioXml(xml) {
   const rawXml = String(xml || "").trim();
-  const shouldRefreshRenamedNewPlace = currentDrawioMode === "clean" && hasRenamedNewPlacePlaceholder(rawXml);
+  const shouldRefreshRenamedNewPlace = state.currentDrawioMode === "clean" && hasRenamedNewPlacePlaceholder(rawXml);
   const updatedXml = createCleanDrawioXml(rawXml).trim();
+  const previousEmptyPlaceKey = getEmptyPlaceKey(state.emptyPlaceRows);
 
-  if (!updatedXml || updatedXml === sourceDrawioXml) {
+  if (!updatedXml || updatedXml === state.sourceDrawioXml) {
     return;
   }
 
-  const shouldRefreshGeneratedView = currentDrawioMode === "generated";
+  const shouldRefreshGeneratedView = state.currentDrawioMode === "generated";
 
-  sourceDrawioXml = updatedXml;
-  pendingDrawioXml = updatedXml;
+  state.sourceDrawioXml = updatedXml;
+  state.pendingDrawioXml = updatedXml;
   const shouldRefreshDuplicateMapPlaces = updateDuplicateMapPlacesList();
 
   preserveWindowScroll(() => {
-    shouldReloadDrawioViewer = shouldRefreshGeneratedView;
+    state.shouldReloadDrawioViewer = shouldRefreshGeneratedView;
 
     try {
-      if (excelColumns.length > 0 && rawExcelRows.length > 0) {
+      if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
         reparseRows(true);
       } else {
         updateMissingPeopleList();
@@ -1497,21 +1458,27 @@ function updateSourceDrawioXml(xml) {
         updateGeneratedDiagram();
       }
     } finally {
-      shouldReloadDrawioViewer = true;
+      state.shouldReloadDrawioViewer = true;
     }
   });
+
+  const shouldRefreshEmptyPlaces = getEmptyPlaceKey(state.emptyPlaceRows) !== previousEmptyPlaceKey;
 
   if (shouldRefreshRenamedNewPlace) {
     scheduleCleanMapRefresh();
   }
 
-  if (shouldRefreshDuplicateMapPlaces && currentDrawioMode === "clean") {
+  if (shouldRefreshDuplicateMapPlaces && state.currentDrawioMode === "clean") {
+    scheduleCleanMapRefresh();
+  }
+
+  if (shouldRefreshEmptyPlaces && state.currentDrawioMode === "clean") {
     scheduleCleanMapRefresh();
   }
 }
 
 function downloadMissingPeopleExcel() {
-  if (!window.XLSX || missingPeopleRows.length === 0) {
+  if (!window.XLSX || state.missingPeopleRows.length === 0) {
     return;
   }
 
@@ -1684,21 +1651,21 @@ function createDrawioXmlWithMissingBoxes(xml, rows) {
 }
 
 function addPlaceBoxToDrawio() {
-  if (!sourceDrawioXml) {
+  if (!state.sourceDrawioXml) {
     return;
   }
 
   try {
-    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, [{
+    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, [{
       place: newPlacePlaceholder,
       isNewPlacePlaceholder: true
     }]));
-    hasManualDrawioMode = true;
+    state.hasManualDrawioMode = true;
 
-    if (currentDrawioMode === "generated" && generatedDrawioXml) {
-      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
+    if (state.currentDrawioMode === "generated" && state.generatedDrawioXml) {
+      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
     } else {
-      currentDrawioMode = "clean";
+      state.currentDrawioMode = "clean";
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
 
@@ -1711,17 +1678,17 @@ function addPlaceBoxToDrawio() {
 function addMissingBoxesToDrawio() {
   const rows = getSortedMissingPeopleRows();
 
-  if (!sourceDrawioXml || rows.length === 0) {
+  if (!state.sourceDrawioXml || rows.length === 0) {
     return;
   }
 
   try {
-    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(sourceDrawioXml, rows));
-    hasManualDrawioMode = true;
-    currentDrawioMode = generatedDrawioXml ? "generated" : "clean";
+    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, rows));
+    state.hasManualDrawioMode = true;
+    state.currentDrawioMode = state.generatedDrawioXml ? "generated" : "clean";
 
-    if (currentDrawioMode === "generated") {
-      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
+    if (state.currentDrawioMode === "generated") {
+      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
     } else {
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
@@ -1743,7 +1710,7 @@ function createGeneratedDrawioXml(xml, rows) {
   const rowsByPlace = new Map();
 
   rows.forEach((row) => {
-    const place = String(row[parsedOmradePlatsColumnIndex] || "").trim();
+    const place = String(row[state.parsedOmradePlatsColumnIndex] || "").trim();
     const normalizedPlace = normalizePlaceCode(place);
 
     if (normalizedPlace) {
@@ -1776,29 +1743,29 @@ function createGeneratedDrawioXml(xml, rows) {
 
 function getCleanDrawioXmlForDisplay() {
   const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
-    sourceDrawioXml,
-    new Set(emptyPlaceRows.map((row) => row.normalizedPlace))
+    state.sourceDrawioXml,
+    new Set(state.emptyPlaceRows.map((row) => row.normalizedPlace))
   );
 
   return createDrawioXmlWithHighlightedDuplicatePlaces(
     highlightedMissingPlacesXml,
-    new Set(duplicateMapPlaceRows.map((row) => row.normalizedPlace))
+    new Set(state.duplicateMapPlaceRows.map((row) => row.normalizedPlace))
   );
 }
 
 function updateGeneratedDiagram() {
-  if (!sourceDrawioXml) {
-    generatedDrawioXml = "";
-    currentDrawioMode = "clean";
+  if (!state.sourceDrawioXml) {
+    state.generatedDrawioXml = "";
+    state.currentDrawioMode = "clean";
     updateDrawioButtons();
     return;
   }
 
-  if (parsedOmradePlatsColumnIndex === null || !selectedColumnIndexes.includes(parsedOmradePlatsColumnIndex)) {
-    generatedDrawioXml = "";
-    if (currentDrawioMode === "generated") {
-      currentDrawioMode = "clean";
-      if (shouldReloadDrawioViewer) {
+  if (state.parsedOmradePlatsColumnIndex === null || !state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)) {
+    state.generatedDrawioXml = "";
+    if (state.currentDrawioMode === "generated") {
+      state.currentDrawioMode = "clean";
+      if (state.shouldReloadDrawioViewer) {
         loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
     }
@@ -1809,10 +1776,10 @@ function updateGeneratedDiagram() {
   const visibleRows = getRowsForGeneratedDiagram();
 
   if (visibleRows.length === 0) {
-    generatedDrawioXml = "";
-    if (currentDrawioMode === "generated") {
-      currentDrawioMode = "clean";
-      if (shouldReloadDrawioViewer) {
+    state.generatedDrawioXml = "";
+    if (state.currentDrawioMode === "generated") {
+      state.currentDrawioMode = "clean";
+      if (state.shouldReloadDrawioViewer) {
         loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
     }
@@ -1821,19 +1788,19 @@ function updateGeneratedDiagram() {
   }
 
   try {
-    const hadGeneratedDrawioXml = Boolean(generatedDrawioXml);
+    const hadGeneratedDrawioXml = Boolean(state.generatedDrawioXml);
 
-    generatedDrawioXml = createGeneratedDrawioXml(sourceDrawioXml, visibleRows);
+    state.generatedDrawioXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows);
 
-    if (!hadGeneratedDrawioXml && !hasManualDrawioMode) {
-      currentDrawioMode = "generated";
+    if (!hadGeneratedDrawioXml && !state.hasManualDrawioMode) {
+      state.currentDrawioMode = "generated";
     }
 
-    if (shouldReloadDrawioViewer && currentDrawioMode === "generated") {
-      loadDrawioViewer(generatedDrawioXml, { keepZoom: true });
+    if (state.shouldReloadDrawioViewer && state.currentDrawioMode === "generated") {
+      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
     }
   } catch (error) {
-    generatedDrawioXml = "";
+    state.generatedDrawioXml = "";
   }
 
   updateDrawioButtons();
@@ -1848,11 +1815,7 @@ function readDrawioFile(file) {
     if (!xml) {
       setDrawioUploadMessage("Den här kartfilen är tom.");
       drawioUploadZone.classList.add("has-error");
-      sourceDrawioXml = "";
-      sourceDrawioFileName = "";
-      generatedDrawioXml = "";
-      currentDrawioMode = "clean";
-      hasManualDrawioMode = false;
+      resetDrawioState();
       drawioViewer.hidden = true;
       drawioUploadZone.hidden = false;
       updateDrawioButtons();
@@ -1863,12 +1826,12 @@ function readDrawioFile(file) {
       return;
     }
 
-    sourceDrawioXml = createCleanDrawioXml(xml);
-    currentDrawioMode = "clean";
-    hasManualDrawioMode = true;
+    state.sourceDrawioXml = createCleanDrawioXml(xml);
+    state.currentDrawioMode = "clean";
+    state.hasManualDrawioMode = true;
     updateDuplicateMapPlacesList();
     loadDrawioViewer(getCleanDrawioXmlForDisplay());
-    if (excelColumns.length > 0 && rawExcelRows.length > 0) {
+    if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
       reparseRows(true);
     } else {
       updateMissingPeopleList();
@@ -1880,11 +1843,7 @@ function readDrawioFile(file) {
   reader.addEventListener("error", () => {
     setDrawioUploadMessage("Kunde inte läsa kartfilen.");
     drawioUploadZone.classList.add("has-error");
-    sourceDrawioXml = "";
-    sourceDrawioFileName = "";
-    generatedDrawioXml = "";
-    currentDrawioMode = "clean";
-    hasManualDrawioMode = false;
+    resetDrawioState();
     updateDrawioButtons();
     updateMissingPeopleList();
     updateEmptyPlacesList();
@@ -2026,8 +1985,8 @@ window.addEventListener("message", (event) => {
     return;
   }
 
-  if (message.event === "init" && event.source === drawioFrame.contentWindow && pendingDrawioXml) {
-    loadDrawioViewer(pendingDrawioXml);
+  if (message.event === "init" && event.source === drawioFrame.contentWindow && state.pendingDrawioXml) {
+    loadDrawioViewer(state.pendingDrawioXml);
   }
 
   if (event.source === drawioFrame.contentWindow && typeof message.xml === "string" && ["autosave", "save"].includes(message.event)) {
@@ -2035,7 +1994,7 @@ window.addEventListener("message", (event) => {
   }
 
   if (message.event === "export" && event.source === drawioFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
-    downloadPngWithWhiteBackground(message.data, pendingPngFileName || "karta.png");
-    pendingPngFileName = "";
+    downloadPngWithWhiteBackground(message.data, state.pendingPngFileName || "karta.png");
+    state.pendingPngFileName = "";
   }
 });

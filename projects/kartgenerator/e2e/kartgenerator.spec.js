@@ -226,6 +226,34 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
     await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
 
+    const renamedExistingPlaceXml = (await frame.locator("#loaded-xml").textContent()).replace(/value="57"/, 'value="75"');
+
+    await frame.evaluate((xml) => {
+      window.parent.postMessage(JSON.stringify({
+        event: "autosave",
+        xml
+      }), "*");
+    }, renamedExistingPlaceXml);
+
+    await expect(page.locator("#empty-places-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+    await expect(frame.locator("#loaded-xml")).toContainText("75");
+    await expect(frame.locator("#loaded-xml")).not.toContainText("fillColor=#fff2cc");
+    await expect(frame.locator("#loaded-xml")).not.toContainText("strokeColor=#d6b656");
+
+    const renamedMissingPlaceXml = (await frame.locator("#loaded-xml").textContent()).replace(/value="75"/, 'value="57"');
+
+    await frame.evaluate((xml) => {
+      window.parent.postMessage(JSON.stringify({
+        event: "autosave",
+        xml
+      }), "*");
+    }, renamedMissingPlaceXml);
+
+    await expect(page.locator("#empty-places-meta")).toHaveText("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
+    await expect(frame.locator("#loaded-xml")).toContainText("57");
+    await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
+    await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
+
     const cleanDownloadPromise = page.waitForEvent("download");
 
     await page.locator("#download-menu-button").click();
