@@ -30,6 +30,7 @@ import {
   setSourceDrawioXml,
   state
 } from "./state.js"
+import { renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView } from "./renderers.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -98,6 +99,12 @@ const duplicateMapPlacesPanel = document.querySelector("#duplicate-map-places-pa
 const duplicateMapPlacesMeta = document.querySelector("#duplicate-map-places-meta");
 const duplicateMapPlacesWrap = document.querySelector("#duplicate-map-places-wrap");
 const duplicateMapPlacesTable = document.querySelector("#duplicate-map-places-table");
+const duplicateMapPlacesElements = {
+  panel: duplicateMapPlacesPanel,
+  meta: duplicateMapPlacesMeta,
+  wrap: duplicateMapPlacesWrap,
+  table: duplicateMapPlacesTable
+};
 const excelTypes = [".xls", ".xlsx"];
 const drawioTypes = [".drawio", ".drawio.xml"];
 const excelExample = {
@@ -1326,56 +1333,11 @@ function sortEmptyPlaces(columnKey) {
 }
 
 function renderDuplicateMapPlacesTable(rows) {
-  duplicateMapPlacesTable.replaceChildren();
-
-  if (!state.sourceDrawioXml) {
-    state.duplicateMapPlaceRows = [];
-    duplicateMapPlacesPanel.hidden = true;
-    duplicateMapPlacesWrap.hidden = true;
-    duplicateMapPlacesMeta.textContent = "Ladda upp en karta för att se duplicerade platser.";
-    return;
-  }
-
-  duplicateMapPlacesPanel.hidden = false;
-
-  if (rows.length === 0) {
-    duplicateMapPlacesMeta.textContent = "Inga duplicerade platser hittades i kartan.";
-    duplicateMapPlacesWrap.hidden = true;
-    return;
-  }
-
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  ["Plats", "Antal rutor"].forEach((header) => {
-    const headerCell = document.createElement("th");
-
-    headerCell.textContent = header;
-    headerRow.append(headerCell);
+  renderDuplicateMapPlacesTableView({
+    rows,
+    hasSource: Boolean(state.sourceDrawioXml),
+    elements: duplicateMapPlacesElements
   });
-
-  thead.append(headerRow);
-
-  const tbody = document.createElement("tbody");
-  const fragment = document.createDocumentFragment();
-
-  rows.forEach((row) => {
-    const tableRow = document.createElement("tr");
-
-    [row.place, String(row.count)].forEach((value) => {
-      const cell = document.createElement("td");
-
-      cell.textContent = value;
-      tableRow.append(cell);
-    });
-
-    fragment.append(tableRow);
-  });
-
-  tbody.append(fragment);
-  duplicateMapPlacesTable.append(thead, tbody);
-  duplicateMapPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns på flera ställen i kartan. Dessa platser markeras med blått i kartan.`;
-  duplicateMapPlacesWrap.hidden = false;
 }
 
 function getDuplicateMapPlaceKey(rows) {
