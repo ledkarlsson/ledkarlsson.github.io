@@ -1,6 +1,13 @@
 ﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
 import { getMapPlaceLabels } from "./drawio.js"
 import {
+  drawioEditorConfig,
+  exportDrawioPng,
+  handleDrawioMessage,
+  loadDrawioXmlWhenVisible,
+  postDrawioMessage
+} from "./drawio-embed.js"
+import {
   getDuplicateMapPlaceRows,
   getDuplicatePlaceInfo,
   getEmptyMapPlaceRows,
@@ -161,17 +168,6 @@ const drawioExample = {
   type: "application/xml"
 };
 
-const drawioEditorConfig = {
-  defaultPageVisible: false,
-  preserveViewState: true,
-  css: `
-    .geTabContainer > :not(:last-child),
-    .gePageTab,
-    .geFooterContainer .gePageTab {
-      display: none !important;
-    }
-  `
-};
 const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 
 function preserveWindowScroll(callback) {
@@ -766,36 +762,10 @@ function clearDrawioFile() {
   updateGeneratedDiagram();
 }
 
-function loadDrawioXml(frame, xml, options = {}) {
-  const action = options.keepZoom ? "merge" : "load";
-
-  frame.contentWindow.postMessage(JSON.stringify({
-    action,
-    xml,
-    autosave: options.autosave ? 1 : 0,
-    modified: 0
-  }), "*");
-}
-
-function loadDrawioXmlWhenVisible(frame, xml, attemptsLeft = 12, options = {}) {
-  const hasSize = frame.offsetWidth > 0 && frame.offsetHeight > 0;
-
-  if (!hasSize && attemptsLeft > 0) {
-    requestAnimationFrame(() => loadDrawioXmlWhenVisible(frame, xml, attemptsLeft - 1, options));
-    return;
-  }
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      loadDrawioXml(frame, xml, options);
-    });
-  });
-}
-
 function loadDrawioViewer(xml, options = {}) {
   state.pendingDrawioXml = xml;
   drawioViewer.hidden = false;
-  loadDrawioXmlWhenVisible(drawioFrame, xml, 12, { autosave: true, keepZoom: options.keepZoom });
+  loadDrawioXmlWhenVisible(drawioFrame, xml, { autosave: true, keepZoom: options.keepZoom });
 }
 
 function showCleanMap() {
@@ -978,15 +948,7 @@ function downloadDrawioPng(xml, fileName) {
   }
 
   state.pendingPngFileName = fileName;
-  drawioFrame.contentWindow.postMessage(JSON.stringify({
-    action: "export",
-    format: "png",
-    xml,
-    scale: 1,
-    border: 8,
-    bg: "#ffffff",
-    background: "#ffffff"
-  }), "*");
+  exportDrawioPng(drawioFrame, xml);
 }
 
 function downloadDataUrl(dataUrl, fileName) {
@@ -1802,36 +1764,18 @@ drawioUploadZone.addEventListener("drop", (event) => {
 });
 
 window.addEventListener("message", (event) => {
-  if (!String(event.origin).includes("diagrams.net")) {
-    return;
-  }
-
-  let message;
-
-  try {
-    message = JSON.parse(event.data);
-  } catch (error) {
-    return;
-  }
-
-  if (message.event === "configure" && event.source === drawioFrame.contentWindow) {
-    event.source.postMessage(JSON.stringify({
+  handleDrawioMessage(event, {
+    frame: drawioFrame,
+    pendingXml: state.pendingDrawioXml,
+    onConfigure: (origin) => postDrawioMessage(drawioFrame, {
       action: "configure",
       config: drawioEditorConfig
-    }), event.origin);
-    return;
-  }
-
-  if (message.event === "init" && event.source === drawioFrame.contentWindow && state.pendingDrawioXml) {
-    loadDrawioViewer(state.pendingDrawioXml);
-  }
-
-  if (event.source === drawioFrame.contentWindow && typeof message.xml === "string" && ["autosave", "save"].includes(message.event)) {
-    updateSourceDrawioXml(message.xml);
-  }
-
-  if (message.event === "export" && event.source === drawioFrame.contentWindow && typeof message.data === "string" && message.data.startsWith("data:image/png")) {
-    downloadPngWithWhiteBackground(message.data, state.pendingPngFileName || "karta.png");
-    state.pendingPngFileName = "";
-  }
+    }, origin),
+    onInit: (xml) => loadDrawioViewer(xml),
+    onSave: (xml) => updateSourceDrawioXml(xml),
+    onExport: (dataUrl) => {
+      downloadPngWithWhiteBackground(dataUrl, state.pendingPngFileName || "karta.png");
+      state.pendingPngFileName = "";
+    }
+  });
 });

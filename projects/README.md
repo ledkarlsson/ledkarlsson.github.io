@@ -14,13 +14,14 @@ Before this strategy, regression bugs was quite common.
 
 The JavaScript is gradually being split by responsibility:
 
-- `assets/js/kartgenerator.js` is still the main application controller. It wires DOM events, file uploads, iframe messages, downloads, fullscreen behavior, and calls into the smaller modules. The long-term direction is for this file to become mostly orchestration: event in, state transition, render out.
+- `assets/js/kartgenerator.js` is still the main application controller. It wires DOM events, file uploads, iframe messages, downloads, fullscreen behavior, and calls into the smaller modules. Local controller functions use names such as `update*` and `show*`; functions named `render*` should live in `renderers.js`.
 - `assets/js/state.js` owns application state and named state transitions. It contains initial state, reset functions, draw.io mode transitions, and helpers that protect invariants such as keeping source XML and pending XML in sync.
 - `assets/js/diagnostics.js` contains domain calculations for warnings and reports: missing BAS people, places in the map but missing in Excel, duplicate Excel places, duplicate map places, and empty Excel-place rows.
 - `assets/js/drawio-model.js` contains draw.io XML model behavior: cleaning generated metadata, interpreting place labels, adding/removing temporary highlights, new-place constants, and generated/clean map helpers.
 - `assets/js/drawio.js` contains smaller map-reading helpers that extract places from draw.io XML.
+- `assets/js/drawio-embed.js` contains the diagrams.net iframe integration: editor configuration, load/merge messages, delayed loading until the iframe is visible, PNG export messages, and routing incoming iframe events to app callbacks.
 - `assets/js/kartgenerator-utils.js` contains shared text and column utilities, including column-name normalization, place-code normalization, and parsing `Område/Plats`.
-- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels and controls, including the Excel column list and diagnostic tables. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
+- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels and controls, including the Excel column list, selected-data table, diagnostic tables, and small Excel status/reset blocks. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
 
 The tests mirror this split:
 
@@ -33,14 +34,14 @@ The kartgenerator is now feature-complete enough that the main risk is no longer
 
 Suggested future refactoring, in priority order:
 
-1. Continue extracting renderers.
-   `renderers.js` currently owns the Excel column list plus the missing-people, map-places-missing-in-Excel, and duplicate-map-place panels. Good next candidates are the selected-data table and the download/example menus. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
+1. Continue extracting DOM updates.
+   `renderers.js` currently owns all functions named `render*`, including the Excel column list, selected-data table, selected-column status, Excel reset state, missing-people panel, map-places-missing-in-Excel panel, and duplicate-map-place panel. Good next candidates are the download/example menus and draw.io upload/status blocks. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
 
 2. Continue centralizing state transitions.
    `state.js` now owns resets and important draw.io transitions. Good next candidates are selected-column changes, parse-source changes, diagnostics row updates, and table sort state. The goal is that `kartgenerator.js` reads state freely but changes it through named transitions when fields belong together.
 
-3. Extract `drawio-embed.js`.
-   Isolate iframe communication with diagrams.net: configure, load/merge, autosave/save, delayed refresh, PNG export, and fullscreen refit. This is a sensitive integration surface and should be easier to reason about separately.
+3. Continue separating draw.io orchestration.
+   `drawio-embed.js` now owns the raw diagrams.net iframe protocol. A useful next split would be a higher-level controller for map view state: clean/generated mode switching, scheduled clean-map refreshes, fullscreen refit, and button enablement.
 
 4. Move generated-map creation closer to draw.io/domain modules.
    `createGeneratedDrawioXml` still lives in `kartgenerator.js` because it depends on selected Excel columns and UI options. A future split could pass a label-building callback or precomputed labels, allowing the XML generation itself to live in `drawio-model.js`.
