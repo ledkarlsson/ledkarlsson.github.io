@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearGeneratedDrawioXml,
   createInitialKartgeneratorState,
   resetDiagnosticsState,
   resetDrawioState,
-  resetExcelState
+  resetExcelState,
+  setCurrentDrawioMode,
+  setGeneratedDrawioXml,
+  setManualDrawioMode,
+  setSourceDrawioXml
 } from "../assets/js/state.js";
 
 describe("createInitialKartgeneratorState", () => {
@@ -52,6 +57,47 @@ describe("createInitialKartgeneratorState", () => {
     expect(testState.generatedDrawioXml).toBe("");
     expect(testState.currentDrawioMode).toBe("clean");
     expect(testState.hasManualDrawioMode).toBe(false);
+  });
+
+  it("sets source and pending map XML together", () => {
+    const testState = createInitialKartgeneratorState();
+
+    testState.pendingDrawioXml = "<old />";
+
+    setSourceDrawioXml("<new />", testState);
+
+    expect(testState.sourceDrawioXml).toBe("<new />");
+    expect(testState.pendingDrawioXml).toBe("<new />");
+  });
+
+  it("sets generated map XML and reports whether one already existed", () => {
+    const testState = createInitialKartgeneratorState();
+
+    expect(setGeneratedDrawioXml("<first />", testState)).toEqual({ hadGeneratedDrawioXml: false });
+    expect(setGeneratedDrawioXml("<second />", testState)).toEqual({ hadGeneratedDrawioXml: true });
+    expect(testState.generatedDrawioXml).toBe("<second />");
+  });
+
+  it("clears generated map XML and falls back from generated mode to clean", () => {
+    const testState = createInitialKartgeneratorState();
+
+    testState.generatedDrawioXml = "<generated />";
+    testState.currentDrawioMode = "generated";
+
+    expect(clearGeneratedDrawioXml(testState)).toEqual({ wasShowingGenerated: true });
+    expect(testState.generatedDrawioXml).toBe("");
+    expect(testState.currentDrawioMode).toBe("clean");
+  });
+
+  it("sets map mode and manual map flag", () => {
+    const testState = createInitialKartgeneratorState();
+
+    setCurrentDrawioMode("generated", testState);
+    setManualDrawioMode(true, testState);
+
+    expect(testState.currentDrawioMode).toBe("generated");
+    expect(testState.hasManualDrawioMode).toBe(true);
+    expect(() => setCurrentDrawioMode("unknown", testState)).toThrow("Okänt kartläge");
   });
 
   it("resets diagnostic rows and their sort state", () => {

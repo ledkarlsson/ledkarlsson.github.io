@@ -18,7 +18,18 @@ import {
   newPlaceBoxStyle,
   newPlacePlaceholder
 } from "./drawio-model.js"
-import { resetDiagnosticsState, resetDrawioState, resetExcelState, resetSelectedTableSort, state } from "./state.js"
+import {
+  clearGeneratedDrawioXml,
+  resetDiagnosticsState,
+  resetDrawioState,
+  resetExcelState,
+  resetSelectedTableSort,
+  setCurrentDrawioMode,
+  setGeneratedDrawioXml,
+  setManualDrawioMode,
+  setSourceDrawioXml,
+  state
+} from "./state.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -826,8 +837,8 @@ function showCleanMap() {
     return;
   }
 
-  state.hasManualDrawioMode = true;
-  state.currentDrawioMode = "clean";
+  setManualDrawioMode(true);
+  setCurrentDrawioMode("clean");
   loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
   updateDrawioButtons();
 }
@@ -837,8 +848,8 @@ function showGeneratedMap() {
     return;
   }
 
-  state.hasManualDrawioMode = true;
-  state.currentDrawioMode = "generated";
+  setManualDrawioMode(true);
+  setCurrentDrawioMode("generated");
   loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
   updateDrawioButtons();
 }
@@ -1442,8 +1453,7 @@ function updateSourceDrawioXml(xml) {
 
   const shouldRefreshGeneratedView = state.currentDrawioMode === "generated";
 
-  state.sourceDrawioXml = updatedXml;
-  state.pendingDrawioXml = updatedXml;
+  setSourceDrawioXml(updatedXml);
   const shouldRefreshDuplicateMapPlaces = updateDuplicateMapPlacesList();
 
   preserveWindowScroll(() => {
@@ -1660,12 +1670,12 @@ function addPlaceBoxToDrawio() {
       place: newPlacePlaceholder,
       isNewPlacePlaceholder: true
     }]));
-    state.hasManualDrawioMode = true;
+    setManualDrawioMode(true);
 
     if (state.currentDrawioMode === "generated" && state.generatedDrawioXml) {
       loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
     } else {
-      state.currentDrawioMode = "clean";
+      setCurrentDrawioMode("clean");
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
 
@@ -1684,8 +1694,8 @@ function addMissingBoxesToDrawio() {
 
   try {
     updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, rows));
-    state.hasManualDrawioMode = true;
-    state.currentDrawioMode = state.generatedDrawioXml ? "generated" : "clean";
+    setManualDrawioMode(true);
+    setCurrentDrawioMode(state.generatedDrawioXml ? "generated" : "clean");
 
     if (state.currentDrawioMode === "generated") {
       loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
@@ -1755,16 +1765,15 @@ function getCleanDrawioXmlForDisplay() {
 
 function updateGeneratedDiagram() {
   if (!state.sourceDrawioXml) {
-    state.generatedDrawioXml = "";
-    state.currentDrawioMode = "clean";
+    clearGeneratedDrawioXml();
     updateDrawioButtons();
     return;
   }
 
   if (state.parsedOmradePlatsColumnIndex === null || !state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)) {
-    state.generatedDrawioXml = "";
-    if (state.currentDrawioMode === "generated") {
-      state.currentDrawioMode = "clean";
+    const { wasShowingGenerated } = clearGeneratedDrawioXml();
+
+    if (wasShowingGenerated) {
       if (state.shouldReloadDrawioViewer) {
         loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
@@ -1776,9 +1785,9 @@ function updateGeneratedDiagram() {
   const visibleRows = getRowsForGeneratedDiagram();
 
   if (visibleRows.length === 0) {
-    state.generatedDrawioXml = "";
-    if (state.currentDrawioMode === "generated") {
-      state.currentDrawioMode = "clean";
+    const { wasShowingGenerated } = clearGeneratedDrawioXml();
+
+    if (wasShowingGenerated) {
       if (state.shouldReloadDrawioViewer) {
         loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
       }
@@ -1788,19 +1797,18 @@ function updateGeneratedDiagram() {
   }
 
   try {
-    const hadGeneratedDrawioXml = Boolean(state.generatedDrawioXml);
-
-    state.generatedDrawioXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows);
+    const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows);
+    const { hadGeneratedDrawioXml } = setGeneratedDrawioXml(generatedXml);
 
     if (!hadGeneratedDrawioXml && !state.hasManualDrawioMode) {
-      state.currentDrawioMode = "generated";
+      setCurrentDrawioMode("generated");
     }
 
     if (state.shouldReloadDrawioViewer && state.currentDrawioMode === "generated") {
       loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
     }
   } catch (error) {
-    state.generatedDrawioXml = "";
+    clearGeneratedDrawioXml();
   }
 
   updateDrawioButtons();
@@ -1826,9 +1834,9 @@ function readDrawioFile(file) {
       return;
     }
 
-    state.sourceDrawioXml = createCleanDrawioXml(xml);
-    state.currentDrawioMode = "clean";
-    state.hasManualDrawioMode = true;
+    setSourceDrawioXml(createCleanDrawioXml(xml));
+    setCurrentDrawioMode("clean");
+    setManualDrawioMode(true);
     updateDuplicateMapPlacesList();
     loadDrawioViewer(getCleanDrawioXmlForDisplay());
     if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {

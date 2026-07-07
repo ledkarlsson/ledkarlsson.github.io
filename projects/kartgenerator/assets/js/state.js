@@ -49,6 +49,43 @@ export function resetDrawioState(targetState = state) {
   targetState.pendingPngFileName = "";
 }
 
+export function setSourceDrawioXml(xml, targetState = state) {
+  targetState.sourceDrawioXml = xml;
+  targetState.pendingDrawioXml = xml;
+}
+
+export function setCurrentDrawioMode(mode, targetState = state) {
+  if (!["clean", "generated"].includes(mode)) {
+    throw new Error(`Okänt kartläge: ${mode}`);
+  }
+
+  targetState.currentDrawioMode = mode;
+}
+
+export function setManualDrawioMode(isManual = true, targetState = state) {
+  targetState.hasManualDrawioMode = isManual;
+}
+
+export function setGeneratedDrawioXml(xml, targetState = state) {
+  const hadGeneratedDrawioXml = Boolean(targetState.generatedDrawioXml);
+
+  targetState.generatedDrawioXml = xml;
+
+  return { hadGeneratedDrawioXml };
+}
+
+export function clearGeneratedDrawioXml(targetState = state) {
+  const wasShowingGenerated = targetState.currentDrawioMode === "generated";
+
+  targetState.generatedDrawioXml = "";
+
+  if (wasShowingGenerated) {
+    targetState.currentDrawioMode = "clean";
+  }
+
+  return { wasShowingGenerated };
+}
+
 export function resetDiagnosticsState(targetState = state) {
   targetState.missingPeopleRows = [];
   targetState.emptyPlaceRows = [];
