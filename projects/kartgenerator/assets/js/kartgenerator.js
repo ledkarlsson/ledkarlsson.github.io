@@ -30,7 +30,10 @@ import {
   setSourceDrawioXml,
   state
 } from "./state.js"
-import { renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView } from "./renderers.js"
+import {
+  renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
+  renderEmptyPlacesTable as renderEmptyPlacesTableView
+} from "./renderers.js"
 
 const uploadZone = document.querySelector("#upload-zone");
 const excelUpload = document.querySelector("#excel-upload");
@@ -95,6 +98,12 @@ const emptyPlacesPanel = document.querySelector("#empty-places-panel");
 const emptyPlacesMeta = document.querySelector("#empty-places-meta");
 const emptyPlacesWrap = document.querySelector("#empty-places-wrap");
 const emptyPlacesTable = document.querySelector("#empty-places-table");
+const emptyPlacesElements = {
+  panel: emptyPlacesPanel,
+  meta: emptyPlacesMeta,
+  wrap: emptyPlacesWrap,
+  table: emptyPlacesTable
+};
 const duplicateMapPlacesPanel = document.querySelector("#duplicate-map-places-panel");
 const duplicateMapPlacesMeta = document.querySelector("#duplicate-map-places-meta");
 const duplicateMapPlacesWrap = document.querySelector("#duplicate-map-places-wrap");
@@ -1256,55 +1265,14 @@ function sortMissingPeople(columnKey) {
 }
 
 function renderEmptyPlacesTable(rows) {
-  emptyPlacesTable.replaceChildren();
-
-  if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
-    emptyPlacesPanel.hidden = true;
-    emptyPlacesWrap.hidden = true;
-    emptyPlacesMeta.textContent = "Ladda upp Excel och karta för att se platser som saknas i Excel.";
-    return;
-  }
-
-  emptyPlacesPanel.hidden = false;
-
-  if (rows.length === 0) {
-    emptyPlacesMeta.textContent = "Alla platser i kartan finns i Excel.";
-    emptyPlacesWrap.hidden = true;
-    return;
-  }
-
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-  const headerCell = document.createElement("th");
-  const button = document.createElement("button");
-  const directionMarker = state.emptyPlacesSortColumn === "place"
-    ? ` ${state.emptyPlacesSortDirection === "asc" ? "^" : "v"}`
-    : "";
-
-  button.className = "sort-button";
-  button.type = "button";
-  button.textContent = `Plats${directionMarker}`;
-  button.addEventListener("click", () => sortEmptyPlaces("place"));
-  headerCell.append(button);
-  headerRow.append(headerCell);
-  thead.append(headerRow);
-
-  const tbody = document.createElement("tbody");
-  const fragment = document.createDocumentFragment();
-
-  rows.forEach((row) => {
-    const tableRow = document.createElement("tr");
-    const cell = document.createElement("td");
-
-    cell.textContent = row.place;
-    tableRow.append(cell);
-    fragment.append(tableRow);
+  renderEmptyPlacesTableView({
+    rows,
+    hasRequiredInput: Boolean(state.sourceDrawioXml) && state.parsedOmradePlatsColumnIndex !== null && state.excelRows.length > 0,
+    sortColumn: state.emptyPlacesSortColumn,
+    sortDirection: state.emptyPlacesSortDirection,
+    elements: emptyPlacesElements,
+    onSort: sortEmptyPlaces
   });
-
-  tbody.append(fragment);
-  emptyPlacesTable.append(thead, tbody);
-  emptyPlacesMeta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.`;
-  emptyPlacesWrap.hidden = false;
 }
 
 function getSortedEmptyPlaceRows() {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { renderDuplicateMapPlacesTable } from "../assets/js/renderers.js";
+import { renderDuplicateMapPlacesTable, renderEmptyPlacesTable } from "../assets/js/renderers.js";
 
-function createDuplicateMapPlacesElements() {
+function createTablePanelElements() {
   document.body.innerHTML = `
     <section id="panel" hidden>
       <p id="meta"></p>
@@ -17,6 +17,10 @@ function createDuplicateMapPlacesElements() {
     wrap: document.querySelector("#wrap"),
     table: document.querySelector("#table")
   };
+}
+
+function createDuplicateMapPlacesElements() {
+  return createTablePanelElements();
 }
 
 describe("renderDuplicateMapPlacesTable", () => {
@@ -56,5 +60,65 @@ describe("renderDuplicateMapPlacesTable", () => {
     expect(elements.table.textContent).toContain("Antal rutor");
     expect(elements.table.textContent).toContain("54");
     expect(elements.table.textContent).toContain("2");
+  });
+});
+
+describe("renderEmptyPlacesTable", () => {
+  it("hides the panel when Excel or map input is missing", () => {
+    const elements = createTablePanelElements();
+
+    renderEmptyPlacesTable({
+      rows: [],
+      hasRequiredInput: false,
+      sortColumn: "place",
+      sortDirection: "asc",
+      elements,
+      onSort: () => {}
+    });
+
+    expect(elements.panel.hidden).toBe(true);
+    expect(elements.wrap.hidden).toBe(true);
+    expect(elements.meta.textContent).toBe("Ladda upp Excel och karta för att se platser som saknas i Excel.");
+  });
+
+  it("shows an empty message when all map places exist in Excel", () => {
+    const elements = createTablePanelElements();
+
+    renderEmptyPlacesTable({
+      rows: [],
+      hasRequiredInput: true,
+      sortColumn: "place",
+      sortDirection: "asc",
+      elements,
+      onSort: () => {}
+    });
+
+    expect(elements.panel.hidden).toBe(false);
+    expect(elements.wrap.hidden).toBe(true);
+    expect(elements.meta.textContent).toBe("Alla platser i kartan finns i Excel.");
+  });
+
+  it("renders missing Excel places and wires the sort button", () => {
+    const elements = createTablePanelElements();
+    const sortedColumns = [];
+
+    renderEmptyPlacesTable({
+      rows: [{ place: "57" }],
+      hasRequiredInput: true,
+      sortColumn: "place",
+      sortDirection: "desc",
+      elements,
+      onSort: (column) => sortedColumns.push(column)
+    });
+
+    expect(elements.panel.hidden).toBe(false);
+    expect(elements.wrap.hidden).toBe(false);
+    expect(elements.meta.textContent).toBe("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
+    expect(elements.table.textContent).toContain("Plats v");
+    expect(elements.table.textContent).toContain("57");
+
+    elements.table.querySelector("button").click();
+
+    expect(sortedColumns).toEqual(["place"]);
   });
 });
