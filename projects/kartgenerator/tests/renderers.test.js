@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { renderColumnsList, renderDuplicateMapPlacesTable, renderEmptyPlacesTable, renderMissingPeopleTable } from "../assets/js/renderers.js";
+import {
+  renderColumnsList,
+  renderDuplicateMapPlacesTable,
+  renderEmptyPlacesTable,
+  renderMissingPeopleTable,
+  renderSelectedDataTable
+} from "../assets/js/renderers.js";
 
 function createTablePanelElements() {
   document.body.innerHTML = `
@@ -47,6 +53,25 @@ function createColumnsElements() {
   return {
     meta: document.querySelector("#meta"),
     list: document.querySelector("#list")
+  };
+}
+
+function createSelectedTableElements() {
+  document.body.innerHTML = `
+    <h2 id="title"></h2>
+    <p id="meta"></p>
+    <p id="duplicate-warning"></p>
+    <div id="wrap" hidden>
+      <table id="table"></table>
+    </div>
+  `;
+
+  return {
+    title: document.querySelector("#title"),
+    meta: document.querySelector("#meta"),
+    wrap: document.querySelector("#wrap"),
+    table: document.querySelector("#table"),
+    duplicateWarning: document.querySelector("#duplicate-warning")
   };
 }
 
@@ -99,6 +124,102 @@ describe("renderColumnsList", () => {
       { columnIndex: 1, isSelected: false },
       { columnIndex: 2, isSelected: true }
     ]);
+  });
+});
+
+describe("renderSelectedDataTable", () => {
+  const excelColumns = [
+    { index: 0, name: "Område/Plats" },
+    { index: 1, name: "Förnamn" },
+    { index: 2, name: "Efternamn" }
+  ];
+
+  it("shows a message when no columns are selected", () => {
+    const elements = createSelectedTableElements();
+
+    renderSelectedDataTable({
+      rows: [],
+      visibleRowCount: 0,
+      selectedColumnIndexes: [],
+      parsedOmradePlatsColumnIndex: 0,
+      excelColumns,
+      sortColumnIndex: null,
+      sortDirection: "asc",
+      duplicatePlaces: [],
+      elements,
+      getColumnDisplayName: (column) => column.name,
+      isDuplicateRow: () => false,
+      onSort: () => {}
+    });
+
+    expect(elements.title.textContent).toBe("Vald data");
+    expect(elements.meta.textContent).toBe("Välj kolumner för att skapa en tabell.");
+    expect(elements.wrap.hidden).toBe(true);
+    expect(elements.duplicateWarning.hidden).toBe(true);
+    expect(elements.table.children).toHaveLength(0);
+  });
+
+  it("shows a message when selected data has no rows", () => {
+    const elements = createSelectedTableElements();
+
+    renderSelectedDataTable({
+      rows: [],
+      visibleRowCount: 0,
+      selectedColumnIndexes: [1, 2],
+      parsedOmradePlatsColumnIndex: 0,
+      excelColumns,
+      sortColumnIndex: null,
+      sortDirection: "asc",
+      duplicatePlaces: [],
+      elements,
+      getColumnDisplayName: (column) => column.name,
+      isDuplicateRow: () => false,
+      onSort: () => {}
+    });
+
+    expect(elements.title.textContent).toBe("Vald data");
+    expect(elements.meta.textContent).toBe("Inga datarader hittades under rubrikraden.");
+    expect(elements.wrap.hidden).toBe(true);
+    expect(elements.duplicateWarning.hidden).toBe(true);
+  });
+
+  it("renders selected rows and reports sort clicks", () => {
+    const elements = createSelectedTableElements();
+    const sortedColumns = [];
+
+    renderSelectedDataTable({
+      rows: [
+        { 1: "Anna", 2: "Andersson", rawOmradePlats: "Brygga 54" },
+        { 1: "Bertil", 2: "Bengtsson", rawOmradePlats: "Brygga 55" }
+      ],
+      visibleRowCount: 2,
+      selectedColumnIndexes: [1, 2],
+      parsedOmradePlatsColumnIndex: 0,
+      excelColumns,
+      sortColumnIndex: 1,
+      sortDirection: "desc",
+      duplicatePlaces: ["54"],
+      elements,
+      getColumnDisplayName: (column) => column.name,
+      isDuplicateRow: (row) => row.rawOmradePlats === "Brygga 54",
+      onSort: (columnIndex) => sortedColumns.push(columnIndex)
+    });
+
+    expect(elements.title.textContent).toBe("Vald data (2 rader)");
+    expect(elements.meta.textContent).toBe("");
+    expect(elements.wrap.hidden).toBe(false);
+    expect(elements.duplicateWarning.hidden).toBe(false);
+    expect(elements.duplicateWarning.textContent).toBe("Varning: flera medlemmar har samma plats: 54.");
+    expect(elements.table.textContent).toContain("Område/Plats");
+    expect(elements.table.textContent).toContain("Förnamn v");
+    expect(elements.table.textContent).toContain("Efternamn");
+    expect(elements.table.textContent).toContain("Brygga 54");
+    expect(elements.table.textContent).toContain("Anna");
+    expect(elements.table.querySelector("tbody tr").classList.contains("has-duplicate-place")).toBe(true);
+
+    elements.table.querySelector("button").click();
+
+    expect(sortedColumns).toEqual([1]);
   });
 });
 

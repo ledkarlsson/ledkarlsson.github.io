@@ -49,6 +49,107 @@ export function renderColumnsList({ columns, sheetName, selectedColumnIndexes, e
   });
 }
 
+export function renderSelectedDataTable({
+  rows,
+  visibleRowCount,
+  selectedColumnIndexes,
+  parsedOmradePlatsColumnIndex,
+  excelColumns,
+  sortColumnIndex,
+  sortDirection,
+  duplicatePlaces,
+  elements,
+  getColumnDisplayName,
+  isDuplicateRow,
+  onSort
+}) {
+  const { title, meta, wrap, table, duplicateWarning } = elements;
+
+  table.replaceChildren();
+  title.textContent = "Vald data";
+
+  if (selectedColumnIndexes.length === 0) {
+    meta.textContent = "Välj kolumner för att skapa en tabell.";
+    duplicateWarning.hidden = true;
+    wrap.hidden = true;
+    return;
+  }
+
+  if (visibleRowCount === 0) {
+    meta.textContent = "Inga datarader hittades under rubrikraden.";
+    duplicateWarning.hidden = true;
+    wrap.hidden = true;
+    return;
+  }
+
+  duplicateWarning.hidden = duplicatePlaces.length === 0;
+  duplicateWarning.textContent = duplicatePlaces.length === 0
+    ? ""
+    : `Varning: flera medlemmar har samma plats: ${duplicatePlaces.join(", ")}.`;
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  if (parsedOmradePlatsColumnIndex !== null) {
+    const headerCell = document.createElement("th");
+
+    headerCell.textContent = "Område/Plats";
+    headerRow.append(headerCell);
+  }
+
+  selectedColumnIndexes.forEach((columnIndex) => {
+    const headerCell = document.createElement("th");
+    const button = document.createElement("button");
+    const directionMarker = sortColumnIndex === columnIndex
+      ? ` ${sortDirection === "asc" ? "^" : "v"}`
+      : "";
+
+    button.className = "sort-button";
+    button.type = "button";
+    button.textContent = `${getColumnDisplayName(excelColumns[columnIndex])}${directionMarker}`;
+    button.addEventListener("click", () => onSort(columnIndex));
+    headerCell.append(button);
+    headerRow.append(headerCell);
+  });
+
+  thead.append(headerRow);
+
+  const tbody = document.createElement("tbody");
+  const bodyFragment = document.createDocumentFragment();
+
+  rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    if (isDuplicateRow(row)) {
+      tableRow.classList.add("has-duplicate-place");
+    }
+
+    if (parsedOmradePlatsColumnIndex !== null) {
+      const cell = document.createElement("td");
+      const value = row.rawOmradePlats;
+
+      cell.textContent = value === null || value === undefined ? "" : String(value);
+      tableRow.append(cell);
+    }
+
+    selectedColumnIndexes.forEach((columnIndex) => {
+      const cell = document.createElement("td");
+      const value = row[columnIndex];
+
+      cell.textContent = value === null || value === undefined ? "" : String(value);
+      tableRow.append(cell);
+    });
+
+    bodyFragment.append(tableRow);
+  });
+
+  tbody.append(bodyFragment);
+  table.append(thead, tbody);
+  title.textContent = `Vald data (${visibleRowCount} ${visibleRowCount === 1 ? "rad" : "rader"})`;
+  meta.textContent = "";
+  wrap.hidden = false;
+}
+
 export function renderMissingPeopleTable({ rows, sortColumn, sortDirection, elements, onSort }) {
   const { panel, meta, wrap, table, addButton, downloadButton } = elements;
 

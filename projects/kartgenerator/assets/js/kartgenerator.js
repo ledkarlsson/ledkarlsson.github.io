@@ -34,7 +34,8 @@ import {
   renderColumnsList,
   renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
   renderEmptyPlacesTable as renderEmptyPlacesTableView,
-  renderMissingPeopleTable as renderMissingPeopleTableView
+  renderMissingPeopleTable as renderMissingPeopleTableView,
+  renderSelectedDataTable
 } from "./renderers.js"
 
 const uploadZone = document.querySelector("#upload-zone");
@@ -108,6 +109,13 @@ const tablePanel = document.querySelector("#table-panel");
 const tableTitle = document.querySelector("#table-title");
 const tableWrap = document.querySelector("#table-wrap");
 const selectedTable = document.querySelector("#selected-table");
+const selectedTableElements = {
+  title: tableTitle,
+  meta: tableMeta,
+  wrap: tableWrap,
+  table: selectedTable,
+  duplicateWarning: duplicatePlaceWarning
+};
 const emptyPlacesPanel = document.querySelector("#empty-places-panel");
 const emptyPlacesMeta = document.querySelector("#empty-places-meta");
 const emptyPlacesWrap = document.querySelector("#empty-places-wrap");
@@ -482,21 +490,9 @@ function sortSelectedTable(columnIndex) {
   });
 }
 
-function updateDuplicatePlaceWarning(duplicatePlaces) {
-  duplicatePlaceWarning.hidden = duplicatePlaces.length === 0;
-
-  if (duplicatePlaces.length === 0) {
-    duplicatePlaceWarning.textContent = "";
-    return;
-  }
-
-  duplicatePlaceWarning.textContent = `Varning: flera medlemmar har samma plats: ${duplicatePlaces.join(", ")}.`;
-}
-
 function renderSelectedTable(options = {}) {
   const shouldUpdateGeneratedDiagram = options.updateGeneratedDiagram !== false;
 
-  selectedTable.replaceChildren();
   updateParseControlsVisibility();
 
   if (state.selectedTableSortColumnIndex !== null && !state.selectedColumnIndexes.includes(state.selectedTableSortColumnIndex)) {
@@ -504,10 +500,20 @@ function renderSelectedTable(options = {}) {
   }
 
   if (state.selectedColumnIndexes.length === 0) {
-    tableTitle.textContent = "Vald data";
-    tableMeta.textContent = "Välj kolumner för att skapa en tabell.";
-    duplicatePlaceWarning.hidden = true;
-    tableWrap.hidden = true;
+    renderSelectedDataTable({
+      rows: [],
+      visibleRowCount: 0,
+      selectedColumnIndexes: state.selectedColumnIndexes,
+      parsedOmradePlatsColumnIndex: state.parsedOmradePlatsColumnIndex,
+      excelColumns: state.excelColumns,
+      sortColumnIndex: state.selectedTableSortColumnIndex,
+      sortDirection: state.selectedTableSortDirection,
+      duplicatePlaces: [],
+      elements: selectedTableElements,
+      getColumnDisplayName,
+      isDuplicateRow: () => false,
+      onSort: sortSelectedTable
+    });
     updateMissingPeopleList();
     updateEmptyPlacesList();
     if (shouldUpdateGeneratedDiagram) {
@@ -521,10 +527,20 @@ function renderSelectedTable(options = {}) {
   updateEmptyPlacesList();
 
   if (visibleRows.length === 0) {
-    tableTitle.textContent = "Vald data";
-    tableMeta.textContent = "Inga datarader hittades under rubrikraden.";
-    duplicatePlaceWarning.hidden = true;
-    tableWrap.hidden = true;
+    renderSelectedDataTable({
+      rows: [],
+      visibleRowCount: 0,
+      selectedColumnIndexes: state.selectedColumnIndexes,
+      parsedOmradePlatsColumnIndex: state.parsedOmradePlatsColumnIndex,
+      excelColumns: state.excelColumns,
+      sortColumnIndex: state.selectedTableSortColumnIndex,
+      sortDirection: state.selectedTableSortDirection,
+      duplicatePlaces: [],
+      elements: selectedTableElements,
+      getColumnDisplayName,
+      isDuplicateRow: () => false,
+      onSort: sortSelectedTable
+    });
     updateEmptyPlacesList();
     if (shouldUpdateGeneratedDiagram) {
       updateGeneratedDiagram();
@@ -534,65 +550,20 @@ function renderSelectedTable(options = {}) {
 
   const sortedRows = getSortedSelectedRows(visibleRows);
   const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows, state.parsedOmradePlatsColumnIndex);
-  updateDuplicatePlaceWarning(duplicatePlaces);
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  if (state.parsedOmradePlatsColumnIndex !== null) {
-    const headerCell = document.createElement("th");
-    headerCell.textContent = "Område/Plats";
-    headerRow.append(headerCell);
-  }
-
-  state.selectedColumnIndexes.forEach((columnIndex) => {
-    const headerCell = document.createElement("th");
-    const button = document.createElement("button");
-    const directionMarker = state.selectedTableSortColumnIndex === columnIndex
-      ? ` ${state.selectedTableSortDirection === "asc" ? "^" : "v"}`
-      : "";
-
-    button.className = "sort-button";
-    button.type = "button";
-    button.textContent = `${getColumnDisplayName(state.excelColumns[columnIndex])}${directionMarker}`;
-    button.addEventListener("click", () => sortSelectedTable(columnIndex));
-    headerCell.append(button);
-    headerRow.append(headerCell);
+  renderSelectedDataTable({
+    rows: sortedRows,
+    visibleRowCount: visibleRows.length,
+    selectedColumnIndexes: state.selectedColumnIndexes,
+    parsedOmradePlatsColumnIndex: state.parsedOmradePlatsColumnIndex,
+    excelColumns: state.excelColumns,
+    sortColumnIndex: state.selectedTableSortColumnIndex,
+    sortDirection: state.selectedTableSortDirection,
+    duplicatePlaces,
+    elements: selectedTableElements,
+    getColumnDisplayName,
+    isDuplicateRow: (row) => hasDuplicatePlace(row, duplicatePlaceCodes, state.parsedOmradePlatsColumnIndex),
+    onSort: sortSelectedTable
   });
-
-  thead.append(headerRow);
-
-  const tbody = document.createElement("tbody");
-  const bodyFragment = document.createDocumentFragment();
-
-  sortedRows.forEach((row) => {
-    const tableRow = document.createElement("tr");
-
-    if (hasDuplicatePlace(row, duplicatePlaceCodes, state.parsedOmradePlatsColumnIndex)) {
-      tableRow.classList.add("has-duplicate-place");
-    }
-
-    if (state.parsedOmradePlatsColumnIndex !== null) {
-      const cell = document.createElement("td");
-      const value = row.rawOmradePlats;
-      cell.textContent = value === null || value === undefined ? "" : String(value);
-      tableRow.append(cell);
-    }
-
-    state.selectedColumnIndexes.forEach((columnIndex) => {
-      const cell = document.createElement("td");
-      const value = row[columnIndex];
-      cell.textContent = value === null || value === undefined ? "" : String(value);
-      tableRow.append(cell);
-    });
-
-    bodyFragment.append(tableRow);
-  });
-
-  tbody.append(bodyFragment);
-  selectedTable.append(thead, tbody);
-  tableTitle.textContent = `Vald data (${visibleRows.length} ${visibleRows.length === 1 ? "rad" : "rader"})`;
-  tableMeta.textContent = "";
-  tableWrap.hidden = false;
   if (shouldUpdateGeneratedDiagram) {
     updateGeneratedDiagram();
   }
