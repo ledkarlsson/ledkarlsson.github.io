@@ -20,7 +20,7 @@ The JavaScript is gradually being split by responsibility:
 - `assets/js/drawio-model.js` contains draw.io XML model behavior: cleaning generated metadata, interpreting place labels, adding/removing temporary highlights, new-place constants, and generated/clean map helpers.
 - `assets/js/drawio.js` contains smaller map-reading helpers that extract places from draw.io XML.
 - `assets/js/kartgenerator-utils.js` contains shared text and column utilities, including column-name normalization, place-code normalization, and parsing `Område/Plats`.
-- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
+- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels and controls, including the Excel column list and diagnostic tables. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
 
 The tests mirror this split:
 
@@ -34,7 +34,7 @@ The kartgenerator is now feature-complete enough that the main risk is no longer
 Suggested future refactoring, in priority order:
 
 1. Continue extracting renderers.
-   `renderers.js` currently owns the missing-people, map-places-missing-in-Excel, and duplicate-map-place panels. Good next candidates are the selected-data table, columns list, and download/example menus. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
+   `renderers.js` currently owns the Excel column list plus the missing-people, map-places-missing-in-Excel, and duplicate-map-place panels. Good next candidates are the selected-data table and the download/example menus. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
 
 2. Continue centralizing state transitions.
    `state.js` now owns resets and important draw.io transitions. Good next candidates are selected-column changes, parse-source changes, diagnostics row updates, and table sort state. The goal is that `kartgenerator.js` reads state freely but changes it through named transitions when fields belong together.

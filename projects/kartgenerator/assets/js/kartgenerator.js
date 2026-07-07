@@ -31,6 +31,7 @@ import {
   state
 } from "./state.js"
 import {
+  renderColumnsList,
   renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
   renderEmptyPlacesTable as renderEmptyPlacesTableView,
   renderMissingPeopleTable as renderMissingPeopleTableView
@@ -92,6 +93,10 @@ const columnsMeta = document.querySelector("#columns-meta");
 const columnsPanel = document.querySelector("#columns-panel");
 const columnsList = document.querySelector("#columns-list");
 const selectedColumnsStatus = document.querySelector("#selected-columns");
+const columnsElements = {
+  meta: columnsMeta,
+  list: columnsList
+};
 const parseControls = document.querySelector("#parse-controls");
 const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
 const showPlaceNumberInput = document.querySelector("#show-place-number");
@@ -594,55 +599,20 @@ function renderSelectedTable(options = {}) {
 }
 
 function renderColumns(columns, sheetName) {
-  columnsList.replaceChildren();
   state.excelColumns = columns;
   state.selectedColumnIndexes = ["omrade/plats", "fornamn", "efternamn"]
     .map((columnName) => columns.find((column) => normalizeColumnName(column.name) === columnName))
     .filter(Boolean)
     .map((column) => column.index);
 
-  if (columns.length === 0) {
-    columnsMeta.textContent = `Inga kolumner hittades i "${sheetName}".`;
-    updateSelectedColumnsStatus();
-    renderSelectedTable();
-    return;
-  }
-
-  const requiredColumnCount = columns.filter(isRequiredColumn).length;
-  const visibleColumnCount = columns.length - requiredColumnCount;
-
-  columnsMeta.textContent = `${visibleColumnCount} ${visibleColumnCount === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}". Samt matchningskolumn område/plats. Välj vilken data som ska in i kartan.`;
-
-  columns.forEach((columnName) => {
-    if (isRequiredColumn(columnName)) {
-      return;
-    }
-
-    const item = document.createElement("li");
-    const button = document.createElement("button");
-    const columnIndex = columnName.index;
-
-    button.className = "column-button";
-    button.type = "button";
-    button.textContent = columnName.name;
-
-    if (state.selectedColumnIndexes.includes(columnIndex)) {
-      button.classList.add("is-selected");
-      button.setAttribute("aria-pressed", "true");
-    } else {
-      button.setAttribute("aria-pressed", "false");
-    }
-
-    button.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-    });
-
-    button.addEventListener("click", () => {
+  renderColumnsList({
+    columns,
+    sheetName,
+    selectedColumnIndexes: state.selectedColumnIndexes,
+    elements: columnsElements,
+    isRequiredColumn,
+    onToggleColumn: (columnIndex, isSelected) => {
       preserveWindowScroll(() => {
-        const isSelected = button.classList.toggle("is-selected");
-
-        button.setAttribute("aria-pressed", String(isSelected));
-
         if (isSelected) {
           state.selectedColumnIndexes.push(columnIndex);
         } else {
@@ -652,10 +622,7 @@ function renderColumns(columns, sheetName) {
         updateSelectedColumnsStatus();
         renderSelectedTable();
       });
-    });
-
-    item.append(button);
-    columnsList.append(item);
+    }
   });
 
   updateSelectedColumnsStatus();

@@ -1,3 +1,54 @@
+export function renderColumnsList({ columns, sheetName, selectedColumnIndexes, elements, isRequiredColumn, onToggleColumn }) {
+  const { meta, list } = elements;
+
+  list.replaceChildren();
+
+  if (columns.length === 0) {
+    meta.textContent = `Inga kolumner hittades i "${sheetName}".`;
+    return;
+  }
+
+  const requiredColumnCount = columns.filter(isRequiredColumn).length;
+  const visibleColumnCount = columns.length - requiredColumnCount;
+
+  meta.textContent = `${visibleColumnCount} ${visibleColumnCount === 1 ? "kolumn hittades" : "kolumner hittades"} i "${sheetName}". Samt matchningskolumn område/plats. Välj vilken data som ska in i kartan.`;
+
+  columns.forEach((column) => {
+    if (isRequiredColumn(column)) {
+      return;
+    }
+
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    const columnIndex = column.index;
+
+    button.className = "column-button";
+    button.type = "button";
+    button.textContent = column.name;
+
+    if (selectedColumnIndexes.includes(columnIndex)) {
+      button.classList.add("is-selected");
+      button.setAttribute("aria-pressed", "true");
+    } else {
+      button.setAttribute("aria-pressed", "false");
+    }
+
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+    });
+
+    button.addEventListener("click", () => {
+      const isSelected = button.classList.toggle("is-selected");
+
+      button.setAttribute("aria-pressed", String(isSelected));
+      onToggleColumn(columnIndex, isSelected);
+    });
+
+    item.append(button);
+    list.append(item);
+  });
+}
+
 export function renderMissingPeopleTable({ rows, sortColumn, sortDirection, elements, onSort }) {
   const { panel, meta, wrap, table, addButton, downloadButton } = elements;
 

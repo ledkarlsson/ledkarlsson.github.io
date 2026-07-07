@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderDuplicateMapPlacesTable, renderEmptyPlacesTable, renderMissingPeopleTable } from "../assets/js/renderers.js";
+import { renderColumnsList, renderDuplicateMapPlacesTable, renderEmptyPlacesTable, renderMissingPeopleTable } from "../assets/js/renderers.js";
 
 function createTablePanelElements() {
   document.body.innerHTML = `
@@ -37,6 +37,70 @@ function createMissingPeopleElements() {
 function createDuplicateMapPlacesElements() {
   return createTablePanelElements();
 }
+
+function createColumnsElements() {
+  document.body.innerHTML = `
+    <p id="meta"></p>
+    <ul id="list"></ul>
+  `;
+
+  return {
+    meta: document.querySelector("#meta"),
+    list: document.querySelector("#list")
+  };
+}
+
+describe("renderColumnsList", () => {
+  it("renders an empty column message", () => {
+    const elements = createColumnsElements();
+
+    renderColumnsList({
+      columns: [],
+      sheetName: "Rapport",
+      selectedColumnIndexes: [],
+      elements,
+      isRequiredColumn: () => false,
+      onToggleColumn: () => {}
+    });
+
+    expect(elements.meta.textContent).toBe('Inga kolumner hittades i "Rapport".');
+    expect(elements.list.children).toHaveLength(0);
+  });
+
+  it("renders non-required column buttons and reports toggles", () => {
+    const elements = createColumnsElements();
+    const toggles = [];
+
+    renderColumnsList({
+      columns: [
+        { index: 0, name: "Område/Plats" },
+        { index: 1, name: "Förnamn" },
+        { index: 2, name: "Efternamn" }
+      ],
+      sheetName: "Rapport",
+      selectedColumnIndexes: [1],
+      elements,
+      isRequiredColumn: (column) => column.name === "Område/Plats",
+      onToggleColumn: (columnIndex, isSelected) => toggles.push({ columnIndex, isSelected })
+    });
+
+    const buttons = [...elements.list.querySelectorAll("button")];
+
+    expect(elements.meta.textContent).toBe('2 kolumner hittades i "Rapport". Samt matchningskolumn område/plats. Välj vilken data som ska in i kartan.');
+    expect(buttons.map((button) => button.textContent)).toEqual(["Förnamn", "Efternamn"]);
+    expect(buttons[0].classList.contains("is-selected")).toBe(true);
+    expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
+    expect(buttons[1].getAttribute("aria-pressed")).toBe("false");
+
+    buttons[0].click();
+    buttons[1].click();
+
+    expect(toggles).toEqual([
+      { columnIndex: 1, isSelected: false },
+      { columnIndex: 2, isSelected: true }
+    ]);
+  });
+});
 
 describe("renderMissingPeopleTable", () => {
   it("hides the panel and disables actions when there are no missing people", () => {
