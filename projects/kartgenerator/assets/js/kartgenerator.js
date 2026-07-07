@@ -31,13 +31,13 @@ import {
   state
 } from "./state.js"
 import {
-  renderColumnsList,
-  renderClearedExcelState,
-  renderDuplicateMapPlacesTable as renderDuplicateMapPlacesTableView,
-  renderEmptyPlacesTable as renderEmptyPlacesTableView,
-  renderMissingPeopleTable as renderMissingPeopleTableView,
-  renderSelectedColumnsStatus,
-  renderSelectedDataTable
+  renderColumnsList as showColumnsList,
+  renderClearedExcelState as showClearedExcelState,
+  renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
+  renderEmptyPlacesTable as showEmptyPlacesTableView,
+  renderMissingPeopleTable as showMissingPeopleTableView,
+  renderSelectedColumnsStatus as showSelectedColumnsStatus,
+  renderSelectedDataTable as showSelectedDataTable
 } from "./renderers.js"
 
 const uploadZone = document.querySelector("#upload-zone");
@@ -272,10 +272,10 @@ function downloadBlob(blob, fileName) {
 }
 
 function clearColumns(message) {
-  renderClearedExcelState({ message, elements: clearedExcelElements });
+  showClearedExcelState({ message, elements: clearedExcelElements });
   resetExcelState();
   resetDiagnosticsState();
-  renderSelectedTable();
+  updateSelectedTable();
   updateGeneratedDiagram();
   updateMissingPeopleList();
   updateEmptyPlacesList();
@@ -288,7 +288,7 @@ function updateSelectedColumnsStatus() {
     .filter((column) => column && !isRequiredColumn(column))
     .map((column) => column.name);
 
-  renderSelectedColumnsStatus({
+  showSelectedColumnsStatus({
     columnNames: visibleColumnNames,
     element: selectedColumnsStatus
   });
@@ -404,7 +404,7 @@ function reparseRows(shouldDetectParseSource = false) {
   }
 
   state.excelRows = parseRows(state.excelColumns, state.rawExcelRows, shouldDetectParseSource);
-  renderSelectedTable();
+    updateSelectedTable();
 }
 
 function updateParseControlsVisibility() {
@@ -489,11 +489,11 @@ function sortSelectedTable(columnIndex) {
       state.selectedTableSortDirection = "asc";
     }
 
-    renderSelectedTable();
+    updateSelectedTable();
   });
 }
 
-function renderSelectedTable(options = {}) {
+function updateSelectedTable(options = {}) {
   const shouldUpdateGeneratedDiagram = options.updateGeneratedDiagram !== false;
 
   updateParseControlsVisibility();
@@ -503,7 +503,7 @@ function renderSelectedTable(options = {}) {
   }
 
   if (state.selectedColumnIndexes.length === 0) {
-    renderSelectedDataTable({
+    showSelectedDataTable({
       rows: [],
       visibleRowCount: 0,
       selectedColumnIndexes: state.selectedColumnIndexes,
@@ -530,7 +530,7 @@ function renderSelectedTable(options = {}) {
   updateEmptyPlacesList();
 
   if (visibleRows.length === 0) {
-    renderSelectedDataTable({
+    showSelectedDataTable({
       rows: [],
       visibleRowCount: 0,
       selectedColumnIndexes: state.selectedColumnIndexes,
@@ -553,7 +553,7 @@ function renderSelectedTable(options = {}) {
 
   const sortedRows = getSortedSelectedRows(visibleRows);
   const { duplicatePlaces, duplicatePlaceCodes } = getDuplicatePlaceInfo(visibleRows, state.parsedOmradePlatsColumnIndex);
-  renderSelectedDataTable({
+  showSelectedDataTable({
     rows: sortedRows,
     visibleRowCount: visibleRows.length,
     selectedColumnIndexes: state.selectedColumnIndexes,
@@ -572,14 +572,14 @@ function renderSelectedTable(options = {}) {
   }
 }
 
-function renderColumns(columns, sheetName) {
+function updateColumns(columns, sheetName) {
   state.excelColumns = columns;
   state.selectedColumnIndexes = ["omrade/plats", "fornamn", "efternamn"]
     .map((columnName) => columns.find((column) => normalizeColumnName(column.name) === columnName))
     .filter(Boolean)
     .map((column) => column.index);
 
-  renderColumnsList({
+  showColumnsList({
     columns,
     sheetName,
     selectedColumnIndexes: state.selectedColumnIndexes,
@@ -594,13 +594,13 @@ function renderColumns(columns, sheetName) {
         }
 
         updateSelectedColumnsStatus();
-        renderSelectedTable();
+        updateSelectedTable();
       });
     }
   });
 
   updateSelectedColumnsStatus();
-  renderSelectedTable();
+  updateSelectedTable();
 }
 
 function readColumns(file) {
@@ -638,7 +638,7 @@ function readColumns(file) {
 
       state.rawExcelRows = rows.slice(headerRowIndex + 1);
       state.excelRows = parseRows(columns, state.rawExcelRows);
-      renderColumns(columns, firstSheetName);
+      updateColumns(columns, firstSheetName);
     } catch (error) {
       fileStatus.textContent = "Kunde inte läsa Excel-filen.";
       fileStatus.classList.add("has-error");
@@ -1130,8 +1130,8 @@ function getColumnIndexByName(columnName) {
   return state.excelColumns.findIndex((column) => normalizeColumnName(column.name) === normalizedName);
 }
 
-function renderMissingPeopleTable(rows) {
-  renderMissingPeopleTableView({
+function showMissingPeopleTable(rows) {
+  showMissingPeopleTableView({
     rows,
     sortColumn: state.missingSortColumn,
     sortDirection: state.missingSortDirection,
@@ -1160,11 +1160,11 @@ function sortMissingPeople(columnKey) {
     state.missingSortDirection = "asc";
   }
 
-  renderMissingPeopleTable(getSortedMissingPeopleRows());
+  showMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
-function renderEmptyPlacesTable(rows) {
-  renderEmptyPlacesTableView({
+function showEmptyPlacesTable(rows) {
+  showEmptyPlacesTableView({
     rows,
     hasRequiredInput: Boolean(state.sourceDrawioXml) && state.parsedOmradePlatsColumnIndex !== null && state.excelRows.length > 0,
     sortColumn: state.emptyPlacesSortColumn,
@@ -1195,12 +1195,12 @@ function sortEmptyPlaces(columnKey) {
       state.emptyPlacesSortDirection = "asc";
     }
 
-    renderEmptyPlacesTable(getSortedEmptyPlaceRows());
+    showEmptyPlacesTable(getSortedEmptyPlaceRows());
   });
 }
 
-function renderDuplicateMapPlacesTable(rows) {
-  renderDuplicateMapPlacesTableView({
+function showDuplicateMapPlacesTable(rows) {
+  showDuplicateMapPlacesTableView({
     rows,
     hasSource: Boolean(state.sourceDrawioXml),
     elements: duplicateMapPlacesElements
@@ -1219,7 +1219,7 @@ function updateDuplicateMapPlacesList(options = {}) {
   const previousKey = getDuplicateMapPlaceKey(state.duplicateMapPlaceRows);
 
   state.duplicateMapPlaceRows = getDuplicateMapPlaceRows(state.sourceDrawioXml);
-  renderDuplicateMapPlacesTable(state.duplicateMapPlaceRows);
+  showDuplicateMapPlacesTable(state.duplicateMapPlaceRows);
 
   const hasChanged = getDuplicateMapPlaceKey(state.duplicateMapPlaceRows) !== previousKey;
 
@@ -1233,7 +1233,7 @@ function updateDuplicateMapPlacesList(options = {}) {
 function updateEmptyPlacesList() {
   if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
     state.emptyPlaceRows = [];
-    renderEmptyPlacesTable([]);
+    showEmptyPlacesTable([]);
     if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer && state.sourceDrawioXml) {
       loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
     }
@@ -1242,7 +1242,7 @@ function updateEmptyPlacesList() {
 
   state.emptyPlaceRows = getEmptyMapPlaceRows(state.sourceDrawioXml, state.excelRows, state.parsedOmradePlatsColumnIndex);
 
-  renderEmptyPlacesTable(getSortedEmptyPlaceRows());
+  showEmptyPlacesTable(getSortedEmptyPlaceRows());
 
   if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer) {
     loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
@@ -1267,7 +1267,7 @@ function updateMissingPeopleList() {
     firstNameColumnIndex,
     lastNameColumnIndex
   });
-  renderMissingPeopleTable(getSortedMissingPeopleRows());
+  showMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
 function updateSourceDrawioXml(xml) {
@@ -1716,7 +1716,7 @@ parseSourceInputs.forEach((input) => {
 
 showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
 showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => renderSelectedTable({ updateGeneratedDiagram: false })));
+showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => updateSelectedTable({ updateGeneratedDiagram: false })));
 helpButtons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
