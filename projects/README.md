@@ -21,7 +21,7 @@ The JavaScript is gradually being split by responsibility:
 - `assets/js/drawio.js` contains smaller map-reading helpers that extract places from draw.io XML.
 - `assets/js/drawio-embed.js` contains the diagrams.net iframe integration: editor configuration, load/merge messages, delayed loading until the iframe is visible, PNG export messages, and routing incoming iframe events to app callbacks.
 - `assets/js/kartgenerator-utils.js` contains shared text and column utilities, including column-name normalization, place-code normalization, and parsing `Område/Plats`.
-- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels and controls, including the Excel column list, selected-data table, diagnostic tables, and small Excel status/reset blocks. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
+- `assets/js/renderers.js` contains DOM rendering helpers for extracted panels and controls, including the Excel column list, selected-data table, diagnostic tables, draw.io controls, menus, and small Excel status/reset blocks. Renderers receive data, DOM elements, and callbacks as arguments instead of importing global state.
 
 The tests mirror this split:
 
@@ -35,7 +35,7 @@ The kartgenerator is now feature-complete enough that the main risk is no longer
 Suggested future refactoring, in priority order:
 
 1. Continue extracting DOM updates.
-   `renderers.js` currently owns all functions named `render*`, including the Excel column list, selected-data table, selected-column status, Excel reset state, missing-people panel, map-places-missing-in-Excel panel, and duplicate-map-place panel. Good next candidates are the download/example menus and draw.io upload/status blocks. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
+   `renderers.js` currently owns all functions named `render*`, including the Excel column list, selected-data table, selected-column status, Excel reset state, missing-people panel, map-places-missing-in-Excel panel, duplicate-map-place panel, draw.io controls, fullscreen button, download menu, and example menus. Good next candidates are draw.io upload/status blocks and Excel upload/status blocks. Renderers should keep receiving explicit `elements`, data, and callbacks rather than importing `state`.
 
 2. Continue centralizing state transitions.
    `state.js` now owns resets and important draw.io transitions. Good next candidates are selected-column changes, parse-source changes, diagnostics row updates, and table sort state. The goal is that `kartgenerator.js` reads state freely but changes it through named transitions when fields belong together.

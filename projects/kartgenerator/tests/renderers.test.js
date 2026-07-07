@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   renderColumnsList,
   renderClearedExcelState,
+  renderClosedExampleMenus,
   renderDuplicateMapPlacesTable,
+  renderDownloadMenu,
+  renderDrawioControls,
   renderEmptyPlacesTable,
+  renderExampleMenu,
+  renderFullscreenButton,
   renderMissingPeopleTable,
   renderSelectedColumnsStatus,
   renderSelectedDataTable
@@ -101,6 +106,38 @@ function createClearedExcelElements() {
   };
 }
 
+function createDrawioControlElements() {
+  document.body.innerHTML = `
+    <section id="actions"></section>
+    <div id="download-menu"></div>
+    <button id="add-place"></button>
+    <button id="show-clean"></button>
+    <button id="show-generated"></button>
+    <div id="generated-options"></div>
+    <button id="download-menu-button"></button>
+    <button id="download-clean-drawio"></button>
+    <button id="download-clean-png"></button>
+    <button id="download-generated-drawio"></button>
+    <button id="download-generated-png"></button>
+    <button id="fullscreen"></button>
+  `;
+
+  return {
+    actions: document.querySelector("#actions"),
+    downloadMenu: document.querySelector("#download-menu"),
+    addPlaceButton: document.querySelector("#add-place"),
+    showCleanButton: document.querySelector("#show-clean"),
+    showGeneratedButton: document.querySelector("#show-generated"),
+    generatedOptions: document.querySelector("#generated-options"),
+    downloadMenuButton: document.querySelector("#download-menu-button"),
+    downloadCleanDrawioButton: document.querySelector("#download-clean-drawio"),
+    downloadCleanPngButton: document.querySelector("#download-clean-png"),
+    downloadGeneratedDrawioButton: document.querySelector("#download-generated-drawio"),
+    downloadGeneratedPngButton: document.querySelector("#download-generated-png"),
+    fullscreenButton: document.querySelector("#fullscreen")
+  };
+}
+
 describe("renderColumnsList", () => {
   it("renders an empty column message", () => {
     const elements = createColumnsElements();
@@ -150,6 +187,114 @@ describe("renderColumnsList", () => {
       { columnIndex: 1, isSelected: false },
       { columnIndex: 2, isSelected: true }
     ]);
+  });
+});
+
+describe("renderFullscreenButton", () => {
+  it("shows the current fullscreen state", () => {
+    const element = document.createElement("button");
+
+    renderFullscreenButton({ isFullscreen: true, element });
+
+    expect(element.textContent).toBe("Avsluta helskärm");
+    expect(element.getAttribute("aria-pressed")).toBe("true");
+
+    renderFullscreenButton({ isFullscreen: false, element });
+
+    expect(element.textContent).toBe("Helskärm");
+    expect(element.getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
+describe("renderDrawioControls", () => {
+  it("disables map controls when no map is loaded", () => {
+    const elements = createDrawioControlElements();
+
+    renderDrawioControls({
+      hasSource: false,
+      hasGenerated: false,
+      currentMode: "clean",
+      fullscreenEnabled: true,
+      isFullscreen: false,
+      elements
+    });
+
+    expect(elements.actions.hidden).toBe(true);
+    expect(elements.downloadMenu.hidden).toBe(true);
+    expect(elements.addPlaceButton.disabled).toBe(true);
+    expect(elements.showCleanButton.disabled).toBe(true);
+    expect(elements.showGeneratedButton.disabled).toBe(true);
+    expect(elements.downloadMenuButton.disabled).toBe(true);
+    expect(elements.fullscreenButton.disabled).toBe(true);
+    expect(elements.fullscreenButton.textContent).toBe("Helskärm");
+  });
+
+  it("enables relevant map controls when generated mode is available", () => {
+    const elements = createDrawioControlElements();
+
+    renderDrawioControls({
+      hasSource: true,
+      hasGenerated: true,
+      currentMode: "generated",
+      fullscreenEnabled: true,
+      isFullscreen: true,
+      elements
+    });
+
+    expect(elements.actions.hidden).toBe(false);
+    expect(elements.downloadMenu.hidden).toBe(false);
+    expect(elements.addPlaceButton.disabled).toBe(false);
+    expect(elements.showCleanButton.disabled).toBe(false);
+    expect(elements.showCleanButton.getAttribute("aria-pressed")).toBe("false");
+    expect(elements.showGeneratedButton.disabled).toBe(true);
+    expect(elements.showGeneratedButton.getAttribute("aria-pressed")).toBe("true");
+    expect(elements.generatedOptions.hidden).toBe(false);
+    expect(elements.downloadGeneratedDrawioButton.disabled).toBe(false);
+    expect(elements.downloadGeneratedPngButton.disabled).toBe(false);
+    expect(elements.fullscreenButton.disabled).toBe(false);
+    expect(elements.fullscreenButton.textContent).toBe("Avsluta helskärm");
+  });
+});
+
+describe("download and example menu renderers", () => {
+  it("renders download menu open and closed states", () => {
+    document.body.innerHTML = `<button id="button"></button><div id="options"></div>`;
+    const elements = {
+      button: document.querySelector("#button"),
+      options: document.querySelector("#options")
+    };
+
+    renderDownloadMenu({ isOpen: true, elements });
+    expect(elements.options.hidden).toBe(false);
+    expect(elements.button.getAttribute("aria-expanded")).toBe("true");
+
+    renderDownloadMenu({ isOpen: false, elements });
+    expect(elements.options.hidden).toBe(true);
+    expect(elements.button.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("renders example menus and closes all example menus", () => {
+    document.body.innerHTML = `
+      <button id="first-button"></button><div id="first-options"></div>
+      <button id="second-button"></button><div id="second-options"></div>
+    `;
+    const first = {
+      button: document.querySelector("#first-button"),
+      options: document.querySelector("#first-options")
+    };
+    const second = {
+      button: document.querySelector("#second-button"),
+      options: document.querySelector("#second-options")
+    };
+
+    renderExampleMenu({ isOpen: true, elements: first });
+    renderExampleMenu({ isOpen: true, elements: second });
+    renderClosedExampleMenus({ menus: [first, second] });
+
+    expect(first.options.hidden).toBe(true);
+    expect(first.button.getAttribute("aria-expanded")).toBe("false");
+    expect(second.options.hidden).toBe(true);
+    expect(second.button.getAttribute("aria-expanded")).toBe("false");
   });
 });
 

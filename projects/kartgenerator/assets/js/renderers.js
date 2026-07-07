@@ -77,6 +77,69 @@ export function renderClearedExcelState({ message, elements }) {
   selectedColumnsStatus.textContent = "";
 }
 
+export function renderFullscreenButton({ isFullscreen, element }) {
+  element.textContent = isFullscreen ? "Avsluta helskärm" : "Helskärm";
+  element.setAttribute("aria-pressed", String(isFullscreen));
+}
+
+export function renderDrawioControls({
+  hasSource,
+  hasGenerated,
+  currentMode,
+  fullscreenEnabled,
+  isFullscreen,
+  elements
+}) {
+  const {
+    actions,
+    downloadMenu,
+    addPlaceButton,
+    showCleanButton,
+    showGeneratedButton,
+    generatedOptions,
+    downloadMenuButton,
+    downloadCleanDrawioButton,
+    downloadCleanPngButton,
+    downloadGeneratedDrawioButton,
+    downloadGeneratedPngButton,
+    fullscreenButton
+  } = elements;
+
+  actions.hidden = !hasSource;
+  downloadMenu.hidden = !hasSource;
+  addPlaceButton.disabled = !hasSource;
+  showCleanButton.disabled = !hasSource || currentMode === "clean";
+  showGeneratedButton.disabled = !hasGenerated || currentMode === "generated";
+  generatedOptions.hidden = currentMode !== "generated" || !hasGenerated;
+  downloadMenuButton.disabled = !hasSource;
+  downloadCleanDrawioButton.disabled = !hasSource;
+  downloadCleanPngButton.disabled = !hasSource;
+  downloadGeneratedDrawioButton.disabled = !hasGenerated;
+  downloadGeneratedPngButton.disabled = !hasGenerated;
+  fullscreenButton.disabled = !hasSource || !fullscreenEnabled;
+  showCleanButton.setAttribute("aria-pressed", String(currentMode === "clean"));
+  showGeneratedButton.setAttribute("aria-pressed", String(currentMode === "generated"));
+  renderFullscreenButton({ isFullscreen, element: fullscreenButton });
+}
+
+export function renderDownloadMenu({ isOpen, elements }) {
+  const { options, button } = elements;
+
+  options.hidden = !isOpen;
+  button.setAttribute("aria-expanded", String(isOpen));
+}
+
+export function renderExampleMenu({ isOpen, elements }) {
+  const { options, button } = elements;
+
+  options.hidden = !isOpen;
+  button.setAttribute("aria-expanded", String(isOpen));
+}
+
+export function renderClosedExampleMenus({ menus }) {
+  menus.forEach((elements) => renderExampleMenu({ isOpen: false, elements }));
+}
+
 export function renderSelectedDataTable({
   rows,
   visibleRowCount,

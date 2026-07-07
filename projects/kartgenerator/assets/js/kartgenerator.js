@@ -40,8 +40,13 @@ import {
 import {
   renderColumnsList as showColumnsList,
   renderClearedExcelState as showClearedExcelState,
+  renderClosedExampleMenus as showClosedExampleMenus,
   renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
+  renderDownloadMenu as showDownloadMenu,
+  renderDrawioControls as showDrawioControls,
   renderEmptyPlacesTable as showEmptyPlacesTableView,
+  renderExampleMenu as showExampleMenu,
+  renderFullscreenButton as showFullscreenButton,
   renderMissingPeopleTable as showMissingPeopleTableView,
   renderSelectedColumnsStatus as showSelectedColumnsStatus,
   renderSelectedDataTable as showSelectedDataTable
@@ -82,6 +87,32 @@ const downloadCleanDrawioButton = document.querySelector("#download-clean-drawio
 const downloadCleanPngButton = document.querySelector("#download-clean-png");
 const downloadGeneratedDrawioButton = document.querySelector("#download-generated-drawio");
 const downloadGeneratedPngButton = document.querySelector("#download-generated-png");
+const drawioControlElements = {
+  actions: drawioActions,
+  downloadMenu,
+  addPlaceButton: addPlaceBoxButton,
+  showCleanButton: showCleanMapButton,
+  showGeneratedButton: showGeneratedMapButton,
+  generatedOptions,
+  downloadMenuButton,
+  downloadCleanDrawioButton,
+  downloadCleanPngButton,
+  downloadGeneratedDrawioButton,
+  downloadGeneratedPngButton,
+  fullscreenButton: fullscreenMapButton
+};
+const downloadMenuElements = {
+  options: downloadOptions,
+  button: downloadMenuButton
+};
+const excelExampleMenuElements = {
+  options: excelExampleOptions,
+  button: excelExampleButton
+};
+const drawioExampleMenuElements = {
+  options: drawioExampleOptions,
+  button: drawioExampleButton
+};
 const missingPanel = document.querySelector("#missing-panel");
 const missingMeta = document.querySelector("#missing-meta");
 const missingWrap = document.querySelector("#missing-wrap");
@@ -804,8 +835,7 @@ function scheduleCleanMapRefresh() {
 function updateFullscreenButton() {
   const isFullscreen = document.fullscreenElement === mapWorkspace;
 
-  fullscreenMapButton.textContent = isFullscreen ? "Avsluta helskärm" : "Helskärm";
-  fullscreenMapButton.setAttribute("aria-pressed", String(isFullscreen));
+  showFullscreenButton({ isFullscreen, element: fullscreenMapButton });
 }
 
 function getCurrentDrawioXml() {
@@ -856,21 +886,14 @@ function updateDrawioButtons() {
   const hasSource = Boolean(state.sourceDrawioXml);
   const hasGenerated = Boolean(state.generatedDrawioXml);
 
-  drawioActions.hidden = !hasSource;
-  downloadMenu.hidden = !hasSource;
-  addPlaceBoxButton.disabled = !hasSource;
-  showCleanMapButton.disabled = !hasSource || state.currentDrawioMode === "clean";
-  showGeneratedMapButton.disabled = !hasGenerated || state.currentDrawioMode === "generated";
-  generatedOptions.hidden = state.currentDrawioMode !== "generated" || !hasGenerated;
-  downloadMenuButton.disabled = !hasSource;
-  downloadCleanDrawioButton.disabled = !hasSource;
-  downloadCleanPngButton.disabled = !hasSource;
-  downloadGeneratedDrawioButton.disabled = !hasGenerated;
-  downloadGeneratedPngButton.disabled = !hasGenerated;
-  fullscreenMapButton.disabled = !hasSource || !document.fullscreenEnabled;
-  showCleanMapButton.setAttribute("aria-pressed", String(state.currentDrawioMode === "clean"));
-  showGeneratedMapButton.setAttribute("aria-pressed", String(state.currentDrawioMode === "generated"));
-  updateFullscreenButton();
+  showDrawioControls({
+    hasSource,
+    hasGenerated,
+    currentMode: state.currentDrawioMode,
+    fullscreenEnabled: document.fullscreenEnabled,
+    isFullscreen: document.fullscreenElement === mapWorkspace,
+    elements: drawioControlElements
+  });
 
   if (!hasSource) {
     closeDownloadMenu();
@@ -912,13 +935,11 @@ function toggleDownloadMenu() {
   const isOpening = downloadOptions.hidden;
 
   closeExampleMenus();
-  downloadOptions.hidden = !isOpening;
-  downloadMenuButton.setAttribute("aria-expanded", String(isOpening));
+  showDownloadMenu({ isOpen: isOpening, elements: downloadMenuElements });
 }
 
 function closeDownloadMenu() {
-  downloadOptions.hidden = true;
-  downloadMenuButton.setAttribute("aria-expanded", "false");
+  showDownloadMenu({ isOpen: false, elements: downloadMenuElements });
 }
 
 function toggleExampleMenu(options, button) {
@@ -926,15 +947,16 @@ function toggleExampleMenu(options, button) {
 
   closeDownloadMenu();
   closeExampleMenus();
-  options.hidden = !isOpening;
-  button.setAttribute("aria-expanded", String(isOpening));
+  showExampleMenu({
+    isOpen: isOpening,
+    elements: { options, button }
+  });
 }
 
 function closeExampleMenus() {
-  excelExampleOptions.hidden = true;
-  drawioExampleOptions.hidden = true;
-  excelExampleButton.setAttribute("aria-expanded", "false");
-  drawioExampleButton.setAttribute("aria-expanded", "false");
+  showClosedExampleMenus({
+    menus: [excelExampleMenuElements, drawioExampleMenuElements]
+  });
 }
 
 function runDownloadAction(action) {
