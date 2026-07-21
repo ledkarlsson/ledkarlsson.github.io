@@ -51,137 +51,25 @@ import {
   renderSelectedColumnsStatus as showSelectedColumnsStatus,
   renderSelectedDataTable as showSelectedDataTable
 } from "./renderers.js"
-import { excelElements } from "./elements.js"
+import {
+  clearedExcelElements,
+  columnsElements,
+  drawioControlElements,
+  drawioElements,
+  drawioExampleElements,
+  downloadMenuElements,
+  duplicateMapPlacesElements,
+  emptyPlacesElements,
+  excelElements,
+  excelExampleElements,
+  helpElements,
+  lastUpdatedElements,
+  missingPeopleElements,
+  parseElements,
+  selectedTableElements,
+  workspaceElements
+} from "./elements.js"
 
-const excelExampleMenu = document.querySelector("#excel-example-menu");
-const excelExampleButton = document.querySelector("#excel-example-button");
-const excelExampleOptions = document.querySelector("#excel-example-options");
-const downloadExampleExcelButton = document.querySelector("#download-example-excel");
-const loadExampleExcelButton = document.querySelector("#load-example-excel");
-const drawioUploadZone = document.querySelector("#drawio-upload-zone");
-const drawioUpload = document.querySelector("#drawio-upload");
-const drawioPanelTitle = document.querySelector("#drawio-panel-title");
-const clearDrawioButton = document.querySelector("#clear-drawio");
-const drawioExampleMenu = document.querySelector("#drawio-example-menu");
-const drawioExampleButton = document.querySelector("#drawio-example-button");
-const drawioExampleOptions = document.querySelector("#drawio-example-options");
-const downloadExampleDrawioButton = document.querySelector("#download-example-drawio");
-const loadExampleDrawioButton = document.querySelector("#load-example-drawio");
-const mapWorkspace = document.querySelector(".workspace");
-const drawioViewer = document.querySelector("#drawio-viewer");
-const drawioFrame = document.querySelector("#drawio-frame");
-const drawioActions = document.querySelector(".drawio-actions");
-const addPlaceBoxButton = document.querySelector("#add-place-box");
-const showCleanMapButton = document.querySelector("#show-clean-map");
-const showGeneratedMapButton = document.querySelector("#show-generated-map");
-const fullscreenMapButton = document.querySelector("#fullscreen-map");
-const generatedOptions = document.querySelector("#generated-options");
-const downloadMenu = document.querySelector("#download-menu");
-const downloadMenuButton = document.querySelector("#download-menu-button");
-const downloadOptions = document.querySelector("#download-options");
-const downloadCleanDrawioButton = document.querySelector("#download-clean-drawio");
-const downloadCleanPngButton = document.querySelector("#download-clean-png");
-const downloadGeneratedDrawioButton = document.querySelector("#download-generated-drawio");
-const downloadGeneratedPngButton = document.querySelector("#download-generated-png");
-const drawioControlElements = {
-  actions: drawioActions,
-  downloadMenu,
-  addPlaceButton: addPlaceBoxButton,
-  showCleanButton: showCleanMapButton,
-  showGeneratedButton: showGeneratedMapButton,
-  generatedOptions,
-  downloadMenuButton,
-  downloadCleanDrawioButton,
-  downloadCleanPngButton,
-  downloadGeneratedDrawioButton,
-  downloadGeneratedPngButton,
-  fullscreenButton: fullscreenMapButton
-};
-const downloadMenuElements = {
-  options: downloadOptions,
-  button: downloadMenuButton
-};
-const excelExampleMenuElements = {
-  options: excelExampleOptions,
-  button: excelExampleButton
-};
-const drawioExampleMenuElements = {
-  options: drawioExampleOptions,
-  button: drawioExampleButton
-};
-const missingPanel = document.querySelector("#missing-panel");
-const missingMeta = document.querySelector("#missing-meta");
-const missingWrap = document.querySelector("#missing-wrap");
-const missingTable = document.querySelector("#missing-table");
-const addMissingBoxesButton = document.querySelector("#add-missing-boxes");
-const downloadMissingButton = document.querySelector("#download-missing");
-const missingPeopleElements = {
-  panel: missingPanel,
-  meta: missingMeta,
-  wrap: missingWrap,
-  table: missingTable,
-  addButton: addMissingBoxesButton,
-  downloadButton: downloadMissingButton
-};
-const lastUpdated = document.querySelector("#last-updated");
-const lastUpdatedDate = document.querySelector("#last-updated-date");
-const helpButtons = document.querySelectorAll("[data-help-target]");
-const columnsMeta = document.querySelector("#columns-meta");
-const columnsPanel = document.querySelector("#columns-panel");
-const columnsList = document.querySelector("#columns-list");
-const selectedColumnsStatus = document.querySelector("#selected-columns");
-const columnsElements = {
-  meta: columnsMeta,
-  list: columnsList
-};
-const parseControls = document.querySelector("#parse-controls");
-const parseSourceInputs = document.querySelectorAll("input[name='omrade-plats-source']");
-const showPlaceNumberInput = document.querySelector("#show-place-number");
-const showColumnNamesInput = document.querySelector("#show-column-names");
-const showEmptyExcelPlacesInput = document.querySelector("#show-empty-excel-places");
-const tableMeta = document.querySelector("#table-meta");
-const duplicatePlaceWarning = document.querySelector("#duplicate-place-warning");
-const tablePanel = document.querySelector("#table-panel");
-const tableTitle = document.querySelector("#table-title");
-const tableWrap = document.querySelector("#table-wrap");
-const selectedTable = document.querySelector("#selected-table");
-const selectedTableElements = {
-  title: tableTitle,
-  meta: tableMeta,
-  wrap: tableWrap,
-  table: selectedTable,
-  duplicateWarning: duplicatePlaceWarning
-};
-const clearedExcelElements = {
-  columnsMeta,
-  columnsPanel,
-  tablePanel,
-  tableTitle,
-  duplicateWarning: duplicatePlaceWarning,
-  columnsList,
-  parseControls,
-  selectedColumnsStatus
-};
-const emptyPlacesPanel = document.querySelector("#empty-places-panel");
-const emptyPlacesMeta = document.querySelector("#empty-places-meta");
-const emptyPlacesWrap = document.querySelector("#empty-places-wrap");
-const emptyPlacesTable = document.querySelector("#empty-places-table");
-const emptyPlacesElements = {
-  panel: emptyPlacesPanel,
-  meta: emptyPlacesMeta,
-  wrap: emptyPlacesWrap,
-  table: emptyPlacesTable
-};
-const duplicateMapPlacesPanel = document.querySelector("#duplicate-map-places-panel");
-const duplicateMapPlacesMeta = document.querySelector("#duplicate-map-places-meta");
-const duplicateMapPlacesWrap = document.querySelector("#duplicate-map-places-wrap");
-const duplicateMapPlacesTable = document.querySelector("#duplicate-map-places-table");
-const duplicateMapPlacesElements = {
-  panel: duplicateMapPlacesPanel,
-  meta: duplicateMapPlacesMeta,
-  wrap: duplicateMapPlacesWrap,
-  table: duplicateMapPlacesTable
-};
 const excelTypes = [".xls", ".xlsx"];
 const drawioTypes = [".drawio", ".drawio.xml"];
 const excelExample = {
@@ -229,17 +117,17 @@ function showLastUpdatedDate() {
     modifiedDate.setTime(Date.now());
   }
 
-  lastUpdatedDate.dateTime = modifiedDate.toISOString().slice(0, 10);
-  lastUpdatedDate.textContent = new Intl.DateTimeFormat("sv-SE", {
+  lastUpdatedElements.date.dateTime = modifiedDate.toISOString().slice(0, 10);
+  lastUpdatedElements.date.textContent = new Intl.DateTimeFormat("sv-SE", {
     day: "numeric",
     month: "long",
     year: "numeric"
   }).format(modifiedDate);
-  lastUpdated.hidden = false;
+  lastUpdatedElements.container.hidden = false;
 }
 
 function showHelpDialog(event) {
-  const dialog = document.querySelector(`#${event.currentTarget.dataset.helpTarget}`);
+  const dialog = helpElements.getDialog(event.currentTarget.dataset.helpTarget);
 
   if (dialog instanceof HTMLDialogElement) {
     dialog.showModal();
@@ -313,7 +201,7 @@ function updateSelectedColumnsStatus() {
 
   showSelectedColumnsStatus({
     columnNames: visibleColumnNames,
-    element: selectedColumnsStatus
+    element: columnsElements.selectedStatus
   });
 }
 
@@ -326,12 +214,12 @@ function getColumnDisplayName(column) {
 }
 
 function getSelectedParseSource() {
-  const selectedInput = [...parseSourceInputs].find((input) => input.checked);
+  const selectedInput = [...parseElements.sourceInputs].find((input) => input.checked);
   return selectedInput ? selectedInput.value : "varvsomrade";
 }
 
 function setSelectedParseSource(source) {
-  parseSourceInputs.forEach((input) => {
+  parseElements.sourceInputs.forEach((input) => {
     input.checked = input.value === source;
   });
 }
@@ -438,7 +326,7 @@ function updateParseControlsVisibility() {
     : [];
   const shouldShow = availableSources.length > 1;
 
-  parseSourceInputs.forEach((input) => {
+  parseElements.sourceInputs.forEach((input) => {
     const label = input.closest("label");
 
     if (label) {
@@ -452,7 +340,7 @@ function updateParseControlsVisibility() {
     setSelectedParseSource(availableSources[0]);
   }
 
-  parseControls.classList.toggle("is-visible", shouldShow);
+  parseElements.controls.classList.toggle("is-visible", shouldShow);
 }
 
 function getVisibleRows() {
@@ -461,7 +349,7 @@ function getVisibleRows() {
       const value = row[state.parsedOmradePlatsColumnIndex];
       const hasPlace = value !== null && value !== undefined && String(value).trim() !== "";
 
-      return hasPlace && (showEmptyExcelPlacesInput.checked || !isEmptyExcelPlaceRow(row));
+      return hasPlace && (parseElements.showEmptyExcelPlacesInput.checked || !isEmptyExcelPlaceRow(row));
     })
     : state.excelRows;
 }
@@ -693,31 +581,31 @@ function showFile(file) {
   excelElements.fileStatus.classList.add("has-file");
   excelElements.panelTitle.textContent = file.name;
   excelElements.clearButton.hidden = false;
-  excelExampleMenu.hidden = true;
+  excelExampleElements.menu.hidden = true;
   excelElements.uploadZone.classList.add("has-file");
   excelElements.uploadZone.hidden = true;
   clearColumns("Läser kolumner...");
-  columnsPanel.hidden = false;
-  tablePanel.hidden = false;
+  columnsElements.panel.hidden = false;
+  selectedTableElements.panel.hidden = false;
   readColumns(file);
 }
 
 function setDrawioUploadMessage(title, help = "") {
-  drawioUploadZone.replaceChildren();
+  drawioElements.uploadZone.replaceChildren();
 
   const titleElement = document.createElement("span");
   titleElement.className = "drawio-title";
   titleElement.textContent = title;
-  drawioUploadZone.append(titleElement);
+  drawioElements.uploadZone.append(titleElement);
 
   if (help) {
     const helpElement = document.createElement("span");
     helpElement.className = "drawio-help";
     helpElement.textContent = help;
-    drawioUploadZone.append(helpElement);
+    drawioElements.uploadZone.append(helpElement);
   }
 
-  drawioUploadZone.append(drawioUpload);
+  drawioElements.uploadZone.append(drawioElements.upload);
 }
 
 function resetDrawioUploadMessage() {
@@ -731,16 +619,16 @@ function showDrawioFile(file) {
   const fileName = file.name.toLowerCase();
   const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
 
-  drawioUploadZone.classList.remove("has-error", "has-file");
+  drawioElements.uploadZone.classList.remove("has-error", "has-file");
 
   if (!isDrawioFile) {
     setDrawioUploadMessage("Välj en kartfil som slutar med .drawio eller .drawio.xml.");
-    drawioUploadZone.classList.add("has-error");
-    drawioPanelTitle.textContent = "Karta";
-    drawioUpload.value = "";
+    drawioElements.uploadZone.classList.add("has-error");
+    drawioElements.panelTitle.textContent = "Karta";
+    drawioElements.upload.value = "";
     resetDrawioState();
-    drawioViewer.hidden = true;
-    drawioUploadZone.hidden = false;
+    drawioElements.viewer.hidden = true;
+    drawioElements.uploadZone.hidden = false;
     updateDrawioButtons();
     updateMissingPeopleList();
     updateEmptyPlacesList();
@@ -749,14 +637,14 @@ function showDrawioFile(file) {
     return;
   }
 
-  drawioPanelTitle.textContent = file.name;
-  clearDrawioButton.hidden = false;
-  drawioExampleMenu.hidden = true;
+  drawioElements.panelTitle.textContent = file.name;
+  drawioElements.clearButton.hidden = false;
+  drawioExampleElements.menu.hidden = true;
   state.sourceDrawioFileName = file.name;
-  drawioUploadZone.replaceChildren();
-  drawioUploadZone.classList.add("has-file");
-  drawioUploadZone.append(drawioUpload);
-  drawioUploadZone.hidden = true;
+  drawioElements.uploadZone.replaceChildren();
+  drawioElements.uploadZone.classList.add("has-file");
+  drawioElements.uploadZone.append(drawioElements.upload);
+  drawioElements.uploadZone.hidden = true;
   readDrawioFile(file);
 }
 
@@ -764,7 +652,7 @@ function clearExcelFile() {
   excelElements.upload.value = "";
   excelElements.panelTitle.textContent = "Excel-data från BAS-rapport";
   excelElements.clearButton.hidden = true;
-  excelExampleMenu.hidden = false;
+  excelExampleElements.menu.hidden = false;
   excelElements.uploadZone.hidden = false;
   excelElements.uploadZone.classList.remove("has-file");
   excelElements.fileStatus.textContent = "";
@@ -773,14 +661,14 @@ function clearExcelFile() {
 }
 
 function clearDrawioFile() {
-  drawioUpload.value = "";
-  drawioPanelTitle.textContent = "Karta";
-  clearDrawioButton.hidden = true;
-  drawioExampleMenu.hidden = false;
-  drawioUploadZone.hidden = false;
-  drawioUploadZone.classList.remove("has-file", "has-error");
+  drawioElements.upload.value = "";
+  drawioElements.panelTitle.textContent = "Karta";
+  drawioElements.clearButton.hidden = true;
+  drawioExampleElements.menu.hidden = false;
+  drawioElements.uploadZone.hidden = false;
+  drawioElements.uploadZone.classList.remove("has-file", "has-error");
   resetDrawioUploadMessage();
-  drawioViewer.hidden = true;
+  drawioElements.viewer.hidden = true;
   resetDrawioState();
   updateDrawioButtons();
   updateMissingPeopleList();
@@ -791,8 +679,8 @@ function clearDrawioFile() {
 
 function loadDrawioViewer(xml, options = {}) {
   state.pendingDrawioXml = xml;
-  drawioViewer.hidden = false;
-  loadDrawioXmlWhenVisible(drawioFrame, xml, { autosave: true, keepZoom: options.keepZoom });
+  drawioElements.viewer.hidden = false;
+  loadDrawioXmlWhenVisible(drawioElements.frame, xml, { autosave: true, keepZoom: options.keepZoom });
 }
 
 function showCleanMap() {
@@ -829,9 +717,9 @@ function scheduleCleanMapRefresh() {
 }
 
 function updateFullscreenButton() {
-  const isFullscreen = document.fullscreenElement === mapWorkspace;
+  const isFullscreen = document.fullscreenElement === workspaceElements.mapWorkspace;
 
-  showFullscreenButton({ isFullscreen, element: fullscreenMapButton });
+  showFullscreenButton({ isFullscreen, element: drawioControlElements.fullscreenButton });
 }
 
 function getCurrentDrawioXml() {
@@ -841,7 +729,7 @@ function getCurrentDrawioXml() {
 function refitMapAfterFullscreenExit() {
   const xml = getCurrentDrawioXml();
 
-  if (!xml || document.fullscreenElement === mapWorkspace) {
+  if (!xml || document.fullscreenElement === workspaceElements.mapWorkspace) {
     return;
   }
 
@@ -849,7 +737,7 @@ function refitMapAfterFullscreenExit() {
 }
 
 function handleFullscreenChange() {
-  const isMapFullscreen = document.fullscreenElement === mapWorkspace;
+  const isMapFullscreen = document.fullscreenElement === workspaceElements.mapWorkspace;
 
   updateFullscreenButton();
 
@@ -868,10 +756,10 @@ async function toggleMapFullscreen() {
   }
 
   try {
-    if (document.fullscreenElement === mapWorkspace) {
+    if (document.fullscreenElement === workspaceElements.mapWorkspace) {
       await document.exitFullscreen();
     } else {
-      await mapWorkspace.requestFullscreen();
+      await workspaceElements.mapWorkspace.requestFullscreen();
     }
   } finally {
     updateFullscreenButton();
@@ -887,7 +775,7 @@ function updateDrawioButtons() {
     hasGenerated,
     currentMode: state.currentDrawioMode,
     fullscreenEnabled: document.fullscreenEnabled,
-    isFullscreen: document.fullscreenElement === mapWorkspace,
+    isFullscreen: document.fullscreenElement === workspaceElements.mapWorkspace,
     elements: drawioControlElements
   });
 
@@ -928,7 +816,7 @@ function downloadGeneratedPng() {
 }
 
 function toggleDownloadMenu() {
-  const isOpening = downloadOptions.hidden;
+  const isOpening = downloadMenuElements.options.hidden;
 
   closeExampleMenus();
   showDownloadMenu({ isOpen: isOpening, elements: downloadMenuElements });
@@ -951,7 +839,7 @@ function toggleExampleMenu(options, button) {
 
 function closeExampleMenus() {
   showClosedExampleMenus({
-    menus: [excelExampleMenuElements, drawioExampleMenuElements]
+    menus: [excelExampleElements.menuElements, drawioExampleElements.menuElements]
   });
 }
 
@@ -966,7 +854,7 @@ function downloadDrawioPng(xml, fileName) {
   }
 
   state.pendingPngFileName = fileName;
-  exportDrawioPng(drawioFrame, xml);
+  exportDrawioPng(drawioElements.frame, xml);
 }
 
 function downloadDataUrl(dataUrl, fileName) {
@@ -1074,7 +962,7 @@ function makeDrawioLabel(row) {
     }
 
     if (columnIndex === state.parsedOmradePlatsColumnIndex) {
-      if (showPlaceNumberInput.checked) {
+      if (parseElements.showPlaceNumberInput.checked) {
         lines.push(String(value).trim());
       }
 
@@ -1088,7 +976,7 @@ function makeDrawioLabel(row) {
         : String(row[efternamnColumnIndex]).trim();
       const fullName = `${firstName} ${lastName}`.trim();
 
-      lines.push(showColumnNamesInput.checked ? `Namn: ${fullName}` : fullName);
+      lines.push(parseElements.showColumnNamesInput.checked ? `Namn: ${fullName}` : fullName);
       return;
     }
 
@@ -1096,7 +984,7 @@ function makeDrawioLabel(row) {
       return;
     }
 
-    lines.push(showColumnNamesInput.checked
+    lines.push(parseElements.showColumnNamesInput.checked
       ? `${state.excelColumns[columnIndex].name}: ${String(value).trim()}`
       : String(value).trim());
   });
@@ -1234,14 +1122,14 @@ function updateMissingPeopleList() {
   const lastNameColumnIndex = getColumnIndexByName("efternamn");
 
   if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || state.excelRows.length === 0) {
-    missingPanel.hidden = true;
+    missingPeopleElements.panel.hidden = true;
     state.missingPeopleRows = [];
-    addMissingBoxesButton.hidden = true;
-    downloadMissingButton.disabled = true;
+    missingPeopleElements.addButton.hidden = true;
+    missingPeopleElements.downloadButton.disabled = true;
     return;
   }
 
-  missingPanel.hidden = false;
+  missingPeopleElements.panel.hidden = false;
   state.missingPeopleRows = getMissingPeopleRows(state.sourceDrawioXml, state.excelRows, {
     placeColumnIndex: state.parsedOmradePlatsColumnIndex,
     firstNameColumnIndex,
@@ -1490,7 +1378,7 @@ function addPlaceBoxToDrawio() {
 
     updateDrawioButtons();
   } catch (error) {
-    drawioPanelTitle.textContent = "Kunde inte lägga till plats.";
+    drawioElements.panelTitle.textContent = "Kunde inte lägga till plats.";
   }
 }
 
@@ -1514,7 +1402,7 @@ function addMissingBoxesToDrawio() {
 
     updateDrawioButtons();
   } catch (error) {
-    missingMeta.textContent = "Kunde inte lägga till platser i kartan.";
+    missingPeopleElements.meta.textContent = "Kunde inte lägga till platser i kartan.";
   }
 }
 
@@ -1631,10 +1519,10 @@ function readDrawioFile(file) {
 
     if (!xml) {
       setDrawioUploadMessage("Den här kartfilen är tom.");
-      drawioUploadZone.classList.add("has-error");
+      drawioElements.uploadZone.classList.add("has-error");
       resetDrawioState();
-      drawioViewer.hidden = true;
-      drawioUploadZone.hidden = false;
+      drawioElements.viewer.hidden = true;
+      drawioElements.uploadZone.hidden = false;
       updateDrawioButtons();
       updateMissingPeopleList();
       updateEmptyPlacesList();
@@ -1659,7 +1547,7 @@ function readDrawioFile(file) {
 
   reader.addEventListener("error", () => {
     setDrawioUploadMessage("Kunde inte läsa kartfilen.");
-    drawioUploadZone.classList.add("has-error");
+    drawioElements.uploadZone.classList.add("has-error");
     resetDrawioState();
     updateDrawioButtons();
     updateMissingPeopleList();
@@ -1679,8 +1567,8 @@ excelElements.upload.addEventListener("change", () => {
   }
 });
 
-drawioUpload.addEventListener("change", () => {
-  const [file] = drawioUpload.files;
+drawioElements.upload.addEventListener("change", () => {
+  const [file] = drawioElements.upload.files;
 
   if (file) {
     showDrawioFile(file);
@@ -1690,38 +1578,38 @@ drawioUpload.addEventListener("change", () => {
 showLastUpdatedDate();
 window.kartgeneratorReady = true;
 
-parseSourceInputs.forEach((input) => {
+parseElements.sourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
 });
 
-showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => updateSelectedTable({ updateGeneratedDiagram: false })));
-helpButtons.forEach((button) => {
+parseElements.showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+parseElements.showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+parseElements.showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => updateSelectedTable({ updateGeneratedDiagram: false })));
+helpElements.buttons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
-excelExampleButton.addEventListener("click", () => toggleExampleMenu(excelExampleOptions, excelExampleButton));
-drawioExampleButton.addEventListener("click", () => toggleExampleMenu(drawioExampleOptions, drawioExampleButton));
-downloadExampleExcelButton.addEventListener("click", () => downloadExampleAsset(excelExample));
-downloadExampleDrawioButton.addEventListener("click", () => downloadExampleAsset(drawioExample));
-loadExampleExcelButton.addEventListener("click", loadExcelExample);
-loadExampleDrawioButton.addEventListener("click", loadDrawioExample);
-showCleanMapButton.addEventListener("click", showCleanMap);
-showGeneratedMapButton.addEventListener("click", showGeneratedMap);
-fullscreenMapButton.addEventListener("click", toggleMapFullscreen);
-addPlaceBoxButton.addEventListener("click", addPlaceBoxToDrawio);
-downloadMenuButton.addEventListener("click", toggleDownloadMenu);
-downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
-downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
-downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(downloadGeneratedDiagram));
-downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
-addMissingBoxesButton.addEventListener("click", addMissingBoxesToDrawio);
-downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
+excelExampleElements.button.addEventListener("click", () => toggleExampleMenu(excelExampleElements.options, excelExampleElements.button));
+drawioExampleElements.button.addEventListener("click", () => toggleExampleMenu(drawioExampleElements.options, drawioExampleElements.button));
+excelExampleElements.downloadButton.addEventListener("click", () => downloadExampleAsset(excelExample));
+drawioExampleElements.downloadButton.addEventListener("click", () => downloadExampleAsset(drawioExample));
+excelExampleElements.loadButton.addEventListener("click", loadExcelExample);
+drawioExampleElements.loadButton.addEventListener("click", loadDrawioExample);
+drawioControlElements.showCleanButton.addEventListener("click", showCleanMap);
+drawioControlElements.showGeneratedButton.addEventListener("click", showGeneratedMap);
+drawioControlElements.fullscreenButton.addEventListener("click", toggleMapFullscreen);
+drawioControlElements.addPlaceButton.addEventListener("click", addPlaceBoxToDrawio);
+drawioControlElements.downloadMenuButton.addEventListener("click", toggleDownloadMenu);
+drawioControlElements.downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
+drawioControlElements.downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
+drawioControlElements.downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(downloadGeneratedDiagram));
+drawioControlElements.downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
+missingPeopleElements.addButton.addEventListener("click", addMissingBoxesToDrawio);
+missingPeopleElements.downloadButton.addEventListener("click", downloadMissingPeopleExcel);
 excelElements.clearButton.addEventListener("click", clearExcelFile);
-clearDrawioButton.addEventListener("click", clearDrawioFile);
+drawioElements.clearButton.addEventListener("click", clearDrawioFile);
 document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("click", (event) => {
-  if (!downloadOptions.hidden && !event.target.closest("#download-menu")) {
+  if (!downloadMenuElements.options.hidden && !event.target.closest("#download-menu")) {
     closeDownloadMenu();
   }
 
@@ -1760,20 +1648,20 @@ excelElements.uploadZone.addEventListener("drop", (event) => {
 });
 
 ["dragenter", "dragover"].forEach((eventName) => {
-  drawioUploadZone.addEventListener(eventName, (event) => {
+  drawioElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    drawioUploadZone.classList.add("is-dragging-drawio");
+    drawioElements.uploadZone.classList.add("is-dragging-drawio");
   });
 });
 
 ["dragleave", "drop"].forEach((eventName) => {
-  drawioUploadZone.addEventListener(eventName, (event) => {
+  drawioElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    drawioUploadZone.classList.remove("is-dragging-drawio");
+    drawioElements.uploadZone.classList.remove("is-dragging-drawio");
   });
 });
 
-drawioUploadZone.addEventListener("drop", (event) => {
+drawioElements.uploadZone.addEventListener("drop", (event) => {
   const [file] = event.dataTransfer.files;
 
   if (file) {
@@ -1783,9 +1671,9 @@ drawioUploadZone.addEventListener("drop", (event) => {
 
 window.addEventListener("message", (event) => {
   handleDrawioMessage(event, {
-    frame: drawioFrame,
+    frame: drawioElements.frame,
     pendingXml: state.pendingDrawioXml,
-    onConfigure: (origin) => postDrawioMessage(drawioFrame, {
+    onConfigure: (origin) => postDrawioMessage(drawioElements.frame, {
       action: "configure",
       config: drawioEditorConfig
     }, origin),
