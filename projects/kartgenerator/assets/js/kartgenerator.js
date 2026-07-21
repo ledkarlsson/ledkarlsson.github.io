@@ -1,12 +1,7 @@
 ﻿import { parseOmradePlatsValue, normalizePlaceCode, normalizeColumnName } from "./kartgenerator-utils.js";
 import { getMapPlaceLabels } from "./drawio.js"
-import {
-  drawioEditorConfig,
-  exportDrawioPng,
-  handleDrawioMessage,
-  loadDrawioXmlWhenVisible,
-  postDrawioMessage
-} from "./drawio-embed.js"
+import { exportDrawioPng } from "./drawio-embed.js"
+import { createDrawioController } from "./drawio-controller.js"
 import {
   getDuplicateMapPlaceRows,
   getDuplicatePlaceInfo,
@@ -15,54 +10,30 @@ import {
   hasDuplicatePlace,
   isEmptyExcelPlaceRow as isEmptyExcelPlaceRowByIndexes
 } from "./diagnostics.js"
+import { createCleanDrawioXml } from "./drawio-model.js"
 import {
-  createCleanDrawioXml,
-  createDrawioXmlWithMissingBoxes,
-  createDrawioXmlWithHighlightedDuplicatePlaces,
-  createDrawioXmlWithHighlightedPlaces,
-  createGeneratedDrawioXml,
-  hasRenamedNewPlacePlaceholder,
-  newPlacePlaceholder
-} from "./drawio-model.js"
-import {
-  clearGeneratedDrawioXml,
   resetDiagnosticsState,
-  resetDrawioState,
   resetExcelState,
   resetSelectedTableSort,
-  setCurrentDrawioMode,
-  setGeneratedDrawioXml,
-  setManualDrawioMode,
-  setSourceDrawioXml,
   state
 } from "./state.js"
 import {
   renderColumnsList as showColumnsList,
   renderClearedExcelState as showClearedExcelState,
   renderClosedExampleMenus as showClosedExampleMenus,
-  renderClearedDrawioFile as showClearedDrawioFile,
   renderClearedExcelFile as showClearedExcelFile,
   renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
   renderDownloadMenu as showDownloadMenu,
   renderDragState as showDragState,
-  renderDrawioAddPlaceError as showDrawioAddPlaceError,
-  renderDrawioControls as showDrawioControls,
-  renderDrawioReadError as showDrawioReadError,
-  renderDrawioUploadMessage as showDrawioUploadMessage,
-  renderDrawioViewer as showDrawioViewer,
   renderExcelReadError as showExcelReadError,
   renderEmptyPlacesTable as showEmptyPlacesTableView,
   renderExampleMenu as showExampleMenu,
-  renderFullscreenButton as showFullscreenButton,
   renderLastUpdatedDate as showLastUpdatedDateView,
-  renderMissingPeopleError as showMissingPeopleError,
   renderMissingPeoplePanelVisible as showMissingPeoplePanelVisible,
   renderMissingPeopleTable as showMissingPeopleTableView,
   renderMissingPeopleUnavailable as showMissingPeopleUnavailable,
   renderParseControls as showParseControls,
-  renderRejectedDrawioFile as showRejectedDrawioFile,
   renderRejectedExcelFile as showRejectedExcelFile,
-  renderSelectedDrawioFile as showSelectedDrawioFile,
   renderSelectedColumnsStatus as showSelectedColumnsStatus,
   renderSelectedDataTable as showSelectedDataTable,
   renderSelectedExcelFile as showSelectedExcelFile
@@ -70,7 +41,6 @@ import {
 import {
   clearedExcelElements,
   columnsElements,
-  drawioControlElements,
   drawioElements,
   drawioExampleElements,
   downloadMenuElements,
@@ -82,12 +52,10 @@ import {
   lastUpdatedElements,
   missingPeopleElements,
   parseElements,
-  selectedTableElements,
-  workspaceElements
+  selectedTableElements
 } from "./elements.js"
 
 const excelTypes = [".xls", ".xlsx"];
-const drawioTypes = [".drawio", ".drawio.xml"];
 const excelExample = {
   url: "assets/examples/exempel.xlsx",
   fileName: "exempel.xlsx",
@@ -179,7 +147,7 @@ async function loadExcelExample() {
 
 async function loadDrawioExample() {
   closeExampleMenus();
-  showDrawioFile(await getExampleFile(drawioExample));
+  drawioController.showFile(await getExampleFile(drawioExample));
 }
 
 function downloadBlob(blob, fileName) {
@@ -197,7 +165,7 @@ function clearColumns(message) {
   resetExcelState();
   resetDiagnosticsState();
   updateSelectedTable();
-  updateGeneratedDiagram();
+  drawioController.updateGeneratedDiagram();
   updateMissingPeopleList();
   updateEmptyPlacesList();
   updateDuplicateMapPlacesList();
@@ -433,7 +401,7 @@ function updateSelectedTable(options = {}) {
     updateMissingPeopleList();
     updateEmptyPlacesList();
     if (shouldUpdateGeneratedDiagram) {
-      updateGeneratedDiagram();
+      drawioController.updateGeneratedDiagram();
     }
     return;
   }
@@ -459,7 +427,7 @@ function updateSelectedTable(options = {}) {
     });
     updateEmptyPlacesList();
     if (shouldUpdateGeneratedDiagram) {
-      updateGeneratedDiagram();
+      drawioController.updateGeneratedDiagram();
     }
     return;
   }
@@ -481,7 +449,7 @@ function updateSelectedTable(options = {}) {
     onSort: sortSelectedTable
   });
   if (shouldUpdateGeneratedDiagram) {
-    updateGeneratedDiagram();
+    drawioController.updateGeneratedDiagram();
   }
 }
 
@@ -590,170 +558,12 @@ function showFile(file) {
   readColumns(file);
 }
 
-function setDrawioUploadMessage(title, help = "") {
-  showDrawioUploadMessage({ title, help, elements: drawioElements });
-}
-
-function resetDrawioUploadMessage() {
-  setDrawioUploadMessage(
-    "Ladda upp karta",
-    "Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja"
-  );
-}
-
-function showDrawioFile(file) {
-  const fileName = file.name.toLowerCase();
-  const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
-
-  if (!isDrawioFile) {
-    showRejectedDrawioFile({
-      message: "Välj en kartfil som slutar med .drawio eller .drawio.xml.",
-      elements: drawioElements
-    });
-    resetDrawioState();
-    updateDrawioButtons();
-    updateMissingPeopleList();
-    updateEmptyPlacesList();
-    updateDuplicateMapPlacesList();
-    updateGeneratedDiagram();
-    return;
-  }
-
-  showSelectedDrawioFile({
-    fileName: file.name,
-    elements: drawioElements,
-    exampleElements: drawioExampleElements
-  });
-  state.sourceDrawioFileName = file.name;
-  readDrawioFile(file);
-}
-
 function clearExcelFile() {
   showClearedExcelFile({
     elements: excelElements,
     exampleElements: excelExampleElements
   });
   clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
-}
-
-function clearDrawioFile() {
-  showClearedDrawioFile({
-    elements: drawioElements,
-    exampleElements: drawioExampleElements
-  });
-  resetDrawioState();
-  updateDrawioButtons();
-  updateMissingPeopleList();
-  updateEmptyPlacesList();
-  updateDuplicateMapPlacesList();
-  updateGeneratedDiagram();
-}
-
-function loadDrawioViewer(xml, options = {}) {
-  state.pendingDrawioXml = xml;
-  showDrawioViewer({ isVisible: true, elements: drawioElements });
-  loadDrawioXmlWhenVisible(drawioElements.frame, xml, { autosave: true, keepZoom: options.keepZoom });
-}
-
-function showCleanMap() {
-  if (!state.sourceDrawioXml) {
-    return;
-  }
-
-  setManualDrawioMode(true);
-  setCurrentDrawioMode("clean");
-  loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-  updateDrawioButtons();
-}
-
-function showGeneratedMap() {
-  if (!state.generatedDrawioXml) {
-    return;
-  }
-
-  setManualDrawioMode(true);
-  setCurrentDrawioMode("generated");
-  loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
-  updateDrawioButtons();
-}
-
-function scheduleCleanMapRefresh() {
-  window.clearTimeout(state.cleanMapRefreshTimer);
-  state.cleanMapRefreshTimer = window.setTimeout(() => {
-    state.cleanMapRefreshTimer = 0;
-
-    if (state.currentDrawioMode === "clean" && state.sourceDrawioXml) {
-      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-    }
-  }, 350);
-}
-
-function updateFullscreenButton() {
-  const isFullscreen = document.fullscreenElement === workspaceElements.mapWorkspace;
-
-  showFullscreenButton({ isFullscreen, element: drawioControlElements.fullscreenButton });
-}
-
-function getCurrentDrawioXml() {
-  return state.currentDrawioMode === "generated" && state.generatedDrawioXml ? state.generatedDrawioXml : getCleanDrawioXmlForDisplay();
-}
-
-function refitMapAfterFullscreenExit() {
-  const xml = getCurrentDrawioXml();
-
-  if (!xml || document.fullscreenElement === workspaceElements.mapWorkspace) {
-    return;
-  }
-
-  loadDrawioViewer(xml);
-}
-
-function handleFullscreenChange() {
-  const isMapFullscreen = document.fullscreenElement === workspaceElements.mapWorkspace;
-
-  updateFullscreenButton();
-
-  if (state.wasMapFullscreen && !isMapFullscreen) {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(refitMapAfterFullscreenExit);
-    });
-  }
-
-  state.wasMapFullscreen = isMapFullscreen;
-}
-
-async function toggleMapFullscreen() {
-  if (!state.sourceDrawioXml || !document.fullscreenEnabled) {
-    return;
-  }
-
-  try {
-    if (document.fullscreenElement === workspaceElements.mapWorkspace) {
-      await document.exitFullscreen();
-    } else {
-      await workspaceElements.mapWorkspace.requestFullscreen();
-    }
-  } finally {
-    updateFullscreenButton();
-  }
-}
-
-function updateDrawioButtons() {
-  const hasSource = Boolean(state.sourceDrawioXml);
-  const hasGenerated = Boolean(state.generatedDrawioXml);
-
-  showDrawioControls({
-    hasSource,
-    hasGenerated,
-    currentMode: state.currentDrawioMode,
-    fullscreenEnabled: document.fullscreenEnabled,
-    isFullscreen: document.fullscreenElement === workspaceElements.mapWorkspace,
-    elements: drawioControlElements
-  });
-
-  if (!hasSource) {
-    closeDownloadMenu();
-  }
 }
 
 function downloadDrawioXml(xml, fileName) {
@@ -1064,7 +874,7 @@ function updateDuplicateMapPlacesList(options = {}) {
   const hasChanged = getDuplicateMapPlaceKey(state.duplicateMapPlaceRows) !== previousKey;
 
   if (options.reloadCleanMap && hasChanged && state.currentDrawioMode === "clean") {
-    scheduleCleanMapRefresh();
+    drawioController.scheduleCleanMapRefresh();
   }
 
   return hasChanged;
@@ -1075,7 +885,7 @@ function updateEmptyPlacesList() {
     state.emptyPlaceRows = [];
     showEmptyPlacesTable([]);
     if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer && state.sourceDrawioXml) {
-      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
+      drawioController.loadViewer(drawioController.getCleanXmlForDisplay(), { keepZoom: true });
     }
     return;
   }
@@ -1085,7 +895,7 @@ function updateEmptyPlacesList() {
   showEmptyPlacesTable(getSortedEmptyPlaceRows());
 
   if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer) {
-    loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
+    drawioController.loadViewer(drawioController.getCleanXmlForDisplay(), { keepZoom: true });
   }
 }
 
@@ -1108,52 +918,6 @@ function updateMissingPeopleList() {
   showMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
-function updateSourceDrawioXml(xml) {
-  const rawXml = String(xml || "").trim();
-  const shouldRefreshRenamedNewPlace = state.currentDrawioMode === "clean" && hasRenamedNewPlacePlaceholder(rawXml);
-  const updatedXml = createCleanDrawioXml(rawXml).trim();
-  const previousEmptyPlaceKey = getEmptyPlaceKey(state.emptyPlaceRows);
-
-  if (!updatedXml || updatedXml === state.sourceDrawioXml) {
-    return;
-  }
-
-  const shouldRefreshGeneratedView = state.currentDrawioMode === "generated";
-
-  setSourceDrawioXml(updatedXml);
-  const shouldRefreshDuplicateMapPlaces = updateDuplicateMapPlacesList();
-
-  preserveWindowScroll(() => {
-    state.shouldReloadDrawioViewer = shouldRefreshGeneratedView;
-
-    try {
-      if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
-        reparseRows(true);
-      } else {
-        updateMissingPeopleList();
-        updateEmptyPlacesList();
-        updateGeneratedDiagram();
-      }
-    } finally {
-      state.shouldReloadDrawioViewer = true;
-    }
-  });
-
-  const shouldRefreshEmptyPlaces = getEmptyPlaceKey(state.emptyPlaceRows) !== previousEmptyPlaceKey;
-
-  if (shouldRefreshRenamedNewPlace) {
-    scheduleCleanMapRefresh();
-  }
-
-  if (shouldRefreshDuplicateMapPlaces && state.currentDrawioMode === "clean") {
-    scheduleCleanMapRefresh();
-  }
-
-  if (shouldRefreshEmptyPlaces && state.currentDrawioMode === "clean") {
-    scheduleCleanMapRefresh();
-  }
-}
-
 function downloadMissingPeopleExcel() {
   if (!window.XLSX || state.missingPeopleRows.length === 0) {
     return;
@@ -1170,191 +934,34 @@ function downloadMissingPeopleExcel() {
   XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
 }
 
-function addPlaceBoxToDrawio() {
-  if (!state.sourceDrawioXml) {
-    return;
-  }
+const drawioController = createDrawioController({
+  closeDownloadMenu,
+  downloadPngWithWhiteBackground,
+  getEmptyPlaceKey,
+  getRowsForGeneratedDiagram,
+  getSortedMissingPeopleRows,
+  isEmptyExcelPlaceRow,
+  makeDrawioLabel,
+  preserveWindowScroll,
+  reparseRows,
+  updateDuplicateMapPlacesList,
+  updateEmptyPlacesList,
+  updateMissingPeopleList
+});
 
-  try {
-    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, [{
-      place: newPlacePlaceholder,
-      isNewPlacePlaceholder: true
-    }]));
-    setManualDrawioMode(true);
-
-    if (state.currentDrawioMode === "generated" && state.generatedDrawioXml) {
-      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
-    } else {
-      setCurrentDrawioMode("clean");
-      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-    }
-
-    updateDrawioButtons();
-  } catch (error) {
-    showDrawioAddPlaceError({
-      message: "Kunde inte lägga till plats.",
-      elements: drawioElements
-    });
-  }
-}
-
-function addMissingBoxesToDrawio() {
-  const rows = getSortedMissingPeopleRows();
-
-  if (!state.sourceDrawioXml || rows.length === 0) {
-    return;
-  }
-
-  try {
-    updateSourceDrawioXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, rows));
-    setManualDrawioMode(true);
-    setCurrentDrawioMode(state.generatedDrawioXml ? "generated" : "clean");
-
-    if (state.currentDrawioMode === "generated") {
-      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
-    } else {
-      loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-    }
-
-    updateDrawioButtons();
-  } catch (error) {
-    showMissingPeopleError({
-      message: "Kunde inte lägga till platser i kartan.",
-      elements: missingPeopleElements
-    });
-  }
-}
-
-function getCleanDrawioXmlForDisplay() {
-  const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
-    state.sourceDrawioXml,
-    new Set(state.emptyPlaceRows.map((row) => row.normalizedPlace))
-  );
-
-  return createDrawioXmlWithHighlightedDuplicatePlaces(
-    highlightedMissingPlacesXml,
-    new Set(state.duplicateMapPlaceRows.map((row) => row.normalizedPlace))
-  );
-}
-
-function updateGeneratedDiagram() {
-  if (!state.sourceDrawioXml) {
-    clearGeneratedDrawioXml();
-    updateDrawioButtons();
-    return;
-  }
-
-  if (state.parsedOmradePlatsColumnIndex === null || !state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)) {
-    const { wasShowingGenerated } = clearGeneratedDrawioXml();
-
-    if (wasShowingGenerated) {
-      if (state.shouldReloadDrawioViewer) {
-        loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-      }
-    }
-    updateDrawioButtons();
-    return;
-  }
-
-  const visibleRows = getRowsForGeneratedDiagram();
-
-  if (visibleRows.length === 0) {
-    const { wasShowingGenerated } = clearGeneratedDrawioXml();
-
-    if (wasShowingGenerated) {
-      if (state.shouldReloadDrawioViewer) {
-        loadDrawioViewer(getCleanDrawioXmlForDisplay(), { keepZoom: true });
-      }
-    }
-    updateDrawioButtons();
-    return;
-  }
-
-  try {
-    const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows, {
-      placeColumnIndex: state.parsedOmradePlatsColumnIndex,
-      isEmptyRow: isEmptyExcelPlaceRow,
-      makeLabel: makeDrawioLabel
-    });
-    const { hadGeneratedDrawioXml } = setGeneratedDrawioXml(generatedXml);
-
-    if (!hadGeneratedDrawioXml && !state.hasManualDrawioMode) {
-      setCurrentDrawioMode("generated");
-    }
-
-    if (state.shouldReloadDrawioViewer && state.currentDrawioMode === "generated") {
-      loadDrawioViewer(state.generatedDrawioXml, { keepZoom: true });
-    }
-  } catch (error) {
-    clearGeneratedDrawioXml();
-  }
-
-  updateDrawioButtons();
-}
-
-function readDrawioFile(file) {
-  const reader = new FileReader();
-
-  reader.addEventListener("load", (event) => {
-    const xml = String(event.target.result || "").trim();
-
-    if (!xml) {
-      showDrawioReadError({
-        message: "Den här kartfilen är tom.",
-        elements: drawioElements
-      });
-      resetDrawioState();
-      updateDrawioButtons();
-      updateMissingPeopleList();
-      updateEmptyPlacesList();
-      updateDuplicateMapPlacesList();
-      updateGeneratedDiagram();
-      return;
-    }
-
-    setSourceDrawioXml(createCleanDrawioXml(xml));
-    setCurrentDrawioMode("clean");
-    setManualDrawioMode(true);
-    updateDuplicateMapPlacesList();
-    loadDrawioViewer(getCleanDrawioXmlForDisplay());
-    if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
-      reparseRows(true);
-    } else {
-      updateMissingPeopleList();
-      updateEmptyPlacesList();
-      updateGeneratedDiagram();
-    }
-  });
-
-  reader.addEventListener("error", () => {
-    showDrawioReadError({
-      message: "Kunde inte läsa kartfilen.",
-      elements: drawioElements
-    });
-    resetDrawioState();
-    updateDrawioButtons();
-    updateMissingPeopleList();
-    updateEmptyPlacesList();
-    updateDuplicateMapPlacesList();
-    updateGeneratedDiagram();
-  });
-
-  reader.readAsText(file);
-}
+drawioController.bindEvents({
+  toggleMenu: toggleDownloadMenu,
+  cleanDrawio: () => runDownloadAction(downloadCleanDiagram),
+  cleanPng: () => runDownloadAction(downloadCleanPng),
+  generatedDrawio: () => runDownloadAction(downloadGeneratedDiagram),
+  generatedPng: () => runDownloadAction(downloadGeneratedPng)
+});
 
 excelElements.upload.addEventListener("change", () => {
   const [file] = excelElements.upload.files;
 
   if (file) {
     showFile(file);
-  }
-});
-
-drawioElements.upload.addEventListener("change", () => {
-  const [file] = drawioElements.upload.files;
-
-  if (file) {
-    showDrawioFile(file);
   }
 });
 
@@ -1365,8 +972,8 @@ parseElements.sourceInputs.forEach((input) => {
   input.addEventListener("change", () => preserveWindowScroll(() => reparseRows(false)));
 });
 
-parseElements.showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
-parseElements.showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(updateGeneratedDiagram));
+parseElements.showPlaceNumberInput.addEventListener("change", () => preserveWindowScroll(drawioController.updateGeneratedDiagram));
+parseElements.showColumnNamesInput.addEventListener("change", () => preserveWindowScroll(drawioController.updateGeneratedDiagram));
 parseElements.showEmptyExcelPlacesInput.addEventListener("change", () => preserveWindowScroll(() => updateSelectedTable({ updateGeneratedDiagram: false })));
 helpElements.buttons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
@@ -1377,20 +984,8 @@ excelExampleElements.downloadButton.addEventListener("click", () => downloadExam
 drawioExampleElements.downloadButton.addEventListener("click", () => downloadExampleAsset(drawioExample));
 excelExampleElements.loadButton.addEventListener("click", loadExcelExample);
 drawioExampleElements.loadButton.addEventListener("click", loadDrawioExample);
-drawioControlElements.showCleanButton.addEventListener("click", showCleanMap);
-drawioControlElements.showGeneratedButton.addEventListener("click", showGeneratedMap);
-drawioControlElements.fullscreenButton.addEventListener("click", toggleMapFullscreen);
-drawioControlElements.addPlaceButton.addEventListener("click", addPlaceBoxToDrawio);
-drawioControlElements.downloadMenuButton.addEventListener("click", toggleDownloadMenu);
-drawioControlElements.downloadCleanDrawioButton.addEventListener("click", () => runDownloadAction(downloadCleanDiagram));
-drawioControlElements.downloadCleanPngButton.addEventListener("click", () => runDownloadAction(downloadCleanPng));
-drawioControlElements.downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(downloadGeneratedDiagram));
-drawioControlElements.downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
-missingPeopleElements.addButton.addEventListener("click", addMissingBoxesToDrawio);
 missingPeopleElements.downloadButton.addEventListener("click", downloadMissingPeopleExcel);
 excelElements.clearButton.addEventListener("click", clearExcelFile);
-drawioElements.clearButton.addEventListener("click", clearDrawioFile);
-document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("click", (event) => {
   if (!downloadMenuElements.options.hidden && !event.target.closest("#download-menu")) {
     closeDownloadMenu();
@@ -1436,51 +1031,4 @@ excelElements.uploadZone.addEventListener("drop", (event) => {
   if (file) {
     showFile(file);
   }
-});
-
-["dragenter", "dragover"].forEach((eventName) => {
-  drawioElements.uploadZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    showDragState({
-      element: drawioElements.uploadZone,
-      className: "is-dragging-drawio",
-      isDragging: true
-    });
-  });
-});
-
-["dragleave", "drop"].forEach((eventName) => {
-  drawioElements.uploadZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    showDragState({
-      element: drawioElements.uploadZone,
-      className: "is-dragging-drawio",
-      isDragging: false
-    });
-  });
-});
-
-drawioElements.uploadZone.addEventListener("drop", (event) => {
-  const [file] = event.dataTransfer.files;
-
-  if (file) {
-    showDrawioFile(file);
-  }
-});
-
-window.addEventListener("message", (event) => {
-  handleDrawioMessage(event, {
-    frame: drawioElements.frame,
-    pendingXml: state.pendingDrawioXml,
-    onConfigure: (origin) => postDrawioMessage(drawioElements.frame, {
-      action: "configure",
-      config: drawioEditorConfig
-    }, origin),
-    onInit: (xml) => loadDrawioViewer(xml),
-    onSave: (xml) => updateSourceDrawioXml(xml),
-    onExport: (dataUrl) => {
-      downloadPngWithWhiteBackground(dataUrl, state.pendingPngFileName || "karta.png");
-      state.pendingPngFileName = "";
-    }
-  });
 });
