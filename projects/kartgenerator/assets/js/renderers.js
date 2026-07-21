@@ -204,13 +204,13 @@ export function renderParseControls({ availableSources, shouldShow, elements }) 
   elements.controls.classList.toggle("is-visible", shouldShow);
 }
 
-export function renderMissingPeopleUnavailable({ elements }) {
+export function renderPeopleMissingFromMapUnavailable({ elements }) {
   elements.panel.hidden = true;
   elements.addButton.hidden = true;
   elements.downloadButton.disabled = true;
 }
 
-export function renderMissingPeoplePanelVisible({ elements }) {
+export function renderPeopleMissingFromMapPanelVisible({ elements }) {
   elements.panel.hidden = false;
 }
 
@@ -218,7 +218,7 @@ export function renderDrawioAddPlaceError({ message, elements }) {
   elements.panelTitle.textContent = message;
 }
 
-export function renderMissingPeopleError({ message, elements }) {
+export function renderPeopleMissingFromMapError({ message, elements }) {
   elements.meta.textContent = message;
 }
 
@@ -390,7 +390,7 @@ export function renderSelectedDataTable({
   wrap.hidden = false;
 }
 
-export function renderMissingPeopleTable({ rows, sortColumn, sortDirection, elements, onSort }) {
+export function renderPeopleMissingFromMapTable({ rows, sortColumn, sortDirection, elements, onSort }) {
   const { panel, meta, wrap, table, addButton, downloadButton } = elements;
 
   table.replaceChildren();
@@ -454,7 +454,7 @@ export function renderMissingPeopleTable({ rows, sortColumn, sortDirection, elem
   downloadButton.disabled = false;
 }
 
-export function renderEmptyPlacesTable({ rows, hasRequiredInput, sortColumn, sortDirection, elements, onSort }) {
+export function renderMapPlacesMissingInExcelTable({ rows, hasRequiredInput, sortColumn, sortDirection, elements, onSort }) {
   const { panel, meta, wrap, table } = elements;
 
   table.replaceChildren();

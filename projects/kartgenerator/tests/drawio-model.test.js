@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  createDrawioXmlWithHighlightedPlaces,
-  createDrawioXmlWithMissingBoxes,
+  createDrawioXmlWithHighlightedMapPlacesMissingInExcel,
+  createDrawioXmlWithAddedPlaceBoxes,
   createGeneratedDrawioXml,
   makeDrawioLabel
 } from "../assets/js/drawio-model.js";
@@ -30,10 +30,10 @@ function createCellXml(value, attributes = "") {
   `;
 }
 
-describe("createDrawioXmlWithHighlightedPlaces", () => {
+describe("createDrawioXmlWithHighlightedMapPlacesMissingInExcel", () => {
   it("removes a stale missing-Excel highlight when the place is no longer missing", () => {
     const xml = createCellXml("75");
-    const result = createDrawioXmlWithHighlightedPlaces(xml, new Set());
+    const result = createDrawioXmlWithHighlightedMapPlacesMissingInExcel(xml, new Set());
 
     expect(result).toContain('value="75"');
     expect(result).not.toContain("fillColor=#fff2cc");
@@ -43,7 +43,7 @@ describe("createDrawioXmlWithHighlightedPlaces", () => {
 
   it("uses the visible place number instead of stale data-place-code when deciding highlight", () => {
     const xml = createCellXml("75", 'data-place-code="555"');
-    const result = createDrawioXmlWithHighlightedPlaces(xml, new Set(["555"]));
+    const result = createDrawioXmlWithHighlightedMapPlacesMissingInExcel(xml, new Set(["555"]));
 
     expect(result).toContain('value="75"');
     expect(result).not.toContain("fillColor=#fff2cc");
@@ -51,7 +51,7 @@ describe("createDrawioXmlWithHighlightedPlaces", () => {
   });
 });
 
-describe("createDrawioXmlWithMissingBoxes", () => {
+describe("createDrawioXmlWithAddedPlaceBoxes", () => {
   it("places the first box to the right and subsequent boxes below it", () => {
     const xml = `
       <mxGraphModel>
@@ -62,7 +62,7 @@ describe("createDrawioXmlWithMissingBoxes", () => {
         </root>
       </mxGraphModel>
     `;
-    const result = createDrawioXmlWithMissingBoxes(xml, [{ place: "76" }, { place: "77" }]);
+    const result = createDrawioXmlWithAddedPlaceBoxes(xml, [{ place: "76" }, { place: "77" }]);
     const documentXml = new DOMParser().parseFromString(result, "application/xml");
     const addedCells = [...documentXml.querySelectorAll("mxCell[id^='kartgenerator-missing-']")];
 

@@ -1,6 +1,6 @@
 import { exportDrawioPng } from "./drawio-embed.js";
 import { createCleanDrawioXml } from "./drawio-model.js";
-import { downloadMenuElements, drawioElements, missingPeopleElements } from "./elements.js";
+import { downloadMenuElements, drawioElements, peopleMissingFromMapElements } from "./elements.js";
 import { renderDownloadMenu } from "./renderers.js";
 import { state } from "./state.js";
 
@@ -155,8 +155,8 @@ export function createDownloadController(callbacks) {
     image.src = dataUrl;
   }
 
-  function downloadMissingPeopleExcel() {
-    const rows = callbacks.getSortedMissingPeopleRows();
+  function downloadPeopleMissingFromMapExcel() {
+    const rows = callbacks.getSortedPeopleMissingFromMapRows();
 
     if (!window.XLSX || rows.length === 0) {
       return;
@@ -174,7 +174,7 @@ export function createDownloadController(callbacks) {
   }
 
   function bindEvents() {
-    missingPeopleElements.downloadButton.addEventListener("click", downloadMissingPeopleExcel);
+    peopleMissingFromMapElements.downloadButton.addEventListener("click", downloadPeopleMissingFromMapExcel);
     document.addEventListener("click", (event) => {
       if (!downloadMenuElements.options.hidden && !event.target.closest("#download-menu")) {
         closeMenu();

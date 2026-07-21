@@ -70,13 +70,13 @@ export const downloadMenuElements = {
   button: document.querySelector("#download-menu-button")
 };
 
-export const missingPeopleElements = {
-  panel: document.querySelector("#missing-panel"),
-  meta: document.querySelector("#missing-meta"),
-  wrap: document.querySelector("#missing-wrap"),
-  table: document.querySelector("#missing-table"),
-  addButton: document.querySelector("#add-missing-boxes"),
-  downloadButton: document.querySelector("#download-missing")
+export const peopleMissingFromMapElements = {
+  panel: document.querySelector("#people-missing-from-map-panel"),
+  meta: document.querySelector("#people-missing-from-map-meta"),
+  wrap: document.querySelector("#people-missing-from-map-wrap"),
+  table: document.querySelector("#people-missing-from-map-table"),
+  addButton: document.querySelector("#add-people-missing-from-map"),
+  downloadButton: document.querySelector("#download-people-missing-from-map")
 };
 
 export const lastUpdatedElements = {
@@ -124,11 +124,11 @@ export const clearedExcelElements = {
   selectedColumnsStatus: columnsElements.selectedStatus
 };
 
-export const emptyPlacesElements = {
-  panel: document.querySelector("#empty-places-panel"),
-  meta: document.querySelector("#empty-places-meta"),
-  wrap: document.querySelector("#empty-places-wrap"),
-  table: document.querySelector("#empty-places-table")
+export const mapPlacesMissingInExcelElements = {
+  panel: document.querySelector("#map-places-missing-in-excel-panel"),
+  meta: document.querySelector("#map-places-missing-in-excel-meta"),
+  wrap: document.querySelector("#map-places-missing-in-excel-wrap"),
+  table: document.querySelector("#map-places-missing-in-excel-table")
 };
 
 export const duplicateMapPlacesElements = {

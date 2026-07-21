@@ -43,8 +43,8 @@ export function createExcelController(callbacks) {
     resetDiagnosticsState();
     updateSelectedTable();
     callbacks.updateGeneratedDiagram();
-    callbacks.updateMissingPeopleList();
-    callbacks.updateEmptyPlacesList();
+    callbacks.updatePeopleMissingFromMapList();
+    callbacks.updateMapPlacesMissingInExcelList();
     callbacks.updateDuplicateMapPlacesList();
   }
 
@@ -285,8 +285,8 @@ export function createExcelController(callbacks) {
 
     if (state.selectedColumnIndexes.length === 0) {
       renderSelectedTable([], 0);
-      callbacks.updateMissingPeopleList();
-      callbacks.updateEmptyPlacesList();
+      callbacks.updatePeopleMissingFromMapList();
+      callbacks.updateMapPlacesMissingInExcelList();
       if (shouldUpdateGeneratedDiagram) {
         callbacks.updateGeneratedDiagram();
       }
@@ -294,12 +294,12 @@ export function createExcelController(callbacks) {
     }
 
     const visibleRows = getVisibleRows();
-    callbacks.updateMissingPeopleList();
-    callbacks.updateEmptyPlacesList();
+    callbacks.updatePeopleMissingFromMapList();
+    callbacks.updateMapPlacesMissingInExcelList();
 
     if (visibleRows.length === 0) {
       renderSelectedTable([], 0);
-      callbacks.updateEmptyPlacesList();
+      callbacks.updateMapPlacesMissingInExcelList();
       if (shouldUpdateGeneratedDiagram) {
         callbacks.updateGeneratedDiagram();
       }

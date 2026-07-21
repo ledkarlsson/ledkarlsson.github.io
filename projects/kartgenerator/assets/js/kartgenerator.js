@@ -65,29 +65,29 @@ const diagnosticsController = createDiagnosticsController({
 const excelController = createExcelController({
   preserveWindowScroll,
   updateDuplicateMapPlacesList: diagnosticsController.updateDuplicateMapPlacesList,
-  updateEmptyPlacesList: diagnosticsController.updateEmptyPlacesList,
+  updateMapPlacesMissingInExcelList: diagnosticsController.updateMapPlacesMissingInExcelList,
   updateGeneratedDiagram: () => drawioController.updateGeneratedDiagram(),
-  updateMissingPeopleList: diagnosticsController.updateMissingPeopleList
+  updatePeopleMissingFromMapList: diagnosticsController.updatePeopleMissingFromMapList
 });
 
 const downloadController = createDownloadController({
   closeExampleMenus: () => exampleController.closeMenus(),
-  getSortedMissingPeopleRows: diagnosticsController.getSortedMissingPeopleRows
+  getSortedPeopleMissingFromMapRows: diagnosticsController.getSortedPeopleMissingFromMapRows
 });
 
 const drawioController = createDrawioController({
   closeDownloadMenu: downloadController.closeMenu,
   downloadPngWithWhiteBackground: downloadController.downloadPngWithWhiteBackground,
-  getEmptyPlaceKey: diagnosticsController.getEmptyPlaceKey,
+  getMapPlacesMissingInExcelKey: diagnosticsController.getMapPlacesMissingInExcelKey,
   getDrawioLabelOptions: excelController.getDrawioLabelOptions,
   getRowsForGeneratedDiagram: excelController.getRowsForGeneratedDiagram,
-  getSortedMissingPeopleRows: diagnosticsController.getSortedMissingPeopleRows,
+  getSortedPeopleMissingFromMapRows: diagnosticsController.getSortedPeopleMissingFromMapRows,
   isEmptyExcelPlaceRow: excelController.isEmptyExcelPlaceRow,
   preserveWindowScroll,
   reparseRows: excelController.reparseRows,
   updateDuplicateMapPlacesList: diagnosticsController.updateDuplicateMapPlacesList,
-  updateEmptyPlacesList: diagnosticsController.updateEmptyPlacesList,
-  updateMissingPeopleList: diagnosticsController.updateMissingPeopleList
+  updateMapPlacesMissingInExcelList: diagnosticsController.updateMapPlacesMissingInExcelList,
+  updatePeopleMissingFromMapList: diagnosticsController.updatePeopleMissingFromMapList
 });
 
 const exampleController = createExampleController({

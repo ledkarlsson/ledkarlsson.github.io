@@ -3,7 +3,7 @@ import { drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartge
 export const newPlacePlaceholder = "ny plats";
 export const newPlaceBoxStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;";
 
-const missingExcelHighlight = {
+const mapPlaceMissingInExcelHighlight = {
   fill: "#fff2cc",
   stroke: "#d6b656"
 };
@@ -56,14 +56,14 @@ export function createCleanDrawioXml(xml) {
 
     const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
     const shouldRemoveDuplicateMapPlaceHighlight = Boolean(placeCode) && hasDuplicateMapPlaceHighlight(cell);
-    const shouldRemoveMissingExcelHighlight = Boolean(placeCode) && hasMissingExcelHighlight(cell);
+    const shouldRemoveMapPlaceMissingInExcelHighlight = Boolean(placeCode) && hasMapPlaceMissingInExcelHighlight(cell);
 
     if (cell.getAttribute("data-kartgenerator-duplicate-highlight") === "duplicate-map-place" || shouldRemoveDuplicateMapPlaceHighlight) {
       removeDuplicateMapPlaceHighlight(cell);
     }
 
-    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || shouldRemoveMissingExcelHighlight) {
-      removeMissingExcelHighlight(cell);
+    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || shouldRemoveMapPlaceMissingInExcelHighlight) {
+      removeMapPlaceMissingInExcelHighlight(cell);
     }
 
     if (placeCode) {
@@ -91,7 +91,7 @@ export function hasRenamedNewPlacePlaceholder(xml) {
     .some((cell) => drawioLabelToText(cell.getAttribute("value")).toLowerCase() !== newPlacePlaceholder);
 }
 
-export function createDrawioXmlWithHighlightedPlaces(xml, places) {
+export function createDrawioXmlWithHighlightedMapPlacesMissingInExcel(xml, places) {
   if (!xml) {
     return xml;
   }
@@ -106,12 +106,12 @@ export function createDrawioXmlWithHighlightedPlaces(xml, places) {
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
     const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
 
-    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || hasMissingExcelHighlight(cell)) {
-      removeMissingExcelHighlight(cell);
+    if (cell.getAttribute("data-kartgenerator-highlight") === "missing-excel" || hasMapPlaceMissingInExcelHighlight(cell)) {
+      removeMapPlaceMissingInExcelHighlight(cell);
     }
 
     if (places.has(normalizePlaceCode(place))) {
-      markCellAsMissingExcelPlace(cell, { temporary: true });
+      markCellAsMapPlaceMissingInExcel(cell, { temporary: true });
     }
   });
 
@@ -247,7 +247,7 @@ function getNewBoxStartPosition(documentXml) {
   };
 }
 
-function createMissingBoxId(place, index) {
+function createAddedPlaceBoxId(place, index) {
   const normalizedPlace = normalizePlaceCode(place).replace(/[^a-z0-9_-]/gi, "-") || `plats-${index + 1}`;
 
   return `kartgenerator-missing-${Date.now()}-${index}-${normalizedPlace}`;
@@ -258,7 +258,7 @@ function createDrawioCell(documentXml, row, index, x, y) {
   const geometry = documentXml.createElement("mxGeometry");
   const isNewPlacePlaceholder = row.isNewPlacePlaceholder === true;
 
-  cell.setAttribute("id", createMissingBoxId(row.place, index));
+  cell.setAttribute("id", createAddedPlaceBoxId(row.place, index));
   cell.setAttribute("value", row.place);
   cell.setAttribute("style", isNewPlacePlaceholder ? newPlaceBoxStyle : "rounded=0;whiteSpace=wrap;html=1;");
   cell.setAttribute("vertex", "1");
@@ -279,7 +279,7 @@ function createDrawioCell(documentXml, row, index, x, y) {
   return cell;
 }
 
-export function createDrawioXmlWithMissingBoxes(xml, rows) {
+export function createDrawioXmlWithAddedPlaceBoxes(xml, rows) {
   const parser = new DOMParser();
   const documentXml = parser.parseFromString(xml, "application/xml");
 
@@ -379,15 +379,15 @@ export function createGeneratedDrawioXml(xml, rows, options) {
       cell.setAttribute("value", generatedLabel || `${label}<br>Ledig plats`);
     } else if (label) {
       cell.setAttribute("value", `${label}<br>Ledig plats`);
-      markCellAsMissingExcelPlace(cell);
+      markCellAsMapPlaceMissingInExcel(cell);
     }
   });
 
   return new XMLSerializer().serializeToString(documentXml);
 }
 
-function hasMissingExcelHighlight(cell) {
-  return hasCellHighlight(cell, missingExcelHighlight);
+function hasMapPlaceMissingInExcelHighlight(cell) {
+  return hasCellHighlight(cell, mapPlaceMissingInExcelHighlight);
 }
 
 function hasDuplicateMapPlaceHighlight(cell) {
@@ -402,7 +402,7 @@ function hasCellHighlight(cell, highlight) {
   return fillPattern.test(style) && strokePattern.test(style);
 }
 
-function removeMissingExcelHighlight(cell) {
+function removeMapPlaceMissingInExcelHighlight(cell) {
   const originalStyle = cell.getAttribute("data-kartgenerator-original-style");
 
   cell.removeAttribute("data-kartgenerator-highlight");
@@ -416,10 +416,13 @@ function removeMissingExcelHighlight(cell) {
   cell.setAttribute("style", `${getCellStyleWithoutColor(cell).join(";")};`);
 }
 
-export function markCellAsMissingExcelPlace(cell, options = {}) {
+export function markCellAsMapPlaceMissingInExcel(cell, options = {}) {
   const styleParts = getCellStyleWithoutColor(cell);
 
-  styleParts.push(`fillColor=${missingExcelHighlight.fill}`, `strokeColor=${missingExcelHighlight.stroke}`);
+  styleParts.push(
+    `fillColor=${mapPlaceMissingInExcelHighlight.fill}`,
+    `strokeColor=${mapPlaceMissingInExcelHighlight.stroke}`
+  );
 
   if (options.temporary) {
     cell.setAttribute("data-kartgenerator-highlight", "missing-excel");

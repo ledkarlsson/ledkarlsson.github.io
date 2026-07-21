@@ -20,7 +20,7 @@ describe("createInitialKartgeneratorState", () => {
 
     expect(secondState.excelRows).toEqual([]);
     expect(secondState.currentDrawioMode).toBe("clean");
-    expect(secondState.missingSortColumn).toBe("place");
+    expect(secondState.peopleMissingFromMapSortColumn).toBe("place");
   });
 
   it("resets Excel state without touching map state", () => {
@@ -103,18 +103,18 @@ describe("createInitialKartgeneratorState", () => {
   it("resets diagnostic rows and their sort state", () => {
     const testState = createInitialKartgeneratorState();
 
-    testState.missingPeopleRows = [{ place: "75" }];
-    testState.emptyPlaceRows = [{ place: "57" }];
+    testState.peopleMissingFromMapRows = [{ place: "75" }];
+    testState.mapPlacesMissingInExcelRows = [{ place: "57" }];
     testState.duplicateMapPlaceRows = [{ place: "54" }];
-    testState.emptyPlacesSortColumn = "count";
-    testState.emptyPlacesSortDirection = "desc";
+    testState.mapPlacesMissingInExcelSortColumn = "count";
+    testState.mapPlacesMissingInExcelSortDirection = "desc";
 
     resetDiagnosticsState(testState);
 
-    expect(testState.missingPeopleRows).toEqual([]);
-    expect(testState.emptyPlaceRows).toEqual([]);
+    expect(testState.peopleMissingFromMapRows).toEqual([]);
+    expect(testState.mapPlacesMissingInExcelRows).toEqual([]);
     expect(testState.duplicateMapPlaceRows).toEqual([]);
-    expect(testState.emptyPlacesSortColumn).toBe("place");
-    expect(testState.emptyPlacesSortDirection).toBe("asc");
+    expect(testState.mapPlacesMissingInExcelSortColumn).toBe("place");
+    expect(testState.mapPlacesMissingInExcelSortDirection).toBe("asc");
   });
 });

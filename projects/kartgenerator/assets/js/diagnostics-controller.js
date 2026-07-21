@@ -1,91 +1,91 @@
 import {
   getDuplicateMapPlaceRows,
-  getEmptyMapPlaceRows,
-  getMissingPeopleRows
+  getMapPlacesMissingInExcelRows,
+  getPeopleMissingFromMapRows
 } from "./diagnostics.js";
 import {
   duplicateMapPlacesElements,
-  emptyPlacesElements,
-  missingPeopleElements
+  mapPlacesMissingInExcelElements,
+  peopleMissingFromMapElements
 } from "./elements.js";
 import {
   renderDuplicateMapPlacesTable,
-  renderEmptyPlacesTable,
-  renderMissingPeoplePanelVisible,
-  renderMissingPeopleTable,
-  renderMissingPeopleUnavailable
+  renderMapPlacesMissingInExcelTable,
+  renderPeopleMissingFromMapPanelVisible,
+  renderPeopleMissingFromMapTable,
+  renderPeopleMissingFromMapUnavailable
 } from "./renderers.js";
 import { state } from "./state.js";
 
 export function createDiagnosticsController(callbacks) {
-  function getSortedMissingPeopleRows() {
-    return [...state.missingPeopleRows].sort((left, right) => {
-      const result = String(left[state.missingSortColumn] || "").localeCompare(
-        String(right[state.missingSortColumn] || ""),
+  function getSortedPeopleMissingFromMapRows() {
+    return [...state.peopleMissingFromMapRows].sort((left, right) => {
+      const result = String(left[state.peopleMissingFromMapSortColumn] || "").localeCompare(
+        String(right[state.peopleMissingFromMapSortColumn] || ""),
         "sv",
         { numeric: true, sensitivity: "base" }
       );
 
-      return state.missingSortDirection === "asc" ? result : -result;
+      return state.peopleMissingFromMapSortDirection === "asc" ? result : -result;
     });
   }
 
-  function renderMissingPeople() {
-    renderMissingPeopleTable({
-      rows: getSortedMissingPeopleRows(),
-      sortColumn: state.missingSortColumn,
-      sortDirection: state.missingSortDirection,
-      elements: missingPeopleElements,
-      onSort: sortMissingPeople
+  function renderPeopleMissingFromMap() {
+    renderPeopleMissingFromMapTable({
+      rows: getSortedPeopleMissingFromMapRows(),
+      sortColumn: state.peopleMissingFromMapSortColumn,
+      sortDirection: state.peopleMissingFromMapSortDirection,
+      elements: peopleMissingFromMapElements,
+      onSort: sortPeopleMissingFromMap
     });
   }
 
-  function sortMissingPeople(columnKey) {
-    if (state.missingSortColumn === columnKey) {
-      state.missingSortDirection = state.missingSortDirection === "asc" ? "desc" : "asc";
+  function sortPeopleMissingFromMap(columnKey) {
+    if (state.peopleMissingFromMapSortColumn === columnKey) {
+      state.peopleMissingFromMapSortDirection = state.peopleMissingFromMapSortDirection === "asc" ? "desc" : "asc";
     } else {
-      state.missingSortColumn = columnKey;
-      state.missingSortDirection = "asc";
+      state.peopleMissingFromMapSortColumn = columnKey;
+      state.peopleMissingFromMapSortDirection = "asc";
     }
 
-    renderMissingPeople();
+    renderPeopleMissingFromMap();
   }
 
-  function getSortedEmptyPlaceRows() {
-    return [...state.emptyPlaceRows].sort((left, right) => {
-      const result = String(left[state.emptyPlacesSortColumn] || "").localeCompare(
-        String(right[state.emptyPlacesSortColumn] || ""),
+  function getSortedMapPlacesMissingInExcelRows() {
+    return [...state.mapPlacesMissingInExcelRows].sort((left, right) => {
+      const result = String(left[state.mapPlacesMissingInExcelSortColumn] || "").localeCompare(
+        String(right[state.mapPlacesMissingInExcelSortColumn] || ""),
         "sv",
         { numeric: true, sensitivity: "base" }
       );
 
-      return state.emptyPlacesSortDirection === "asc" ? result : -result;
+      return state.mapPlacesMissingInExcelSortDirection === "asc" ? result : -result;
     });
   }
 
-  function renderEmptyPlaces() {
-    renderEmptyPlacesTable({
-      rows: getSortedEmptyPlaceRows(),
+  function renderMapPlacesMissingInExcel() {
+    renderMapPlacesMissingInExcelTable({
+      rows: getSortedMapPlacesMissingInExcelRows(),
       hasRequiredInput: Boolean(state.sourceDrawioXml)
         && state.parsedOmradePlatsColumnIndex !== null
         && state.excelRows.length > 0,
-      sortColumn: state.emptyPlacesSortColumn,
-      sortDirection: state.emptyPlacesSortDirection,
-      elements: emptyPlacesElements,
-      onSort: sortEmptyPlaces
+      sortColumn: state.mapPlacesMissingInExcelSortColumn,
+      sortDirection: state.mapPlacesMissingInExcelSortDirection,
+      elements: mapPlacesMissingInExcelElements,
+      onSort: sortMapPlacesMissingInExcel
     });
   }
 
-  function sortEmptyPlaces(columnKey) {
+  function sortMapPlacesMissingInExcel(columnKey) {
     callbacks.preserveWindowScroll(() => {
-      if (state.emptyPlacesSortColumn === columnKey) {
-        state.emptyPlacesSortDirection = state.emptyPlacesSortDirection === "asc" ? "desc" : "asc";
+      if (state.mapPlacesMissingInExcelSortColumn === columnKey) {
+        state.mapPlacesMissingInExcelSortDirection = state.mapPlacesMissingInExcelSortDirection === "asc" ? "desc" : "asc";
       } else {
-        state.emptyPlacesSortColumn = columnKey;
-        state.emptyPlacesSortDirection = "asc";
+        state.mapPlacesMissingInExcelSortColumn = columnKey;
+        state.mapPlacesMissingInExcelSortDirection = "asc";
       }
 
-      renderEmptyPlaces();
+      renderMapPlacesMissingInExcel();
     });
   }
 
@@ -101,7 +101,7 @@ export function createDiagnosticsController(callbacks) {
     return rows.map((row) => `${row.normalizedPlace}:${row.count}`).join("|");
   }
 
-  function getEmptyPlaceKey(rows) {
+  function getMapPlacesMissingInExcelKey(rows) {
     return rows.map((row) => row.normalizedPlace).join("|");
   }
 
@@ -120,10 +120,10 @@ export function createDiagnosticsController(callbacks) {
     return hasChanged;
   }
 
-  function updateEmptyPlacesList() {
+  function updateMapPlacesMissingInExcelList() {
     if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
-      state.emptyPlaceRows = [];
-      renderEmptyPlaces();
+      state.mapPlacesMissingInExcelRows = [];
+      renderMapPlacesMissingInExcel();
 
       if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer && state.sourceDrawioXml) {
         callbacks.loadViewer(callbacks.getCleanXmlForDisplay(), { keepZoom: true });
@@ -131,19 +131,19 @@ export function createDiagnosticsController(callbacks) {
       return;
     }
 
-    state.emptyPlaceRows = getEmptyMapPlaceRows(
+    state.mapPlacesMissingInExcelRows = getMapPlacesMissingInExcelRows(
       state.sourceDrawioXml,
       state.excelRows,
       state.parsedOmradePlatsColumnIndex
     );
-    renderEmptyPlaces();
+    renderMapPlacesMissingInExcel();
 
     if (state.currentDrawioMode === "clean" && state.shouldReloadDrawioViewer) {
       callbacks.loadViewer(callbacks.getCleanXmlForDisplay(), { keepZoom: true });
     }
   }
 
-  function updateMissingPeopleList() {
+  function updatePeopleMissingFromMapList() {
     const firstNameColumnIndex = callbacks.getColumnIndexByName("fornamn");
     const lastNameColumnIndex = callbacks.getColumnIndexByName("efternamn");
 
@@ -154,25 +154,25 @@ export function createDiagnosticsController(callbacks) {
       || lastNameColumnIndex < 0
       || state.excelRows.length === 0
     ) {
-      state.missingPeopleRows = [];
-      renderMissingPeopleUnavailable({ elements: missingPeopleElements });
+      state.peopleMissingFromMapRows = [];
+      renderPeopleMissingFromMapUnavailable({ elements: peopleMissingFromMapElements });
       return;
     }
 
-    renderMissingPeoplePanelVisible({ elements: missingPeopleElements });
-    state.missingPeopleRows = getMissingPeopleRows(state.sourceDrawioXml, state.excelRows, {
+    renderPeopleMissingFromMapPanelVisible({ elements: peopleMissingFromMapElements });
+    state.peopleMissingFromMapRows = getPeopleMissingFromMapRows(state.sourceDrawioXml, state.excelRows, {
       placeColumnIndex: state.parsedOmradePlatsColumnIndex,
       firstNameColumnIndex,
       lastNameColumnIndex
     });
-    renderMissingPeople();
+    renderPeopleMissingFromMap();
   }
 
   return {
-    getEmptyPlaceKey,
-    getSortedMissingPeopleRows,
+    getMapPlacesMissingInExcelKey,
+    getSortedPeopleMissingFromMapRows,
     updateDuplicateMapPlacesList,
-    updateEmptyPlacesList,
-    updateMissingPeopleList
+    updateMapPlacesMissingInExcelList,
+    updatePeopleMissingFromMapList
   };
 }

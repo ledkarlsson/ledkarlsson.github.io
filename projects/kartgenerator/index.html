@@ -100,13 +100,13 @@
             <table class="selected-table" id="selected-table"></table>
           </div>
         </section>
-        <section class="table-panel empty-places-panel" id="empty-places-panel" aria-labelledby="empty-places-title"
+        <section class="table-panel map-places-missing-in-excel-panel" id="map-places-missing-in-excel-panel" aria-labelledby="map-places-missing-in-excel-title"
           hidden>
-          <h2 id="empty-places-title">Finns i kartan men saknas i Excel</h2>
-          <p class="table-meta" id="empty-places-meta">Ladda upp Excel och karta för att se platser som saknas i Excel.
+          <h2 id="map-places-missing-in-excel-title">Finns i kartan men saknas i Excel</h2>
+          <p class="table-meta" id="map-places-missing-in-excel-meta">Ladda upp Excel och karta för att se platser som saknas i Excel.
           </p>
-          <div class="table-wrap empty-places-wrap" id="empty-places-wrap" hidden>
-            <table class="selected-table" id="empty-places-table"></table>
+          <div class="table-wrap map-places-missing-in-excel-wrap" id="map-places-missing-in-excel-wrap" hidden>
+            <table class="selected-table" id="map-places-missing-in-excel-table"></table>
           </div>
         </section>
       </div>
@@ -181,22 +181,22 @@
       </div>
     </section>
 
-    <section class="missing-panel" id="missing-panel" aria-labelledby="missing-title" hidden>
+    <section class="people-missing-from-map-panel" id="people-missing-from-map-panel" aria-labelledby="people-missing-from-map-title" hidden>
       <div class="generated-header">
         <div class="panel-title-row">
-          <h2 class="panel-title" id="missing-title">Finns i BAS men saknas i kartan</h2>
-          <button class="help-button" type="button" data-help-target="missing-help"
+          <h2 class="panel-title" id="people-missing-from-map-title">Finns i BAS men saknas i kartan</h2>
+          <button class="help-button" type="button" data-help-target="people-missing-from-map-help"
             aria-label="Hjälp för saknade platser">?</button>
         </div>
         <div class="generated-header-actions">
-          <button class="button secondary" id="add-missing-boxes" type="button" hidden>Lägg till platserna i
+          <button class="button secondary" id="add-people-missing-from-map" type="button" hidden>Lägg till platserna i
             kartan</button>
-          <button class="button" id="download-missing" type="button" disabled>Ladda ner Excel</button>
+          <button class="button" id="download-people-missing-from-map" type="button" disabled>Ladda ner Excel</button>
         </div>
       </div>
-      <p class="table-meta" id="missing-meta">Ladda upp Excel och karta för att se saknade platser.</p>
-      <div class="table-wrap" id="missing-wrap" hidden>
-        <table class="selected-table" id="missing-table"></table>
+      <p class="table-meta" id="people-missing-from-map-meta">Ladda upp Excel och karta för att se saknade platser.</p>
+      <div class="table-wrap" id="people-missing-from-map-wrap" hidden>
+        <table class="selected-table" id="people-missing-from-map-table"></table>
       </div>
     </section>
   </main>
@@ -222,7 +222,7 @@
       <button class="button" type="submit">Stäng</button>
     </form>
   </dialog>
-  <dialog class="help-dialog" id="missing-help">
+  <dialog class="help-dialog" id="people-missing-from-map-help">
     <form method="dialog">
       <h2>Finns i BAS men saknas i kartan</h2>
       <p>Personerna i listan går inte att matcha mot kartan. Det kan bero på att båtplatsen inte finns med i kartan. Du

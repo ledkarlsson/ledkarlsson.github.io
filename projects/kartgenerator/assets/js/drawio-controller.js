@@ -7,8 +7,8 @@ import {
 import {
   createCleanDrawioXml,
   createDrawioXmlWithHighlightedDuplicatePlaces,
-  createDrawioXmlWithHighlightedPlaces,
-  createDrawioXmlWithMissingBoxes,
+  createDrawioXmlWithHighlightedMapPlacesMissingInExcel,
+  createDrawioXmlWithAddedPlaceBoxes,
   createGeneratedDrawioXml,
   hasRenamedNewPlacePlaceholder,
   newPlacePlaceholder
@@ -31,7 +31,7 @@ import {
   renderDrawioUploadMessage,
   renderDrawioViewer,
   renderFullscreenButton,
-  renderMissingPeopleError,
+  renderPeopleMissingFromMapError,
   renderRejectedDrawioFile,
   renderSelectedDrawioFile
 } from "./renderers.js";
@@ -39,7 +39,7 @@ import {
   drawioControlElements,
   drawioElements,
   drawioExampleElements,
-  missingPeopleElements,
+  peopleMissingFromMapElements,
   workspaceElements
 } from "./elements.js";
 
@@ -64,13 +64,13 @@ export function createDrawioController(callbacks) {
   }
 
   function getCleanXmlForDisplay() {
-    const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
+    const highlightedMapPlacesMissingInExcelXml = createDrawioXmlWithHighlightedMapPlacesMissingInExcel(
       state.sourceDrawioXml,
-      new Set(state.emptyPlaceRows.map((row) => row.normalizedPlace))
+      new Set(state.mapPlacesMissingInExcelRows.map((row) => row.normalizedPlace))
     );
 
     return createDrawioXmlWithHighlightedDuplicatePlaces(
-      highlightedMissingPlacesXml,
+      highlightedMapPlacesMissingInExcelXml,
       new Set(state.duplicateMapPlaceRows.map((row) => row.normalizedPlace))
     );
   }
@@ -180,8 +180,8 @@ export function createDrawioController(callbacks) {
 
   function refreshAfterReset() {
     updateButtons();
-    callbacks.updateMissingPeopleList();
-    callbacks.updateEmptyPlacesList();
+    callbacks.updatePeopleMissingFromMapList();
+    callbacks.updateMapPlacesMissingInExcelList();
     callbacks.updateDuplicateMapPlacesList();
     updateGeneratedDiagram();
   }
@@ -222,7 +222,9 @@ export function createDrawioController(callbacks) {
     const rawXml = String(xml || "").trim();
     const shouldRefreshRenamedNewPlace = state.currentDrawioMode === "clean" && hasRenamedNewPlacePlaceholder(rawXml);
     const updatedXml = createCleanDrawioXml(rawXml).trim();
-    const previousEmptyPlaceKey = callbacks.getEmptyPlaceKey(state.emptyPlaceRows);
+    const previousMapPlacesMissingInExcelKey = callbacks.getMapPlacesMissingInExcelKey(
+      state.mapPlacesMissingInExcelRows
+    );
 
     if (!updatedXml || updatedXml === state.sourceDrawioXml) {
       return;
@@ -240,8 +242,8 @@ export function createDrawioController(callbacks) {
         if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
           callbacks.reparseRows(true);
         } else {
-          callbacks.updateMissingPeopleList();
-          callbacks.updateEmptyPlacesList();
+          callbacks.updatePeopleMissingFromMapList();
+          callbacks.updateMapPlacesMissingInExcelList();
           updateGeneratedDiagram();
         }
       } finally {
@@ -249,9 +251,11 @@ export function createDrawioController(callbacks) {
       }
     });
 
-    const shouldRefreshEmptyPlaces = callbacks.getEmptyPlaceKey(state.emptyPlaceRows) !== previousEmptyPlaceKey;
+    const shouldRefreshMapPlacesMissingInExcel = callbacks.getMapPlacesMissingInExcelKey(
+      state.mapPlacesMissingInExcelRows
+    ) !== previousMapPlacesMissingInExcelKey;
 
-    if (shouldRefreshRenamedNewPlace || shouldRefreshDuplicateMapPlaces || shouldRefreshEmptyPlaces) {
+    if (shouldRefreshRenamedNewPlace || shouldRefreshDuplicateMapPlaces || shouldRefreshMapPlacesMissingInExcel) {
       if (state.currentDrawioMode === "clean") {
         scheduleCleanMapRefresh();
       }
@@ -264,7 +268,7 @@ export function createDrawioController(callbacks) {
     }
 
     try {
-      updateSourceXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, [{
+      updateSourceXml(createDrawioXmlWithAddedPlaceBoxes(state.sourceDrawioXml, [{
         place: newPlacePlaceholder,
         isNewPlacePlaceholder: true
       }]));
@@ -286,15 +290,15 @@ export function createDrawioController(callbacks) {
     }
   }
 
-  function addMissingBoxes() {
-    const rows = callbacks.getSortedMissingPeopleRows();
+  function addPeopleMissingFromMapBoxes() {
+    const rows = callbacks.getSortedPeopleMissingFromMapRows();
 
     if (!state.sourceDrawioXml || rows.length === 0) {
       return;
     }
 
     try {
-      updateSourceXml(createDrawioXmlWithMissingBoxes(state.sourceDrawioXml, rows));
+      updateSourceXml(createDrawioXmlWithAddedPlaceBoxes(state.sourceDrawioXml, rows));
       setManualDrawioMode(true);
       setCurrentDrawioMode(state.generatedDrawioXml ? "generated" : "clean");
 
@@ -306,9 +310,9 @@ export function createDrawioController(callbacks) {
 
       updateButtons();
     } catch (error) {
-      renderMissingPeopleError({
+      renderPeopleMissingFromMapError({
         message: "Kunde inte lägga till platser i kartan.",
-        elements: missingPeopleElements
+        elements: peopleMissingFromMapElements
       });
     }
   }
@@ -389,8 +393,8 @@ export function createDrawioController(callbacks) {
       if (state.excelColumns.length > 0 && state.rawExcelRows.length > 0) {
         callbacks.reparseRows(true);
       } else {
-        callbacks.updateMissingPeopleList();
-        callbacks.updateEmptyPlacesList();
+        callbacks.updatePeopleMissingFromMapList();
+        callbacks.updateMapPlacesMissingInExcelList();
         updateGeneratedDiagram();
       }
     });
@@ -455,7 +459,7 @@ export function createDrawioController(callbacks) {
     drawioControlElements.downloadCleanPngButton.addEventListener("click", downloadActions.cleanPng);
     drawioControlElements.downloadGeneratedDrawioButton.addEventListener("click", downloadActions.generatedDrawio);
     drawioControlElements.downloadGeneratedPngButton.addEventListener("click", downloadActions.generatedPng);
-    missingPeopleElements.addButton.addEventListener("click", addMissingBoxes);
+    peopleMissingFromMapElements.addButton.addEventListener("click", addPeopleMissingFromMapBoxes);
     drawioElements.clearButton.addEventListener("click", clearFile);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
 

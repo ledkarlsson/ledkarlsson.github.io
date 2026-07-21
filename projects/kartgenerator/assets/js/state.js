@@ -15,15 +15,15 @@ export function createInitialKartgeneratorState() {
     cleanMapRefreshTimer: 0,
     wasMapFullscreen: false,
     pendingPngFileName: "",
-    missingPeopleRows: [],
-    emptyPlaceRows: [],
+    peopleMissingFromMapRows: [],
+    mapPlacesMissingInExcelRows: [],
     duplicateMapPlaceRows: [],
     selectedTableSortColumnIndex: null,
     selectedTableSortDirection: "asc",
-    missingSortColumn: "place",
-    missingSortDirection: "asc",
-    emptyPlacesSortColumn: "place",
-    emptyPlacesSortDirection: "asc",
+    peopleMissingFromMapSortColumn: "place",
+    peopleMissingFromMapSortDirection: "asc",
+    mapPlacesMissingInExcelSortColumn: "place",
+    mapPlacesMissingInExcelSortDirection: "asc",
     scrollRestoreToken: 0
   };
 }
@@ -87,10 +87,10 @@ export function clearGeneratedDrawioXml(targetState = state) {
 }
 
 export function resetDiagnosticsState(targetState = state) {
-  targetState.missingPeopleRows = [];
-  targetState.emptyPlaceRows = [];
+  targetState.peopleMissingFromMapRows = [];
+  targetState.mapPlacesMissingInExcelRows = [];
   targetState.duplicateMapPlaceRows = [];
-  resetEmptyPlacesSort(targetState);
+  resetMapPlacesMissingInExcelSort(targetState);
 }
 
 export function resetSelectedTableSort(targetState = state) {
@@ -98,7 +98,7 @@ export function resetSelectedTableSort(targetState = state) {
   targetState.selectedTableSortDirection = "asc";
 }
 
-export function resetEmptyPlacesSort(targetState = state) {
-  targetState.emptyPlacesSortColumn = "place";
-  targetState.emptyPlacesSortDirection = "asc";
+export function resetMapPlacesMissingInExcelSort(targetState = state) {
+  targetState.mapPlacesMissingInExcelSortColumn = "place";
+  targetState.mapPlacesMissingInExcelSortDirection = "asc";
 }

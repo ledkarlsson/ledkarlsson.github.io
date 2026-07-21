@@ -12,16 +12,16 @@ import {
   renderDrawioUploadMessage,
   renderDragState,
   renderExcelReadError,
-  renderEmptyPlacesTable,
+  renderMapPlacesMissingInExcelTable,
   renderExampleMenu,
   renderFullscreenButton,
   renderLastUpdatedDate,
-  renderMissingPeopleUnavailable,
+  renderPeopleMissingFromMapUnavailable,
   renderParseControls,
   renderRejectedDrawioFile,
   renderRejectedExcelFile,
   renderSelectedDrawioFile,
-  renderMissingPeopleTable,
+  renderPeopleMissingFromMapTable,
   renderSelectedColumnsStatus,
   renderSelectedDataTable,
   renderSelectedExcelFile
@@ -45,7 +45,7 @@ function createTablePanelElements() {
   };
 }
 
-function createMissingPeopleElements() {
+function createPeopleMissingFromMapElements() {
   const elements = createTablePanelElements();
   const addButton = document.createElement("button");
   const downloadButton = document.createElement("button");
@@ -373,10 +373,10 @@ describe("small DOM renderers", () => {
     expect(drop.classList.contains("is-dragging")).toBe(false);
   });
 
-  it("renders unavailable missing people controls", () => {
-    const elements = createMissingPeopleElements();
+  it("renders unavailable people-missing-from-map controls", () => {
+    const elements = createPeopleMissingFromMapElements();
 
-    renderMissingPeopleUnavailable({ elements });
+    renderPeopleMissingFromMapUnavailable({ elements });
 
     expect(elements.panel.hidden).toBe(true);
     expect(elements.addButton.hidden).toBe(true);
@@ -630,11 +630,11 @@ describe("renderSelectedDataTable", () => {
   });
 });
 
-describe("renderMissingPeopleTable", () => {
-  it("hides the panel and disables actions when there are no missing people", () => {
-    const elements = createMissingPeopleElements();
+describe("renderPeopleMissingFromMapTable", () => {
+  it("hides the panel and disables actions when nobody is missing from the map", () => {
+    const elements = createPeopleMissingFromMapElements();
 
-    renderMissingPeopleTable({
+    renderPeopleMissingFromMapTable({
       rows: [],
       sortColumn: "place",
       sortDirection: "asc",
@@ -649,11 +649,11 @@ describe("renderMissingPeopleTable", () => {
     expect(elements.meta.textContent).toBe("Alla rader med förnamn, efternamn och plats finns i kartan.");
   });
 
-  it("renders missing people and wires sort buttons", () => {
-    const elements = createMissingPeopleElements();
+  it("renders people missing from the map and wires sort buttons", () => {
+    const elements = createPeopleMissingFromMapElements();
     const sortedColumns = [];
 
-    renderMissingPeopleTable({
+    renderPeopleMissingFromMapTable({
       rows: [{ place: "75", firstName: "Josefin", lastName: "Josefinsson" }],
       sortColumn: "firstName",
       sortDirection: "desc",
@@ -718,11 +718,11 @@ describe("renderDuplicateMapPlacesTable", () => {
   });
 });
 
-describe("renderEmptyPlacesTable", () => {
+describe("renderMapPlacesMissingInExcelTable", () => {
   it("hides the panel when Excel or map input is missing", () => {
     const elements = createTablePanelElements();
 
-    renderEmptyPlacesTable({
+    renderMapPlacesMissingInExcelTable({
       rows: [],
       hasRequiredInput: false,
       sortColumn: "place",
@@ -739,7 +739,7 @@ describe("renderEmptyPlacesTable", () => {
   it("shows an empty message when all map places exist in Excel", () => {
     const elements = createTablePanelElements();
 
-    renderEmptyPlacesTable({
+    renderMapPlacesMissingInExcelTable({
       rows: [],
       hasRequiredInput: true,
       sortColumn: "place",
@@ -757,7 +757,7 @@ describe("renderEmptyPlacesTable", () => {
     const elements = createTablePanelElements();
     const sortedColumns = [];
 
-    renderEmptyPlacesTable({
+    renderMapPlacesMissingInExcelTable({
       rows: [{ place: "57" }],
       hasRequiredInput: true,
       sortColumn: "place",

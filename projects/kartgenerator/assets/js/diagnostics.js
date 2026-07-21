@@ -94,7 +94,7 @@ export function getDuplicateMapPlaceRows(xml) {
     .sort((left, right) => String(left.place).localeCompare(String(right.place), "sv", { numeric: true, sensitivity: "base" }));
 }
 
-export function getEmptyMapPlaceRows(xml, rows, placeColumnIndex) {
+export function getMapPlacesMissingInExcelRows(xml, rows, placeColumnIndex) {
   if (!xml || placeColumnIndex === null || rows.length === 0) {
     return [];
   }
@@ -109,7 +109,7 @@ export function getEmptyMapPlaceRows(xml, rows, placeColumnIndex) {
     .filter((place) => !occupiedPlaces.has(place.normalizedPlace));
 }
 
-export function getMissingPeopleRows(xml, rows, { placeColumnIndex, firstNameColumnIndex, lastNameColumnIndex }) {
+export function getPeopleMissingFromMapRows(xml, rows, { placeColumnIndex, firstNameColumnIndex, lastNameColumnIndex }) {
   if (!xml || placeColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || rows.length === 0) {
     return [];
   }

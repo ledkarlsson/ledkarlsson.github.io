@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   getDuplicateMapPlaceRows,
   getDuplicatePlaceInfo,
-  getEmptyMapPlaceRows,
-  getMissingPeopleRows,
+  getMapPlacesMissingInExcelRows,
+  getPeopleMissingFromMapRows,
   hasDuplicatePlace,
   isEmptyExcelPlaceRow
 } from "../assets/js/diagnostics.js";
@@ -50,17 +50,17 @@ describe("getDuplicateMapPlaceRows", () => {
   });
 });
 
-describe("getEmptyMapPlaceRows", () => {
+describe("getMapPlacesMissingInExcelRows", () => {
   it("finds map places that are missing in Excel", () => {
     const rows = [["12"], ["13"]];
 
-    expect(getEmptyMapPlaceRows(createMapXml(["12", "13", "14"]), rows, 0)).toEqual([
+    expect(getMapPlacesMissingInExcelRows(createMapXml(["12", "13", "14"]), rows, 0)).toEqual([
       { place: "14", normalizedPlace: "14" }
     ]);
   });
 });
 
-describe("getMissingPeopleRows", () => {
+describe("getPeopleMissingFromMapRows", () => {
   it("finds people with place in Excel that is missing in the map", () => {
     const rows = [
       ["12", "Anna", "Andersson"],
@@ -68,7 +68,7 @@ describe("getMissingPeopleRows", () => {
       ["76", "", "Tomsson"]
     ];
 
-    expect(getMissingPeopleRows(createMapXml(["12"]), rows, {
+    expect(getPeopleMissingFromMapRows(createMapXml(["12"]), rows, {
       placeColumnIndex: 0,
       firstNameColumnIndex: 1,
       lastNameColumnIndex: 2

@@ -489,7 +489,7 @@
       background: #ffffff;
     }
 
-    .empty-places-wrap {
+    .map-places-missing-in-excel-wrap {
       max-height: 220px;
     }
 
@@ -713,7 +713,7 @@
       font-weight: 700;
     }
 
-    .missing-panel {
+    .people-missing-from-map-panel {
       margin-top: 36px;
       padding: 22px;
       border: 1px solid var(--line);
