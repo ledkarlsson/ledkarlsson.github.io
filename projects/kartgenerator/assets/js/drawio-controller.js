@@ -346,7 +346,7 @@ export function createDrawioController(callbacks) {
       const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows, {
         placeColumnIndex: state.parsedOmradePlatsColumnIndex,
         isEmptyRow: callbacks.isEmptyExcelPlaceRow,
-        makeLabel: callbacks.makeDrawioLabel
+        labelOptions: callbacks.getDrawioLabelOptions()
       });
       const { hadGeneratedDrawioXml } = setGeneratedDrawioXml(generatedXml);
 

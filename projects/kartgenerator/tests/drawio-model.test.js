@@ -2,8 +2,23 @@ import { describe, expect, it } from "vitest";
 import {
   createDrawioXmlWithHighlightedPlaces,
   createDrawioXmlWithMissingBoxes,
-  createGeneratedDrawioXml
+  createGeneratedDrawioXml,
+  makeDrawioLabel
 } from "../assets/js/drawio-model.js";
+
+const labelOptions = {
+  columns: [
+    { name: "Plats" },
+    { name: "Förnamn" },
+    { name: "Efternamn" }
+  ],
+  selectedColumnIndexes: [0, 1, 2],
+  placeColumnIndex: 0,
+  firstNameColumnIndex: 1,
+  lastNameColumnIndex: 2,
+  showPlaceNumber: true,
+  showColumnNames: false
+};
 
 function createCellXml(value, attributes = "") {
   return `
@@ -72,7 +87,7 @@ describe("createGeneratedDrawioXml", () => {
     const result = createGeneratedDrawioXml(xml, [["75", "Josefin"]], {
       placeColumnIndex: 0,
       isEmptyRow: () => false,
-      makeLabel: (row) => `${row[0]}<br>${row[1]}`
+      labelOptions
     });
     const documentXml = new DOMParser().parseFromString(result, "application/xml");
     const cells = [...documentXml.querySelectorAll("mxCell[vertex='1']")];
@@ -81,5 +96,20 @@ describe("createGeneratedDrawioXml", () => {
     expect(cells[0].getAttribute("data-place-code")).toBe("75");
     expect(cells[1].getAttribute("value")).toBe("76<br>Ledig plats");
     expect(cells[1].getAttribute("style")).toContain("fillColor=#fff2cc");
+  });
+});
+
+describe("makeDrawioLabel", () => {
+  it("combines first and last name in a generated map label", () => {
+    expect(makeDrawioLabel(["75", "Josefin", "Josefinsson"], labelOptions))
+      .toBe("75<br>Josefin Josefinsson");
+  });
+
+  it("respects display options without reading page elements", () => {
+    expect(makeDrawioLabel(["75", "Josefin", "Josefinsson"], {
+      ...labelOptions,
+      showPlaceNumber: false,
+      showColumnNames: true
+    })).toBe("Namn: Josefin Josefinsson");
   });
 });

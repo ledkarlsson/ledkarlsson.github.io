@@ -302,6 +302,48 @@ export function createDrawioXmlWithMissingBoxes(xml, rows) {
   return new XMLSerializer().serializeToString(documentXml);
 }
 
+export function makeDrawioLabel(row, options) {
+  const shouldCombineName = options.selectedColumnIndexes.includes(options.firstNameColumnIndex)
+    && options.selectedColumnIndexes.includes(options.lastNameColumnIndex);
+  const lines = [];
+
+  options.selectedColumnIndexes.forEach((columnIndex) => {
+    const value = row[columnIndex];
+
+    if (value === null || value === undefined || String(value).trim() === "") {
+      return;
+    }
+
+    if (columnIndex === options.placeColumnIndex) {
+      if (options.showPlaceNumber) {
+        lines.push(String(value).trim());
+      }
+      return;
+    }
+
+    if (shouldCombineName && columnIndex === options.firstNameColumnIndex) {
+      const firstName = String(value).trim();
+      const lastName = row[options.lastNameColumnIndex] === null || row[options.lastNameColumnIndex] === undefined
+        ? ""
+        : String(row[options.lastNameColumnIndex]).trim();
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      lines.push(options.showColumnNames ? `Namn: ${fullName}` : fullName);
+      return;
+    }
+
+    if (shouldCombineName && columnIndex === options.lastNameColumnIndex) {
+      return;
+    }
+
+    lines.push(options.showColumnNames
+      ? `${options.columns[columnIndex].name}: ${String(value).trim()}`
+      : String(value).trim());
+  });
+
+  return lines.join("<br>");
+}
+
 export function createGeneratedDrawioXml(xml, rows, options) {
   const parser = new DOMParser();
   const documentXml = parser.parseFromString(xml, "application/xml");
@@ -333,7 +375,7 @@ export function createGeneratedDrawioXml(xml, rows, options) {
     cell.setAttribute("data-place-code", label);
 
     if (row) {
-      const generatedLabel = options.isEmptyRow(row) ? "" : options.makeLabel(row);
+      const generatedLabel = options.isEmptyRow(row) ? "" : makeDrawioLabel(row, options.labelOptions);
       cell.setAttribute("value", generatedLabel || `${label}<br>Ledig plats`);
     } else if (label) {
       cell.setAttribute("value", `${label}<br>Ledig plats`);

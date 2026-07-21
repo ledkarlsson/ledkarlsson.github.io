@@ -407,48 +407,16 @@ export function createExcelController(callbacks) {
     clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
   }
 
-  function makeDrawioLabel(row) {
-    const firstNameColumnIndex = getColumnIndexByName("fornamn");
-    const lastNameColumnIndex = getColumnIndexByName("efternamn");
-    const shouldCombineName = state.selectedColumnIndexes.includes(firstNameColumnIndex)
-      && state.selectedColumnIndexes.includes(lastNameColumnIndex);
-    const lines = [];
-
-    state.selectedColumnIndexes.forEach((columnIndex) => {
-      const value = row[columnIndex];
-
-      if (value === null || value === undefined || String(value).trim() === "") {
-        return;
-      }
-
-      if (columnIndex === state.parsedOmradePlatsColumnIndex) {
-        if (parseElements.showPlaceNumberInput.checked) {
-          lines.push(String(value).trim());
-        }
-        return;
-      }
-
-      if (shouldCombineName && columnIndex === firstNameColumnIndex) {
-        const firstName = String(value).trim();
-        const lastName = row[lastNameColumnIndex] === null || row[lastNameColumnIndex] === undefined
-          ? ""
-          : String(row[lastNameColumnIndex]).trim();
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        lines.push(parseElements.showColumnNamesInput.checked ? `Namn: ${fullName}` : fullName);
-        return;
-      }
-
-      if (shouldCombineName && columnIndex === lastNameColumnIndex) {
-        return;
-      }
-
-      lines.push(parseElements.showColumnNamesInput.checked
-        ? `${state.excelColumns[columnIndex].name}: ${String(value).trim()}`
-        : String(value).trim());
-    });
-
-    return lines.join("<br>");
+  function getDrawioLabelOptions() {
+    return {
+      columns: state.excelColumns,
+      selectedColumnIndexes: state.selectedColumnIndexes,
+      placeColumnIndex: state.parsedOmradePlatsColumnIndex,
+      firstNameColumnIndex: getColumnIndexByName("fornamn"),
+      lastNameColumnIndex: getColumnIndexByName("efternamn"),
+      showPlaceNumber: parseElements.showPlaceNumberInput.checked,
+      showColumnNames: parseElements.showColumnNamesInput.checked
+    };
   }
 
   function bindEvents() {
@@ -509,9 +477,9 @@ export function createExcelController(callbacks) {
     bindEvents,
     clearFile,
     getColumnIndexByName,
+    getDrawioLabelOptions,
     getRowsForGeneratedDiagram,
     isEmptyExcelPlaceRow,
-    makeDrawioLabel,
     reparseRows,
     showFile,
     updateSelectedTable
