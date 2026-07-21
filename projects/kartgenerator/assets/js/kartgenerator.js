@@ -51,12 +51,8 @@ import {
   renderSelectedColumnsStatus as showSelectedColumnsStatus,
   renderSelectedDataTable as showSelectedDataTable
 } from "./renderers.js"
+import { excelElements } from "./elements.js"
 
-const uploadZone = document.querySelector("#upload-zone");
-const excelUpload = document.querySelector("#excel-upload");
-const fileStatus = document.querySelector("#file-status");
-const excelPanelTitle = document.querySelector("#excel-panel-title");
-const clearExcelButton = document.querySelector("#clear-excel");
 const excelExampleMenu = document.querySelector("#excel-example-menu");
 const excelExampleButton = document.querySelector("#excel-example-button");
 const excelExampleOptions = document.querySelector("#excel-example-options");
@@ -431,7 +427,7 @@ function reparseRows(shouldDetectParseSource = false) {
   }
 
   state.excelRows = parseRows(state.excelColumns, state.rawExcelRows, shouldDetectParseSource);
-    updateSelectedTable();
+  updateSelectedTable();
 }
 
 function updateParseControlsVisibility() {
@@ -632,8 +628,8 @@ function updateColumns(columns, sheetName) {
 
 function readColumns(file) {
   if (!window.XLSX) {
-    fileStatus.textContent = "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.";
-    fileStatus.classList.add("has-error");
+    excelElements.fileStatus.textContent = "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.";
+    excelElements.fileStatus.classList.add("has-error");
     clearColumns("Excel-läsaren är inte tillgänglig.");
     return;
   }
@@ -667,8 +663,8 @@ function readColumns(file) {
       state.excelRows = parseRows(columns, state.rawExcelRows);
       updateColumns(columns, firstSheetName);
     } catch (error) {
-      fileStatus.textContent = "Kunde inte läsa Excel-filen.";
-      fileStatus.classList.add("has-error");
+      excelElements.fileStatus.textContent = "Kunde inte läsa Excel-filen.";
+      excelElements.fileStatus.classList.add("has-error");
       clearColumns("Försök med en annan .xls- eller .xlsx-fil.");
     }
   });
@@ -680,26 +676,26 @@ function showFile(file) {
   const fileName = file.name.toLowerCase();
   const isExcelFile = excelTypes.some((extension) => fileName.endsWith(extension));
 
-  uploadZone.classList.remove("has-file");
-  fileStatus.classList.remove("has-file", "has-error");
+  excelElements.uploadZone.classList.remove("has-file");
+  excelElements.fileStatus.classList.remove("has-file", "has-error");
 
   if (!isExcelFile) {
-    fileStatus.textContent = "Välj en Excel-fil som slutar med .xls eller .xlsx.";
-    fileStatus.classList.add("has-error");
-    excelPanelTitle.textContent = "Excel-data";
-    excelUpload.value = "";
-    uploadZone.hidden = false;
+    excelElements.fileStatus.textContent = "Välj en Excel-fil som slutar med .xls eller .xlsx.";
+    excelElements.fileStatus.classList.add("has-error");
+    excelElements.panelTitle.textContent = "Excel-data";
+    excelElements.upload.value = "";
+    excelElements.uploadZone.hidden = false;
     clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
     return;
   }
 
-  fileStatus.textContent = "";
-  fileStatus.classList.add("has-file");
-  excelPanelTitle.textContent = file.name;
-  clearExcelButton.hidden = false;
+  excelElements.fileStatus.textContent = "";
+  excelElements.fileStatus.classList.add("has-file");
+  excelElements.panelTitle.textContent = file.name;
+  excelElements.clearButton.hidden = false;
   excelExampleMenu.hidden = true;
-  uploadZone.classList.add("has-file");
-  uploadZone.hidden = true;
+  excelElements.uploadZone.classList.add("has-file");
+  excelElements.uploadZone.hidden = true;
   clearColumns("Läser kolumner...");
   columnsPanel.hidden = false;
   tablePanel.hidden = false;
@@ -765,14 +761,14 @@ function showDrawioFile(file) {
 }
 
 function clearExcelFile() {
-  excelUpload.value = "";
-  excelPanelTitle.textContent = "Excel-data från BAS-rapport";
-  clearExcelButton.hidden = true;
+  excelElements.upload.value = "";
+  excelElements.panelTitle.textContent = "Excel-data från BAS-rapport";
+  excelElements.clearButton.hidden = true;
   excelExampleMenu.hidden = false;
-  uploadZone.hidden = false;
-  uploadZone.classList.remove("has-file");
-  fileStatus.textContent = "";
-  fileStatus.classList.remove("has-file", "has-error");
+  excelElements.uploadZone.hidden = false;
+  excelElements.uploadZone.classList.remove("has-file");
+  excelElements.fileStatus.textContent = "";
+  excelElements.fileStatus.classList.remove("has-file", "has-error");
   clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
 }
 
@@ -1675,8 +1671,8 @@ function readDrawioFile(file) {
   reader.readAsText(file);
 }
 
-excelUpload.addEventListener("change", () => {
-  const [file] = excelUpload.files;
+excelElements.upload.addEventListener("change", () => {
+  const [file] = excelElements.upload.files;
 
   if (file) {
     showFile(file);
@@ -1721,7 +1717,7 @@ downloadGeneratedDrawioButton.addEventListener("click", () => runDownloadAction(
 downloadGeneratedPngButton.addEventListener("click", () => runDownloadAction(downloadGeneratedPng));
 addMissingBoxesButton.addEventListener("click", addMissingBoxesToDrawio);
 downloadMissingButton.addEventListener("click", downloadMissingPeopleExcel);
-clearExcelButton.addEventListener("click", clearExcelFile);
+excelElements.clearButton.addEventListener("click", clearExcelFile);
 clearDrawioButton.addEventListener("click", clearDrawioFile);
 document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("click", (event) => {
@@ -1742,20 +1738,20 @@ window.addEventListener("keydown", (event) => {
 });
 
 ["dragenter", "dragover"].forEach((eventName) => {
-  uploadZone.addEventListener(eventName, (event) => {
+  excelElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    uploadZone.classList.add("is-dragging");
+    excelElements.uploadZone.classList.add("is-dragging");
   });
 });
 
 ["dragleave", "drop"].forEach((eventName) => {
-  uploadZone.addEventListener(eventName, (event) => {
+  excelElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    uploadZone.classList.remove("is-dragging");
+    excelElements.uploadZone.classList.remove("is-dragging");
   });
 });
 
-uploadZone.addEventListener("drop", (event) => {
+excelElements.uploadZone.addEventListener("drop", (event) => {
   const [file] = event.dataTransfer.files;
 
   if (file) {
