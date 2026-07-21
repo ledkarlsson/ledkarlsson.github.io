@@ -77,6 +77,155 @@ export function renderClearedExcelState({ message, elements }) {
   selectedColumnsStatus.textContent = "";
 }
 
+export function renderExcelReadError({ message, elements }) {
+  elements.fileStatus.textContent = message;
+  elements.fileStatus.classList.add("has-error");
+}
+
+export function renderRejectedExcelFile({ message, elements }) {
+  elements.uploadZone.classList.remove("has-file");
+  elements.fileStatus.classList.remove("has-file", "has-error");
+  elements.fileStatus.textContent = message;
+  elements.fileStatus.classList.add("has-error");
+  elements.panelTitle.textContent = "Excel-data";
+  elements.upload.value = "";
+  elements.uploadZone.hidden = false;
+}
+
+export function renderSelectedExcelFile({ fileName, elements, exampleElements, columnsPanel, tablePanel }) {
+  elements.uploadZone.classList.remove("has-file");
+  elements.fileStatus.classList.remove("has-file", "has-error");
+  elements.fileStatus.textContent = "";
+  elements.fileStatus.classList.add("has-file");
+  elements.panelTitle.textContent = fileName;
+  elements.clearButton.hidden = false;
+  exampleElements.menu.hidden = true;
+  elements.uploadZone.classList.add("has-file");
+  elements.uploadZone.hidden = true;
+  columnsPanel.hidden = false;
+  tablePanel.hidden = false;
+}
+
+export function renderClearedExcelFile({ elements, exampleElements }) {
+  elements.upload.value = "";
+  elements.panelTitle.textContent = "Excel-data från BAS-rapport";
+  elements.clearButton.hidden = true;
+  exampleElements.menu.hidden = false;
+  elements.uploadZone.hidden = false;
+  elements.uploadZone.classList.remove("has-file");
+  elements.fileStatus.textContent = "";
+  elements.fileStatus.classList.remove("has-file", "has-error");
+}
+
+export function renderDrawioUploadMessage({ title, help = "", elements }) {
+  elements.uploadZone.replaceChildren();
+
+  const titleElement = document.createElement("span");
+  titleElement.className = "drawio-title";
+  titleElement.textContent = title;
+  elements.uploadZone.append(titleElement);
+
+  if (help) {
+    const helpElement = document.createElement("span");
+    helpElement.className = "drawio-help";
+    helpElement.textContent = help;
+    elements.uploadZone.append(helpElement);
+  }
+
+  elements.uploadZone.append(elements.upload);
+}
+
+export function renderRejectedDrawioFile({ message, elements }) {
+  elements.uploadZone.classList.remove("has-error", "has-file");
+  renderDrawioUploadMessage({ title: message, elements });
+  elements.uploadZone.classList.add("has-error");
+  elements.panelTitle.textContent = "Karta";
+  elements.upload.value = "";
+  elements.viewer.hidden = true;
+  elements.uploadZone.hidden = false;
+}
+
+export function renderSelectedDrawioFile({ fileName, elements, exampleElements }) {
+  elements.uploadZone.classList.remove("has-error", "has-file");
+  elements.panelTitle.textContent = fileName;
+  elements.clearButton.hidden = false;
+  exampleElements.menu.hidden = true;
+  elements.uploadZone.replaceChildren();
+  elements.uploadZone.classList.add("has-file");
+  elements.uploadZone.append(elements.upload);
+  elements.uploadZone.hidden = true;
+}
+
+export function renderClearedDrawioFile({ elements, exampleElements }) {
+  elements.upload.value = "";
+  elements.panelTitle.textContent = "Karta";
+  elements.clearButton.hidden = true;
+  exampleElements.menu.hidden = false;
+  elements.uploadZone.hidden = false;
+  elements.uploadZone.classList.remove("has-file", "has-error");
+  renderDrawioUploadMessage({
+    title: "Ladda upp karta",
+    help: "Dra och släpp en .drawio eller .drawio.xml fil här, eller klicka för att välja",
+    elements
+  });
+  elements.viewer.hidden = true;
+}
+
+export function renderDrawioReadError({ message, elements }) {
+  renderDrawioUploadMessage({ title: message, elements });
+  elements.uploadZone.classList.add("has-error");
+  elements.viewer.hidden = true;
+  elements.uploadZone.hidden = false;
+}
+
+export function renderDrawioViewer({ isVisible, elements }) {
+  elements.viewer.hidden = !isVisible;
+}
+
+export function renderLastUpdatedDate({ modifiedDate, elements }) {
+  elements.date.dateTime = modifiedDate.toISOString().slice(0, 10);
+  elements.date.textContent = new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(modifiedDate);
+  elements.container.hidden = false;
+}
+
+export function renderParseControls({ availableSources, shouldShow, elements }) {
+  elements.sourceInputs.forEach((input) => {
+    const label = input.closest("label");
+
+    if (label) {
+      label.hidden = !availableSources.includes(input.value);
+    }
+  });
+
+  elements.controls.classList.toggle("is-visible", shouldShow);
+}
+
+export function renderMissingPeopleUnavailable({ elements }) {
+  elements.panel.hidden = true;
+  elements.addButton.hidden = true;
+  elements.downloadButton.disabled = true;
+}
+
+export function renderMissingPeoplePanelVisible({ elements }) {
+  elements.panel.hidden = false;
+}
+
+export function renderDrawioAddPlaceError({ message, elements }) {
+  elements.panelTitle.textContent = message;
+}
+
+export function renderMissingPeopleError({ message, elements }) {
+  elements.meta.textContent = message;
+}
+
+export function renderDragState({ element, className, isDragging }) {
+  element.classList.toggle(className, isDragging);
+}
+
 export function renderFullscreenButton({ isFullscreen, element }) {
   element.textContent = isFullscreen ? "Avsluta helskärm" : "Helskärm";
   element.setAttribute("aria-pressed", String(isFullscreen));

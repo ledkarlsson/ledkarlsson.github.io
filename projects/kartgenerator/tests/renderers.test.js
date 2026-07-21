@@ -1,17 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   renderColumnsList,
+  renderClearedDrawioFile,
+  renderClearedExcelFile,
   renderClearedExcelState,
   renderClosedExampleMenus,
   renderDuplicateMapPlacesTable,
   renderDownloadMenu,
   renderDrawioControls,
+  renderDrawioReadError,
+  renderDrawioUploadMessage,
+  renderDragState,
+  renderExcelReadError,
   renderEmptyPlacesTable,
   renderExampleMenu,
   renderFullscreenButton,
+  renderLastUpdatedDate,
+  renderMissingPeopleUnavailable,
+  renderParseControls,
+  renderRejectedDrawioFile,
+  renderRejectedExcelFile,
+  renderSelectedDrawioFile,
   renderMissingPeopleTable,
   renderSelectedColumnsStatus,
-  renderSelectedDataTable
+  renderSelectedDataTable,
+  renderSelectedExcelFile
 } from "../assets/js/renderers.js";
 
 function createTablePanelElements() {
@@ -138,6 +151,60 @@ function createDrawioControlElements() {
   };
 }
 
+function createExcelUploadElements() {
+  document.body.innerHTML = `
+    <label id="upload-zone" class="has-file" hidden>
+      <input id="upload" />
+    </label>
+    <p id="status" class="has-file has-error">Gammal status</p>
+    <h2 id="title">Gammal titel</h2>
+    <button id="clear"></button>
+    <div id="example-menu"></div>
+    <section id="columns" hidden></section>
+    <section id="table" hidden></section>
+  `;
+
+  return {
+    elements: {
+      uploadZone: document.querySelector("#upload-zone"),
+      upload: document.querySelector("#upload"),
+      fileStatus: document.querySelector("#status"),
+      panelTitle: document.querySelector("#title"),
+      clearButton: document.querySelector("#clear")
+    },
+    exampleElements: {
+      menu: document.querySelector("#example-menu")
+    },
+    columnsPanel: document.querySelector("#columns"),
+    tablePanel: document.querySelector("#table")
+  };
+}
+
+function createDrawioUploadElements() {
+  document.body.innerHTML = `
+    <label id="upload-zone" class="has-error has-file" hidden>
+      <input id="upload" />
+    </label>
+    <h2 id="title">Gammal titel</h2>
+    <button id="clear"></button>
+    <div id="example-menu"></div>
+    <div id="viewer"></div>
+  `;
+
+  return {
+    elements: {
+      uploadZone: document.querySelector("#upload-zone"),
+      upload: document.querySelector("#upload"),
+      panelTitle: document.querySelector("#title"),
+      clearButton: document.querySelector("#clear"),
+      viewer: document.querySelector("#viewer")
+    },
+    exampleElements: {
+      menu: document.querySelector("#example-menu")
+    }
+  };
+}
+
 describe("renderColumnsList", () => {
   it("renders an empty column message", () => {
     const elements = createColumnsElements();
@@ -187,6 +254,133 @@ describe("renderColumnsList", () => {
       { columnIndex: 1, isSelected: false },
       { columnIndex: 2, isSelected: true }
     ]);
+  });
+});
+
+describe("upload renderers", () => {
+  it("renders Excel selected, rejected, cleared and read-error states", () => {
+    const { elements, exampleElements, columnsPanel, tablePanel } = createExcelUploadElements();
+
+    renderSelectedExcelFile({
+      fileName: "rapport.xlsx",
+      elements,
+      exampleElements,
+      columnsPanel,
+      tablePanel
+    });
+
+    expect(elements.panelTitle.textContent).toBe("rapport.xlsx");
+    expect(elements.fileStatus.classList.contains("has-file")).toBe(true);
+    expect(elements.fileStatus.classList.contains("has-error")).toBe(false);
+    expect(elements.uploadZone.hidden).toBe(true);
+    expect(elements.clearButton.hidden).toBe(false);
+    expect(exampleElements.menu.hidden).toBe(true);
+    expect(columnsPanel.hidden).toBe(false);
+    expect(tablePanel.hidden).toBe(false);
+
+    renderRejectedExcelFile({ message: "Fel fil.", elements });
+    expect(elements.fileStatus.textContent).toBe("Fel fil.");
+    expect(elements.fileStatus.classList.contains("has-error")).toBe(true);
+    expect(elements.panelTitle.textContent).toBe("Excel-data");
+    expect(elements.uploadZone.hidden).toBe(false);
+
+    renderExcelReadError({ message: "Kunde inte läsa.", elements });
+    expect(elements.fileStatus.textContent).toBe("Kunde inte läsa.");
+
+    renderClearedExcelFile({ elements, exampleElements });
+    expect(elements.panelTitle.textContent).toBe("Excel-data från BAS-rapport");
+    expect(elements.clearButton.hidden).toBe(true);
+    expect(exampleElements.menu.hidden).toBe(false);
+    expect(elements.fileStatus.textContent).toBe("");
+  });
+
+  it("renders draw.io upload states", () => {
+    const { elements, exampleElements } = createDrawioUploadElements();
+
+    renderDrawioUploadMessage({
+      title: "Ladda upp karta",
+      help: "Dra hit filen",
+      elements
+    });
+    expect(elements.uploadZone.textContent).toContain("Ladda upp karta");
+    expect(elements.uploadZone.textContent).toContain("Dra hit filen");
+    expect(elements.uploadZone.querySelector("#upload")).toBe(elements.upload);
+
+    renderSelectedDrawioFile({ fileName: "karta.drawio", elements, exampleElements });
+    expect(elements.panelTitle.textContent).toBe("karta.drawio");
+    expect(elements.clearButton.hidden).toBe(false);
+    expect(exampleElements.menu.hidden).toBe(true);
+    expect(elements.uploadZone.hidden).toBe(true);
+    expect(elements.uploadZone.classList.contains("has-file")).toBe(true);
+
+    renderRejectedDrawioFile({ message: "Fel kartfil.", elements });
+    expect(elements.panelTitle.textContent).toBe("Karta");
+    expect(elements.uploadZone.textContent).toContain("Fel kartfil.");
+    expect(elements.uploadZone.classList.contains("has-error")).toBe(true);
+    expect(elements.viewer.hidden).toBe(true);
+
+    renderDrawioReadError({ message: "Tom karta.", elements });
+    expect(elements.uploadZone.textContent).toContain("Tom karta.");
+
+    renderClearedDrawioFile({ elements, exampleElements });
+    expect(elements.panelTitle.textContent).toBe("Karta");
+    expect(elements.clearButton.hidden).toBe(true);
+    expect(exampleElements.menu.hidden).toBe(false);
+    expect(elements.viewer.hidden).toBe(true);
+    expect(elements.uploadZone.textContent).toContain("Ladda upp karta");
+  });
+});
+
+describe("small DOM renderers", () => {
+  it("renders last updated date", () => {
+    document.body.innerHTML = `<p id="container" hidden><time id="date"></time></p>`;
+    const elements = {
+      container: document.querySelector("#container"),
+      date: document.querySelector("#date")
+    };
+
+    renderLastUpdatedDate({
+      modifiedDate: new Date("2026-07-21T12:00:00Z"),
+      elements
+    });
+
+    expect(elements.container.hidden).toBe(false);
+    expect(elements.date.getAttribute("datetime")).toBe("2026-07-21");
+    expect(elements.date.textContent).toContain("2026");
+  });
+
+  it("renders parse controls and drag state", () => {
+    document.body.innerHTML = `
+      <div id="controls"></div>
+      <label id="first"><input value="brygga"></label>
+      <label id="second"><input value="vinterplats"></label>
+      <div id="drop"></div>
+    `;
+    const elements = {
+      controls: document.querySelector("#controls"),
+      sourceInputs: document.querySelectorAll("input")
+    };
+    const drop = document.querySelector("#drop");
+
+    renderParseControls({ availableSources: ["brygga"], shouldShow: false, elements });
+    expect(document.querySelector("#first").hidden).toBe(false);
+    expect(document.querySelector("#second").hidden).toBe(true);
+    expect(elements.controls.classList.contains("is-visible")).toBe(false);
+
+    renderDragState({ element: drop, className: "is-dragging", isDragging: true });
+    expect(drop.classList.contains("is-dragging")).toBe(true);
+    renderDragState({ element: drop, className: "is-dragging", isDragging: false });
+    expect(drop.classList.contains("is-dragging")).toBe(false);
+  });
+
+  it("renders unavailable missing people controls", () => {
+    const elements = createMissingPeopleElements();
+
+    renderMissingPeopleUnavailable({ elements });
+
+    expect(elements.panel.hidden).toBe(true);
+    expect(elements.addButton.hidden).toBe(true);
+    expect(elements.downloadButton.disabled).toBe(true);
   });
 });
 

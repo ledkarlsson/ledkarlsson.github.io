@@ -86,7 +86,7 @@ export const lastUpdatedElements = {
 
 export const helpElements = {
   buttons: document.querySelectorAll("[data-help-target]"),
-  getDialog: (id) => document.querySelector(`#${id}`)
+  getDialog: (/** @type {any} */ id) => document.querySelector(`#${id}`)
 };
 
 export const columnsElements = {

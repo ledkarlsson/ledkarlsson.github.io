@@ -41,15 +41,32 @@ import {
   renderColumnsList as showColumnsList,
   renderClearedExcelState as showClearedExcelState,
   renderClosedExampleMenus as showClosedExampleMenus,
+  renderClearedDrawioFile as showClearedDrawioFile,
+  renderClearedExcelFile as showClearedExcelFile,
   renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
   renderDownloadMenu as showDownloadMenu,
+  renderDragState as showDragState,
+  renderDrawioAddPlaceError as showDrawioAddPlaceError,
   renderDrawioControls as showDrawioControls,
+  renderDrawioReadError as showDrawioReadError,
+  renderDrawioUploadMessage as showDrawioUploadMessage,
+  renderDrawioViewer as showDrawioViewer,
+  renderExcelReadError as showExcelReadError,
   renderEmptyPlacesTable as showEmptyPlacesTableView,
   renderExampleMenu as showExampleMenu,
   renderFullscreenButton as showFullscreenButton,
+  renderLastUpdatedDate as showLastUpdatedDateView,
+  renderMissingPeopleError as showMissingPeopleError,
+  renderMissingPeoplePanelVisible as showMissingPeoplePanelVisible,
   renderMissingPeopleTable as showMissingPeopleTableView,
+  renderMissingPeopleUnavailable as showMissingPeopleUnavailable,
+  renderParseControls as showParseControls,
+  renderRejectedDrawioFile as showRejectedDrawioFile,
+  renderRejectedExcelFile as showRejectedExcelFile,
+  renderSelectedDrawioFile as showSelectedDrawioFile,
   renderSelectedColumnsStatus as showSelectedColumnsStatus,
-  renderSelectedDataTable as showSelectedDataTable
+  renderSelectedDataTable as showSelectedDataTable,
+  renderSelectedExcelFile as showSelectedExcelFile
 } from "./renderers.js"
 import {
   clearedExcelElements,
@@ -117,13 +134,7 @@ function showLastUpdatedDate() {
     modifiedDate.setTime(Date.now());
   }
 
-  lastUpdatedElements.date.dateTime = modifiedDate.toISOString().slice(0, 10);
-  lastUpdatedElements.date.textContent = new Intl.DateTimeFormat("sv-SE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(modifiedDate);
-  lastUpdatedElements.container.hidden = false;
+  showLastUpdatedDateView({ modifiedDate, elements: lastUpdatedElements });
 }
 
 function showHelpDialog(event) {
@@ -179,7 +190,7 @@ function downloadBlob(blob, fileName) {
   link.href = url;
   link.download = fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function clearColumns(message) {
@@ -326,21 +337,13 @@ function updateParseControlsVisibility() {
     : [];
   const shouldShow = availableSources.length > 1;
 
-  parseElements.sourceInputs.forEach((input) => {
-    const label = input.closest("label");
-
-    if (label) {
-      label.hidden = !availableSources.includes(input.value);
-    }
-  });
-
   if (availableSources.length === 1) {
     setSelectedParseSource(availableSources[0]);
   } else if (availableSources.length > 1 && !availableSources.includes(getSelectedParseSource())) {
     setSelectedParseSource(availableSources[0]);
   }
 
-  parseElements.controls.classList.toggle("is-visible", shouldShow);
+  showParseControls({ availableSources, shouldShow, elements: parseElements });
 }
 
 function getVisibleRows() {
@@ -516,8 +519,10 @@ function updateColumns(columns, sheetName) {
 
 function readColumns(file) {
   if (!window.XLSX) {
-    excelElements.fileStatus.textContent = "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.";
-    excelElements.fileStatus.classList.add("has-error");
+    showExcelReadError({
+      message: "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.",
+      elements: excelElements
+    });
     clearColumns("Excel-läsaren är inte tillgänglig.");
     return;
   }
@@ -551,8 +556,10 @@ function readColumns(file) {
       state.excelRows = parseRows(columns, state.rawExcelRows);
       updateColumns(columns, firstSheetName);
     } catch (error) {
-      excelElements.fileStatus.textContent = "Kunde inte läsa Excel-filen.";
-      excelElements.fileStatus.classList.add("has-error");
+      showExcelReadError({
+        message: "Kunde inte läsa Excel-filen.",
+        elements: excelElements
+      });
       clearColumns("Försök med en annan .xls- eller .xlsx-fil.");
     }
   });
@@ -564,48 +571,28 @@ function showFile(file) {
   const fileName = file.name.toLowerCase();
   const isExcelFile = excelTypes.some((extension) => fileName.endsWith(extension));
 
-  excelElements.uploadZone.classList.remove("has-file");
-  excelElements.fileStatus.classList.remove("has-file", "has-error");
-
   if (!isExcelFile) {
-    excelElements.fileStatus.textContent = "Välj en Excel-fil som slutar med .xls eller .xlsx.";
-    excelElements.fileStatus.classList.add("has-error");
-    excelElements.panelTitle.textContent = "Excel-data";
-    excelElements.upload.value = "";
-    excelElements.uploadZone.hidden = false;
+    showRejectedExcelFile({
+      message: "Välj en Excel-fil som slutar med .xls eller .xlsx.",
+      elements: excelElements
+    });
     clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
     return;
   }
 
-  excelElements.fileStatus.textContent = "";
-  excelElements.fileStatus.classList.add("has-file");
-  excelElements.panelTitle.textContent = file.name;
-  excelElements.clearButton.hidden = false;
-  excelExampleElements.menu.hidden = true;
-  excelElements.uploadZone.classList.add("has-file");
-  excelElements.uploadZone.hidden = true;
   clearColumns("Läser kolumner...");
-  columnsElements.panel.hidden = false;
-  selectedTableElements.panel.hidden = false;
+  showSelectedExcelFile({
+    fileName: file.name,
+    elements: excelElements,
+    exampleElements: excelExampleElements,
+    columnsPanel: columnsElements.panel,
+    tablePanel: selectedTableElements.panel
+  });
   readColumns(file);
 }
 
 function setDrawioUploadMessage(title, help = "") {
-  drawioElements.uploadZone.replaceChildren();
-
-  const titleElement = document.createElement("span");
-  titleElement.className = "drawio-title";
-  titleElement.textContent = title;
-  drawioElements.uploadZone.append(titleElement);
-
-  if (help) {
-    const helpElement = document.createElement("span");
-    helpElement.className = "drawio-help";
-    helpElement.textContent = help;
-    drawioElements.uploadZone.append(helpElement);
-  }
-
-  drawioElements.uploadZone.append(drawioElements.upload);
+  showDrawioUploadMessage({ title, help, elements: drawioElements });
 }
 
 function resetDrawioUploadMessage() {
@@ -619,16 +606,12 @@ function showDrawioFile(file) {
   const fileName = file.name.toLowerCase();
   const isDrawioFile = drawioTypes.some((extension) => fileName.endsWith(extension));
 
-  drawioElements.uploadZone.classList.remove("has-error", "has-file");
-
   if (!isDrawioFile) {
-    setDrawioUploadMessage("Välj en kartfil som slutar med .drawio eller .drawio.xml.");
-    drawioElements.uploadZone.classList.add("has-error");
-    drawioElements.panelTitle.textContent = "Karta";
-    drawioElements.upload.value = "";
+    showRejectedDrawioFile({
+      message: "Välj en kartfil som slutar med .drawio eller .drawio.xml.",
+      elements: drawioElements
+    });
     resetDrawioState();
-    drawioElements.viewer.hidden = true;
-    drawioElements.uploadZone.hidden = false;
     updateDrawioButtons();
     updateMissingPeopleList();
     updateEmptyPlacesList();
@@ -637,38 +620,28 @@ function showDrawioFile(file) {
     return;
   }
 
-  drawioElements.panelTitle.textContent = file.name;
-  drawioElements.clearButton.hidden = false;
-  drawioExampleElements.menu.hidden = true;
+  showSelectedDrawioFile({
+    fileName: file.name,
+    elements: drawioElements,
+    exampleElements: drawioExampleElements
+  });
   state.sourceDrawioFileName = file.name;
-  drawioElements.uploadZone.replaceChildren();
-  drawioElements.uploadZone.classList.add("has-file");
-  drawioElements.uploadZone.append(drawioElements.upload);
-  drawioElements.uploadZone.hidden = true;
   readDrawioFile(file);
 }
 
 function clearExcelFile() {
-  excelElements.upload.value = "";
-  excelElements.panelTitle.textContent = "Excel-data från BAS-rapport";
-  excelElements.clearButton.hidden = true;
-  excelExampleElements.menu.hidden = false;
-  excelElements.uploadZone.hidden = false;
-  excelElements.uploadZone.classList.remove("has-file");
-  excelElements.fileStatus.textContent = "";
-  excelElements.fileStatus.classList.remove("has-file", "has-error");
+  showClearedExcelFile({
+    elements: excelElements,
+    exampleElements: excelExampleElements
+  });
   clearColumns("Ladda upp en Excel-fil för att visa kolumnerna.");
 }
 
 function clearDrawioFile() {
-  drawioElements.upload.value = "";
-  drawioElements.panelTitle.textContent = "Karta";
-  drawioElements.clearButton.hidden = true;
-  drawioExampleElements.menu.hidden = false;
-  drawioElements.uploadZone.hidden = false;
-  drawioElements.uploadZone.classList.remove("has-file", "has-error");
-  resetDrawioUploadMessage();
-  drawioElements.viewer.hidden = true;
+  showClearedDrawioFile({
+    elements: drawioElements,
+    exampleElements: drawioExampleElements
+  });
   resetDrawioState();
   updateDrawioButtons();
   updateMissingPeopleList();
@@ -679,7 +652,7 @@ function clearDrawioFile() {
 
 function loadDrawioViewer(xml, options = {}) {
   state.pendingDrawioXml = xml;
-  drawioElements.viewer.hidden = false;
+  showDrawioViewer({ isVisible: true, elements: drawioElements });
   loadDrawioXmlWhenVisible(drawioElements.frame, xml, { autosave: true, keepZoom: options.keepZoom });
 }
 
@@ -796,7 +769,7 @@ function downloadDrawioXml(xml, fileName) {
   link.href = url;
   link.download = fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function downloadCleanDiagram() {
@@ -1122,14 +1095,12 @@ function updateMissingPeopleList() {
   const lastNameColumnIndex = getColumnIndexByName("efternamn");
 
   if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || state.excelRows.length === 0) {
-    missingPeopleElements.panel.hidden = true;
     state.missingPeopleRows = [];
-    missingPeopleElements.addButton.hidden = true;
-    missingPeopleElements.downloadButton.disabled = true;
+    showMissingPeopleUnavailable({ elements: missingPeopleElements });
     return;
   }
 
-  missingPeopleElements.panel.hidden = false;
+  showMissingPeoplePanelVisible({ elements: missingPeopleElements });
   state.missingPeopleRows = getMissingPeopleRows(state.sourceDrawioXml, state.excelRows, {
     placeColumnIndex: state.parsedOmradePlatsColumnIndex,
     firstNameColumnIndex,
@@ -1378,7 +1349,10 @@ function addPlaceBoxToDrawio() {
 
     updateDrawioButtons();
   } catch (error) {
-    drawioElements.panelTitle.textContent = "Kunde inte lägga till plats.";
+    showDrawioAddPlaceError({
+      message: "Kunde inte lägga till plats.",
+      elements: drawioElements
+    });
   }
 }
 
@@ -1402,7 +1376,10 @@ function addMissingBoxesToDrawio() {
 
     updateDrawioButtons();
   } catch (error) {
-    missingPeopleElements.meta.textContent = "Kunde inte lägga till platser i kartan.";
+    showMissingPeopleError({
+      message: "Kunde inte lägga till platser i kartan.",
+      elements: missingPeopleElements
+    });
   }
 }
 
@@ -1518,11 +1495,11 @@ function readDrawioFile(file) {
     const xml = String(event.target.result || "").trim();
 
     if (!xml) {
-      setDrawioUploadMessage("Den här kartfilen är tom.");
-      drawioElements.uploadZone.classList.add("has-error");
+      showDrawioReadError({
+        message: "Den här kartfilen är tom.",
+        elements: drawioElements
+      });
       resetDrawioState();
-      drawioElements.viewer.hidden = true;
-      drawioElements.uploadZone.hidden = false;
       updateDrawioButtons();
       updateMissingPeopleList();
       updateEmptyPlacesList();
@@ -1546,8 +1523,10 @@ function readDrawioFile(file) {
   });
 
   reader.addEventListener("error", () => {
-    setDrawioUploadMessage("Kunde inte läsa kartfilen.");
-    drawioElements.uploadZone.classList.add("has-error");
+    showDrawioReadError({
+      message: "Kunde inte läsa kartfilen.",
+      elements: drawioElements
+    });
     resetDrawioState();
     updateDrawioButtons();
     updateMissingPeopleList();
@@ -1628,14 +1607,22 @@ window.addEventListener("keydown", (event) => {
 ["dragenter", "dragover"].forEach((eventName) => {
   excelElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    excelElements.uploadZone.classList.add("is-dragging");
+    showDragState({
+      element: excelElements.uploadZone,
+      className: "is-dragging",
+      isDragging: true
+    });
   });
 });
 
 ["dragleave", "drop"].forEach((eventName) => {
   excelElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    excelElements.uploadZone.classList.remove("is-dragging");
+    showDragState({
+      element: excelElements.uploadZone,
+      className: "is-dragging",
+      isDragging: false
+    });
   });
 });
 
@@ -1650,14 +1637,22 @@ excelElements.uploadZone.addEventListener("drop", (event) => {
 ["dragenter", "dragover"].forEach((eventName) => {
   drawioElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    drawioElements.uploadZone.classList.add("is-dragging-drawio");
+    showDragState({
+      element: drawioElements.uploadZone,
+      className: "is-dragging-drawio",
+      isDragging: true
+    });
   });
 });
 
 ["dragleave", "drop"].forEach((eventName) => {
   drawioElements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    drawioElements.uploadZone.classList.remove("is-dragging-drawio");
+    showDragState({
+      element: drawioElements.uploadZone,
+      className: "is-dragging-drawio",
+      isDragging: false
+    });
   });
 });
 
