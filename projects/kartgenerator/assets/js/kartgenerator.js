@@ -2,6 +2,7 @@
 import { exportDrawioPng } from "./drawio-embed.js"
 import { createDrawioController } from "./drawio-controller.js"
 import { createExcelController } from "./excel-controller.js"
+import { createExampleController } from "./example.js"
 import {
   getDuplicateMapPlaceRows,
   getEmptyMapPlaceRows,
@@ -10,11 +11,9 @@ import {
 import { createCleanDrawioXml } from "./drawio-model.js"
 import { state } from "./state.js"
 import {
-  renderClosedExampleMenus as showClosedExampleMenus,
   renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
   renderDownloadMenu as showDownloadMenu,
   renderEmptyPlacesTable as showEmptyPlacesTableView,
-  renderExampleMenu as showExampleMenu,
   renderLastUpdatedDate as showLastUpdatedDateView,
   renderMissingPeoplePanelVisible as showMissingPeoplePanelVisible,
   renderMissingPeopleTable as showMissingPeopleTableView,
@@ -22,26 +21,13 @@ import {
 } from "./renderers.js"
 import {
   drawioElements,
-  drawioExampleElements,
   downloadMenuElements,
   duplicateMapPlacesElements,
   emptyPlacesElements,
-  excelExampleElements,
   helpElements,
   lastUpdatedElements,
   missingPeopleElements
 } from "./elements.js"
-
-const excelExample = {
-  url: "assets/examples/exempel.xlsx",
-  fileName: "exempel.xlsx",
-  type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-};
-const drawioExample = {
-  url: "assets/examples/exempel.drawio",
-  fileName: "exempel.drawio",
-  type: "application/xml"
-};
 
 function preserveWindowScroll(callback) {
   const scrollX = window.scrollX;
@@ -86,54 +72,6 @@ function showHelpDialog(event) {
   }
 }
 
-async function fetchExampleBlob(example) {
-  const response = await fetch(example.url);
-
-  if (!response.ok) {
-    throw new Error("Kunde inte hämta exempelfilen.");
-  }
-
-  return response.blob();
-}
-
-async function downloadExampleAsset(example) {
-  closeExampleMenus();
-
-  try {
-    const blob = await fetchExampleBlob(example);
-
-    downloadBlob(blob, example.fileName);
-  } catch (error) {
-    window.location.href = example.url;
-  }
-}
-
-async function getExampleFile(example) {
-  const blob = await fetchExampleBlob(example);
-
-  return new File([blob], example.fileName, { type: example.type });
-}
-
-async function loadExcelExample() {
-  closeExampleMenus();
-  excelController.showFile(await getExampleFile(excelExample));
-}
-
-async function loadDrawioExample() {
-  closeExampleMenus();
-  drawioController.showFile(await getExampleFile(drawioExample));
-}
-
-function downloadBlob(blob, fileName) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 function downloadDrawioXml(xml, fileName) {
   if (!xml) {
     return;
@@ -168,29 +106,12 @@ function downloadGeneratedPng() {
 function toggleDownloadMenu() {
   const isOpening = downloadMenuElements.options.hidden;
 
-  closeExampleMenus();
+  exampleController.closeMenus();
   showDownloadMenu({ isOpen: isOpening, elements: downloadMenuElements });
 }
 
 function closeDownloadMenu() {
   showDownloadMenu({ isOpen: false, elements: downloadMenuElements });
-}
-
-function toggleExampleMenu(options, button) {
-  const isOpening = options.hidden;
-
-  closeDownloadMenu();
-  closeExampleMenus();
-  showExampleMenu({
-    isOpen: isOpening,
-    elements: { options, button }
-  });
-}
-
-function closeExampleMenus() {
-  showClosedExampleMenus({
-    menus: [excelExampleElements.menuElements, drawioExampleElements.menuElements]
-  });
 }
 
 function runDownloadAction(action) {
@@ -474,6 +395,12 @@ const drawioController = createDrawioController({
   updateMissingPeopleList
 });
 
+const exampleController = createExampleController({
+  closeDownloadMenu,
+  onLoadExcel: excelController.showFile,
+  onLoadDrawio: drawioController.showFile
+});
+
 drawioController.bindEvents({
   toggleMenu: toggleDownloadMenu,
   cleanDrawio: () => runDownloadAction(downloadCleanDiagram),
@@ -482,6 +409,7 @@ drawioController.bindEvents({
   generatedPng: () => runDownloadAction(downloadGeneratedPng)
 });
 excelController.bindEvents();
+exampleController.bindEvents();
 
 showLastUpdatedDate();
 window.kartgeneratorReady = true;
@@ -489,12 +417,6 @@ window.kartgeneratorReady = true;
 helpElements.buttons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
-excelExampleElements.button.addEventListener("click", () => toggleExampleMenu(excelExampleElements.options, excelExampleElements.button));
-drawioExampleElements.button.addEventListener("click", () => toggleExampleMenu(drawioExampleElements.options, drawioExampleElements.button));
-excelExampleElements.downloadButton.addEventListener("click", () => downloadExampleAsset(excelExample));
-drawioExampleElements.downloadButton.addEventListener("click", () => downloadExampleAsset(drawioExample));
-excelExampleElements.loadButton.addEventListener("click", loadExcelExample);
-drawioExampleElements.loadButton.addEventListener("click", loadDrawioExample);
 missingPeopleElements.downloadButton.addEventListener("click", downloadMissingPeopleExcel);
 document.addEventListener("click", (event) => {
   if (!downloadMenuElements.options.hidden && !event.target.closest("#download-menu")) {
@@ -502,7 +424,7 @@ document.addEventListener("click", (event) => {
   }
 
   if (!event.target.closest(".example-menu")) {
-    closeExampleMenus();
+    exampleController.closeMenus();
   }
 });
 window.addEventListener("wheel", cancelPendingScrollRestore, { passive: true });
