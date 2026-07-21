@@ -1,6 +1,6 @@
 ﻿
-import { exportDrawioPng } from "./drawio-embed.js"
 import { createDrawioController } from "./drawio-controller.js"
+import { createDownloadController } from "./download.js"
 import { createExcelController } from "./excel-controller.js"
 import { createExampleController } from "./example.js"
 import {
@@ -8,11 +8,9 @@ import {
   getEmptyMapPlaceRows,
   getMissingPeopleRows
 } from "./diagnostics.js"
-import { createCleanDrawioXml } from "./drawio-model.js"
 import { state } from "./state.js"
 import {
   renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
-  renderDownloadMenu as showDownloadMenu,
   renderEmptyPlacesTable as showEmptyPlacesTableView,
   renderLastUpdatedDate as showLastUpdatedDateView,
   renderMissingPeoplePanelVisible as showMissingPeoplePanelVisible,
@@ -20,8 +18,6 @@ import {
   renderMissingPeopleUnavailable as showMissingPeopleUnavailable
 } from "./renderers.js"
 import {
-  drawioElements,
-  downloadMenuElements,
   duplicateMapPlacesElements,
   emptyPlacesElements,
   helpElements,
@@ -70,152 +66,6 @@ function showHelpDialog(event) {
   if (dialog instanceof HTMLDialogElement) {
     dialog.showModal();
   }
-}
-
-function downloadDrawioXml(xml, fileName) {
-  if (!xml) {
-    return;
-  }
-
-  const blob = new Blob([xml], { type: "application/xml" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function downloadCleanDiagram() {
-  downloadDrawioXml(createCleanDrawioXml(state.sourceDrawioXml), getCleanDrawioFileName());
-}
-
-function downloadGeneratedDiagram() {
-  downloadDrawioXml(state.generatedDrawioXml, getGeneratedDrawioFileName());
-}
-
-function downloadCleanPng() {
-  downloadDrawioPng(createCleanDrawioXml(state.sourceDrawioXml), getCleanPngFileName());
-}
-
-function downloadGeneratedPng() {
-  downloadDrawioPng(state.generatedDrawioXml, getGeneratedPngFileName());
-}
-
-function toggleDownloadMenu() {
-  const isOpening = downloadMenuElements.options.hidden;
-
-  exampleController.closeMenus();
-  showDownloadMenu({ isOpen: isOpening, elements: downloadMenuElements });
-}
-
-function closeDownloadMenu() {
-  showDownloadMenu({ isOpen: false, elements: downloadMenuElements });
-}
-
-function runDownloadAction(action) {
-  action();
-  closeDownloadMenu();
-}
-
-function downloadDrawioPng(xml, fileName) {
-  if (!xml) {
-    return;
-  }
-
-  state.pendingPngFileName = fileName;
-  exportDrawioPng(drawioElements.frame, xml);
-}
-
-function downloadDataUrl(dataUrl, fileName) {
-  const link = document.createElement("a");
-
-  link.href = dataUrl;
-  link.download = fileName;
-  link.click();
-}
-
-function downloadPngWithWhiteBackground(dataUrl, fileName) {
-  const image = new Image();
-
-  image.addEventListener("load", () => {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0);
-    downloadDataUrl(canvas.toDataURL("image/png"), fileName);
-  });
-
-  image.addEventListener("error", () => {
-    downloadDataUrl(dataUrl, fileName);
-  });
-
-  image.src = dataUrl;
-}
-
-function getGeneratedDrawioFileName() {
-  const fallbackName = "genererad_karta.drawio";
-  const fileName = state.sourceDrawioFileName || fallbackName;
-  const drawioXmlSuffix = ".drawio.xml";
-
-  if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
-    return `${fileName.slice(0, -drawioXmlSuffix.length)}-genererad${drawioXmlSuffix}`;
-  }
-
-  const dotIndex = fileName.lastIndexOf(".");
-
-  if (dotIndex > 0) {
-    return `${fileName.slice(0, dotIndex)}-genererad${fileName.slice(dotIndex)}`;
-  }
-
-  return `${fileName}-genererad.drawio`;
-}
-
-function getCleanDrawioFileName() {
-  const fallbackName = "karta.drawio";
-  const fileName = state.sourceDrawioFileName || fallbackName;
-  const drawioXmlSuffix = ".drawio.xml";
-
-  if (fileName.toLowerCase().endsWith(drawioXmlSuffix)) {
-    return `${fileName.slice(0, -drawioXmlSuffix.length)}-utan-bas-info${drawioXmlSuffix}`;
-  }
-
-  const dotIndex = fileName.lastIndexOf(".");
-
-  if (dotIndex > 0) {
-    return `${fileName.slice(0, dotIndex)}-utan-bas-info${fileName.slice(dotIndex)}`;
-  }
-
-  return `${fileName}-utan-bas-info.drawio`;
-}
-
-function getPngFileName(drawioFileName) {
-  const drawioXmlSuffix = ".drawio.xml";
-
-  if (drawioFileName.toLowerCase().endsWith(drawioXmlSuffix)) {
-    return `${drawioFileName.slice(0, -drawioXmlSuffix.length)}.png`;
-  }
-
-  const dotIndex = drawioFileName.lastIndexOf(".");
-
-  if (dotIndex > 0) {
-    return `${drawioFileName.slice(0, dotIndex)}.png`;
-  }
-
-  return `${drawioFileName}.png`;
-}
-
-function getCleanPngFileName() {
-  return getPngFileName(getCleanDrawioFileName());
-}
-
-function getGeneratedPngFileName() {
-  return getPngFileName(getGeneratedDrawioFileName());
 }
 
 function showMissingPeopleTable(rows) {
@@ -356,22 +206,6 @@ function updateMissingPeopleList() {
   showMissingPeopleTable(getSortedMissingPeopleRows());
 }
 
-function downloadMissingPeopleExcel() {
-  if (!window.XLSX || state.missingPeopleRows.length === 0) {
-    return;
-  }
-
-  const worksheet = XLSX.utils.json_to_sheet(getSortedMissingPeopleRows().map((row) => ({
-    Plats: row.place,
-    Fornamn: row.firstName,
-    Efternamn: row.lastName
-  })));
-  const workbook = XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Saknas i kartan");
-  XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
-}
-
 const excelController = createExcelController({
   preserveWindowScroll,
   updateDuplicateMapPlacesList,
@@ -380,9 +214,14 @@ const excelController = createExcelController({
   updateMissingPeopleList
 });
 
+const downloadController = createDownloadController({
+  closeExampleMenus: () => exampleController.closeMenus(),
+  getSortedMissingPeopleRows
+});
+
 const drawioController = createDrawioController({
-  closeDownloadMenu,
-  downloadPngWithWhiteBackground,
+  closeDownloadMenu: downloadController.closeMenu,
+  downloadPngWithWhiteBackground: downloadController.downloadPngWithWhiteBackground,
   getEmptyPlaceKey,
   getRowsForGeneratedDiagram: excelController.getRowsForGeneratedDiagram,
   getSortedMissingPeopleRows,
@@ -396,20 +235,21 @@ const drawioController = createDrawioController({
 });
 
 const exampleController = createExampleController({
-  closeDownloadMenu,
+  closeDownloadMenu: downloadController.closeMenu,
   onLoadExcel: excelController.showFile,
   onLoadDrawio: drawioController.showFile
 });
 
 drawioController.bindEvents({
-  toggleMenu: toggleDownloadMenu,
-  cleanDrawio: () => runDownloadAction(downloadCleanDiagram),
-  cleanPng: () => runDownloadAction(downloadCleanPng),
-  generatedDrawio: () => runDownloadAction(downloadGeneratedDiagram),
-  generatedPng: () => runDownloadAction(downloadGeneratedPng)
+  toggleMenu: downloadController.toggleMenu,
+  cleanDrawio: downloadController.downloadCleanDiagram,
+  cleanPng: downloadController.downloadCleanPng,
+  generatedDrawio: downloadController.downloadGeneratedDiagram,
+  generatedPng: downloadController.downloadGeneratedPng
 });
 excelController.bindEvents();
 exampleController.bindEvents();
+downloadController.bindEvents();
 
 showLastUpdatedDate();
 window.kartgeneratorReady = true;
@@ -417,12 +257,7 @@ window.kartgeneratorReady = true;
 helpElements.buttons.forEach((button) => {
   button.addEventListener("click", showHelpDialog);
 });
-missingPeopleElements.downloadButton.addEventListener("click", downloadMissingPeopleExcel);
 document.addEventListener("click", (event) => {
-  if (!downloadMenuElements.options.hidden && !event.target.closest("#download-menu")) {
-    closeDownloadMenu();
-  }
-
   if (!event.target.closest(".example-menu")) {
     exampleController.closeMenus();
   }
