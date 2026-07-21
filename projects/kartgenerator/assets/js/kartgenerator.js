@@ -10,12 +10,12 @@ import {
 } from "./diagnostics.js"
 import { state } from "./state.js"
 import {
-  renderDuplicateMapPlacesTable as showDuplicateMapPlacesTableView,
-  renderEmptyPlacesTable as showEmptyPlacesTableView,
-  renderLastUpdatedDate as showLastUpdatedDateView,
-  renderMissingPeoplePanelVisible as showMissingPeoplePanelVisible,
-  renderMissingPeopleTable as showMissingPeopleTableView,
-  renderMissingPeopleUnavailable as showMissingPeopleUnavailable
+  renderDuplicateMapPlacesTable,
+  renderEmptyPlacesTable,
+  renderLastUpdatedDate,
+  renderMissingPeoplePanelVisible,
+  renderMissingPeopleTable,
+  renderMissingPeopleUnavailable
 } from "./renderers.js"
 import {
   duplicateMapPlacesElements,
@@ -57,7 +57,7 @@ function showLastUpdatedDate() {
     modifiedDate.setTime(Date.now());
   }
 
-  showLastUpdatedDateView({ modifiedDate, elements: lastUpdatedElements });
+  renderLastUpdatedDate({ modifiedDate, elements: lastUpdatedElements });
 }
 
 function showHelpDialog(event) {
@@ -69,7 +69,7 @@ function showHelpDialog(event) {
 }
 
 function showMissingPeopleTable(rows) {
-  showMissingPeopleTableView({
+  renderMissingPeopleTable({
     rows,
     sortColumn: state.missingSortColumn,
     sortDirection: state.missingSortDirection,
@@ -102,7 +102,7 @@ function sortMissingPeople(columnKey) {
 }
 
 function showEmptyPlacesTable(rows) {
-  showEmptyPlacesTableView({
+  renderEmptyPlacesTable({
     rows,
     hasRequiredInput: Boolean(state.sourceDrawioXml) && state.parsedOmradePlatsColumnIndex !== null && state.excelRows.length > 0,
     sortColumn: state.emptyPlacesSortColumn,
@@ -138,7 +138,7 @@ function sortEmptyPlaces(columnKey) {
 }
 
 function showDuplicateMapPlacesTable(rows) {
-  showDuplicateMapPlacesTableView({
+  renderDuplicateMapPlacesTable({
     rows,
     hasSource: Boolean(state.sourceDrawioXml),
     elements: duplicateMapPlacesElements
@@ -193,11 +193,11 @@ function updateMissingPeopleList() {
 
   if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || firstNameColumnIndex < 0 || lastNameColumnIndex < 0 || state.excelRows.length === 0) {
     state.missingPeopleRows = [];
-    showMissingPeopleUnavailable({ elements: missingPeopleElements });
+    renderMissingPeopleUnavailable({ elements: missingPeopleElements });
     return;
   }
 
-  showMissingPeoplePanelVisible({ elements: missingPeopleElements });
+  renderMissingPeoplePanelVisible({ elements: missingPeopleElements });
   state.missingPeopleRows = getMissingPeopleRows(state.sourceDrawioXml, state.excelRows, {
     placeColumnIndex: state.parsedOmradePlatsColumnIndex,
     firstNameColumnIndex,
