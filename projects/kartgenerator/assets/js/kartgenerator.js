@@ -1,4 +1,4 @@
-﻿import { parseOmradePlatsValue, isPlaceBoxLabel, normalizePlaceCode, normalizeColumnName, drawioLabelToText } from "./kartgenerator-utils.js";
+﻿import { parseOmradePlatsValue, normalizePlaceCode, normalizeColumnName } from "./kartgenerator-utils.js";
 import { getMapPlaceLabels } from "./drawio.js"
 import {
   drawioEditorConfig,
@@ -17,12 +17,11 @@ import {
 } from "./diagnostics.js"
 import {
   createCleanDrawioXml,
+  createDrawioXmlWithMissingBoxes,
   createDrawioXmlWithHighlightedDuplicatePlaces,
   createDrawioXmlWithHighlightedPlaces,
-  getPlaceCodeFromCellLabel,
+  createGeneratedDrawioXml,
   hasRenamedNewPlacePlaceholder,
-  markCellAsMissingExcelPlace,
-  newPlaceBoxStyle,
   newPlacePlaceholder
 } from "./drawio-model.js"
 import {
@@ -1171,163 +1170,6 @@ function downloadMissingPeopleExcel() {
   XLSX.writeFile(workbook, "saknas_i_kartan.xlsx");
 }
 
-function getCellGeometry(cell) {
-  const geometry = [...cell.children].find((child) => child.tagName === "mxGeometry");
-
-  if (!geometry) {
-    return null;
-  }
-
-  const parsedGeometry = {
-    x: Number(geometry.getAttribute("x") || 0),
-    y: Number(geometry.getAttribute("y") || 0),
-    width: Number(geometry.getAttribute("width") || 0),
-    height: Number(geometry.getAttribute("height") || 0)
-  };
-
-  return Object.values(parsedGeometry).every(Number.isFinite) ? parsedGeometry : null;
-}
-
-function getNewBoxStartPosition(documentXml) {
-  const placeCells = [];
-  const generatedPlaceCells = [];
-  const fallbackCells = [];
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const geometry = getCellGeometry(cell);
-
-    if (!geometry) {
-      return;
-    }
-
-    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
-    const cellInfo = {
-      geometry,
-      placeNumber: Number.parseInt(placeCode, 10),
-      isGenerated: String(cell.getAttribute("id") || "").startsWith("kartgenerator-missing-")
-    };
-
-    if (placeCode) {
-      placeCells.push(cellInfo);
-
-      if (cellInfo.isGenerated) {
-        generatedPlaceCells.push(cellInfo);
-      }
-    } else {
-      fallbackCells.push(cellInfo);
-    }
-  });
-
-  const bottomCell = (cells) => cells.reduce((bottomCellInfo, cellInfo) => {
-    const bottomEdge = cellInfo.geometry.y + cellInfo.geometry.height;
-    const currentBottomEdge = bottomCellInfo.geometry.y + bottomCellInfo.geometry.height;
-
-    if (bottomEdge > currentBottomEdge) {
-      return cellInfo;
-    }
-
-    if (bottomEdge === currentBottomEdge && cellInfo.geometry.x < bottomCellInfo.geometry.x) {
-      return cellInfo;
-    }
-
-    return bottomCellInfo;
-  }, cells[0]);
-
-  if (generatedPlaceCells.length > 0) {
-    const anchor = bottomCell(generatedPlaceCells).geometry;
-
-    return {
-      x: Math.round(anchor.x / 10) * 10,
-      y: Math.ceil((anchor.y + anchor.height + 16) / 10) * 10
-    };
-  }
-
-  const existingCells = placeCells.length > 0 ? placeCells : fallbackCells;
-
-  if (existingCells.length === 0) {
-    return { x: 0, y: 0 };
-  }
-
-  const anchor = existingCells.reduce((anchorCell, cellInfo) => {
-    if (Number.isFinite(cellInfo.placeNumber) && Number.isFinite(anchorCell.placeNumber)) {
-      return cellInfo.placeNumber > anchorCell.placeNumber ? cellInfo : anchorCell;
-    }
-
-    if (Number.isFinite(cellInfo.placeNumber)) {
-      return cellInfo;
-    }
-
-    if (Number.isFinite(anchorCell.placeNumber)) {
-      return anchorCell;
-    }
-
-    const rightEdge = cellInfo.geometry.x + cellInfo.geometry.width;
-    const currentRightEdge = anchorCell.geometry.x + anchorCell.geometry.width;
-
-    return rightEdge > currentRightEdge ? cellInfo : anchorCell;
-  }, existingCells[0]).geometry;
-
-  return {
-    x: Math.ceil((anchor.x + anchor.width + 56) / 10) * 10,
-    y: Math.round(anchor.y / 10) * 10
-  };
-}
-
-function createMissingBoxId(place, index) {
-  const normalizedPlace = normalizePlaceCode(place).replace(/[^a-z0-9_-]/gi, "-") || `plats-${index + 1}`;
-
-  return `kartgenerator-missing-${Date.now()}-${index}-${normalizedPlace}`;
-}
-
-function createDrawioCell(documentXml, row, index, x, y) {
-  const cell = documentXml.createElement("mxCell");
-  const geometry = documentXml.createElement("mxGeometry");
-  const isNewPlacePlaceholder = row.isNewPlacePlaceholder === true;
-
-  cell.setAttribute("id", createMissingBoxId(row.place, index));
-  cell.setAttribute("value", row.place);
-  cell.setAttribute("style", isNewPlacePlaceholder ? newPlaceBoxStyle : "rounded=0;whiteSpace=wrap;html=1;");
-  cell.setAttribute("vertex", "1");
-  cell.setAttribute("parent", "1");
-
-  if (isNewPlacePlaceholder) {
-    cell.setAttribute("data-kartgenerator-placeholder", "new-place");
-  }
-
-  geometry.setAttribute("x", String(x));
-  geometry.setAttribute("y", String(y));
-  geometry.setAttribute("width", "120");
-  geometry.setAttribute("height", "40");
-  geometry.setAttribute("as", "geometry");
-
-  cell.append(geometry);
-
-  return cell;
-}
-
-function createDrawioXmlWithMissingBoxes(xml, rows) {
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    throw new Error("Kunde inte tolka kartfilen.");
-  }
-
-  const root = documentXml.querySelector("mxGraphModel > root");
-
-  if (!root) {
-    throw new Error("Kunde inte hitta kartans innehåll.");
-  }
-
-  const startPosition = getNewBoxStartPosition(documentXml);
-
-  rows.forEach((row, index) => {
-    root.append(createDrawioCell(documentXml, row, index, startPosition.x, startPosition.y + index * 56));
-  });
-
-  return new XMLSerializer().serializeToString(documentXml);
-}
-
 function addPlaceBoxToDrawio() {
   if (!state.sourceDrawioXml) {
     return;
@@ -1383,48 +1225,6 @@ function addMissingBoxesToDrawio() {
   }
 }
 
-function createGeneratedDrawioXml(xml, rows) {
-  const parser = new DOMParser();
-  const documentXml = parser.parseFromString(xml, "application/xml");
-
-  if (documentXml.querySelector("parsererror")) {
-    throw new Error("Kunde inte tolka kartfilen.");
-  }
-
-  const rowsByPlace = new Map();
-
-  rows.forEach((row) => {
-    const place = String(row[state.parsedOmradePlatsColumnIndex] || "").trim();
-    const normalizedPlace = normalizePlaceCode(place);
-
-    if (normalizedPlace) {
-      rowsByPlace.set(normalizedPlace, row);
-    }
-  });
-
-  documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const label = drawioLabelToText(cell.getAttribute("value"));
-
-    if (!isPlaceBoxLabel(label)) {
-      return;
-    }
-
-    const row = rowsByPlace.get(normalizePlaceCode(label));
-
-    cell.setAttribute("data-place-code", label);
-
-    if (row) {
-      const generatedLabel = isEmptyExcelPlaceRow(row) ? "" : makeDrawioLabel(row);
-      cell.setAttribute("value", generatedLabel || `${label}<br>Ledig plats`);
-    } else if (label) {
-      cell.setAttribute("value", `${label}<br>Ledig plats`);
-      markCellAsMissingExcelPlace(cell);
-    }
-  });
-
-  return new XMLSerializer().serializeToString(documentXml);
-}
-
 function getCleanDrawioXmlForDisplay() {
   const highlightedMissingPlacesXml = createDrawioXmlWithHighlightedPlaces(
     state.sourceDrawioXml,
@@ -1471,7 +1271,11 @@ function updateGeneratedDiagram() {
   }
 
   try {
-    const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows);
+    const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows, {
+      placeColumnIndex: state.parsedOmradePlatsColumnIndex,
+      isEmptyRow: isEmptyExcelPlaceRow,
+      makeLabel: makeDrawioLabel
+    });
     const { hadGeneratedDrawioXml } = setGeneratedDrawioXml(generatedXml);
 
     if (!hadGeneratedDrawioXml && !state.hasManualDrawioMode) {
