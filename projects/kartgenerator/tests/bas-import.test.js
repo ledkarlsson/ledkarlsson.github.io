@@ -192,3 +192,51 @@ describe('BAS place comments', () => {
     expect(()=>validateBasPayload({...payload(),rows:[row('(SSR)')]})).toThrow();
   });
 });
+
+describe('skipped duplicate BAS places', () => {
+  const data = () => validateBasPayload({version:3,club:'Testklubb',areas:['Brygga A','Brygga B'],capturedAt:payload().capturedAt,
+    rows:[{...row('112/ensam'),area:'Brygga B',firstName:'Other'}],skippedPlaces:[{area:'Brygga A',place:'112'}]});
+  const map = label => `<mxGraphModel><root><mxCell vertex="1" value="${label}"/></root></mxGraphModel>`;
+  const generate = (xml,input) => createGeneratedDrawioXml(xml,basRowsToTable(input).rows,{placeColumnIndex:0,isEmptyRow:()=>false,labelOptions,basSource:input});
+  it('keeps areas containing only skipped duplicates and never reassigns an ambiguous bare number', () => {
+    const input=data();
+    expect(input.areas).toEqual(['Brygga A','Brygga B']);
+    expect(basRowsToTable(input).rows[0][0]).toBe('Brygga B / 112');
+    for (const label of ['112','112/SSR','Brygga A / 112']) {
+      const bound=prepareBasMap(map(label),input);
+      const generated=generate(bound,input);
+      expect(generated).not.toContain('Other Person');
+      expect(generated).toContain('Saknas i BAS-urvalet');
+      expect(generate(prepareBasMap(createCleanDrawioXml(generated),input),input)).not.toContain('Other Person');
+    }
+    expect(generate(prepareBasMap(map('Brygga B / 112'),input),input)).toContain('Other Person');
+  });
+  it('preserves a known valid binding and clears member data from a newly skipped place', () => {
+    const input=data();
+    const previous=validateBasPayload({...payload(),area:'Brygga B',rows:[{...row('112'),area:'Brygga B'}]});
+    expect(generate(prepareBasMap(prepareBasMap(map('112'),previous),input),input)).toContain('Other Person');
+    const previousA=validateBasPayload({...payload(),rows:[row('112')]});
+    const clean=createCleanDrawioXml(generate(prepareBasMap(map('112'),previousA),previousA));
+    const updated=generate(prepareBasMap(clean,input),input);
+    expect(updated).not.toContain('Test Person');expect(updated).not.toContain('Other Person');
+    expect(updated).toContain('Saknas i BAS-urvalet');
+  });
+  it('rejects skipped records that overlap retained rows or are outside selected areas', () => {
+    const input=data();
+    for (const skippedPlaces of [[{area:'Brygga B',place:'112/annan'}],[{area:'Other',place:'112'}],[null],{},Array(5001).fill({area:'Brygga A',place:'112'})]) {
+      expect(()=>validateBasPayload({...input,skippedPlaces})).toThrow();
+    }
+  });
+  it('shows skipped places both before and after applying the remaining data', () => {
+    document.body.innerHTML='<p id="bas-import-summary"></p><button id="bas-import-apply" hidden>Use</button><button id="bas-import-discard" hidden>Discard</button>';
+    const onApply=vi.fn();const dispose=bindBasReceiver({onApply});
+    try {
+      document.dispatchEvent(new CustomEvent('koppla:bas:request',{detail:{requestId:'skip',operation:'stage',payload:data()}}));
+      expect(document.getElementById('bas-import-summary').textContent).toContain('Överhoppade dubblettplatser: Brygga A / 112');
+      document.getElementById('bas-import-apply').click();
+      expect(onApply).toHaveBeenCalledOnce();
+      expect(onApply.mock.calls[0][0].rows).toHaveLength(1);
+      expect(document.getElementById('bas-import-summary').textContent).toContain('Överhoppade dubblettplatser: Brygga A / 112');
+    } finally { dispose();document.body.replaceChildren(); }
+  });
+});

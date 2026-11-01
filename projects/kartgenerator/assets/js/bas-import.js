@@ -8,7 +8,7 @@ const identity = row => JSON.stringify([normalizePlaceCode(row.area), normalizeP
 
 export function validateBasPayload(input) {
   const text = (value, max = 500) => typeof value === "string" && value.length <= max && !/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(value);
-  if (!input || ![1, 2].includes(input.version) || !text(input.club, 200) || !input.club.trim() ||
+  if (!input || ![1, 2, 3].includes(input.version) || !text(input.club, 200) || !input.club.trim() ||
       typeof input.capturedAt !== "string" || !Number.isFinite(Date.parse(input.capturedAt)) ||
       !Array.isArray(input.rows) || !input.rows.length || input.rows.length > 5000) throw new Error("Ogiltigt BAS-underlag.");
   const supplied = areasOf(input);
@@ -23,9 +23,19 @@ export function validateBasPayload(input) {
     seen.add(key);
     return Object.fromEntries(fields.map(key => [key, row[key].trim()]));
   });
-  if (areas.some(area => !rows.some(row => row.area === area))) throw new Error("Ett valt BAS-område saknar rader.");
-  if (new Set(rows.map(row => normalizePlaceCode(qualified(row)))).size !== rows.length) throw new Error("Områdes- och platsnamn ger tvetydiga kartetiketter.");
-  return { version: input.version, club: input.club.trim(), ...(input.version === 1 ? {area: areas[0]} : {}), areas, capturedAt: input.capturedAt, rows };
+  const skippedInput = input.skippedPlaces ?? [];
+  if (!Array.isArray(skippedInput) || skippedInput.length > 5000) throw new Error("Ogiltiga överhoppade BAS-platser.");
+  const skippedPlaces = skippedInput.map(row => {
+    if (!row || !text(row.area) || !text(row.place) || !areas.includes(row.area.trim())) throw new Error("Ogiltig överhoppad BAS-plats.");
+    const key = identity(row);
+    if (seen.has(key)) throw new Error("En BAS-plats kan inte både importeras och hoppas över.");
+    seen.add(key);
+    return {area:row.area.trim(),place:basPlaceName(row.place)};
+  });
+  const representedAreas = new Set([...rows, ...skippedPlaces].map(row => row.area));
+  if (areas.some(area => !representedAreas.has(area))) throw new Error("Ett valt BAS-område saknar rader.");
+  if (new Set([...rows, ...skippedPlaces].map(row => normalizePlaceCode(qualified(row)))).size !== rows.length + skippedPlaces.length) throw new Error("Områdes- och platsnamn ger tvetydiga kartetiketter.");
+  return { version: input.version, club: input.club.trim(), ...(input.version === 1 ? {area: areas[0]} : {}), areas, capturedAt: input.capturedAt, rows, skippedPlaces };
 }
 
 export function basRowsToTable(payload) {
@@ -58,7 +68,7 @@ export function prepareBasMap(xml, payload) {
   model.setAttribute("data-bas-scope", JSON.stringify([payload.club, areas]));
   const rowsByIdentity = new Map(payload.rows.map(row => [identity(row), row]));
   const candidates = new Map();
-  for (const row of payload.rows) for (const name of new Set([basPlaceName(row.place), qualified(row)])) {
+  for (const row of [...payload.rows, ...(payload.skippedPlaces ?? []).map(row => ({...row, skipped:true}))]) for (const name of new Set([basPlaceName(row.place), qualified(row)])) {
     const key = normalizePlaceCode(name);
     candidates.set(key, [...(candidates.get(key) ?? []), row]);
   }
@@ -95,6 +105,13 @@ export function prepareBasMap(xml, payload) {
       }
     } else {
       const matches = [...new Set(candidates.get(labelKey(label)) ?? [])];
+      if (matches.some(match => match.skipped)) {
+        // An unbound label touching an omitted duplicate must not fall through
+        // to a retained place with the same number in another area.
+        cell.setAttribute("data-bas-place", labelKey(label));
+        for (const name of ["area", "name", "label"]) cell.removeAttribute(`data-bas-${name}`);
+        return;
+      }
       if (matches.length > 1) throw new Error(`Platsen ”${label}” finns i flera områden. Ange område i kartans ruta, exempelvis ”${qualified(matches[0])}”.`);
       row = matches[0];
     }
@@ -115,6 +132,7 @@ export function bindBasReceiver({ document: doc = document, onApply }) {
   const apply = doc.getElementById("bas-import-apply");
   const discard = doc.getElementById("bas-import-discard");
   let pending = null;
+  const skippedNotice = data => data.skippedPlaces.length ? " Överhoppade dubblettplatser: " + data.skippedPlaces.map(qualified).join(", ") + "." : "";
   function receive(event) {
     const detail = event.detail;
     if (!detail || typeof detail.requestId !== "string" || detail.requestId.length > 100) return;
@@ -123,7 +141,7 @@ export function bindBasReceiver({ document: doc = document, onApply }) {
       if (detail.operation === "ping") ok = true;
       if (detail.operation === "stage") {
         pending = validateBasPayload(detail.payload);
-        summary.textContent = `${pending.club} · ${pending.areas.join(", ")} · ${pending.rows.length} platser · hämtat ${new Date(pending.capturedAt).toLocaleString("sv-SE")}. Granska områdena innan du ersätter tidigare inläst data.`;
+        summary.textContent = `${pending.club} · ${pending.areas.join(", ")} · ${pending.rows.length} platser · hämtat ${new Date(pending.capturedAt).toLocaleString("sv-SE")}. Granska områdena innan du ersätter tidigare inläst data.${skippedNotice(pending)}`;
         apply.hidden = false;
         discard.hidden = false;
         ok = true;
@@ -136,7 +154,7 @@ export function bindBasReceiver({ document: doc = document, onApply }) {
     if (!pending) return;
     try {
       onApply(pending);
-      summary.textContent = `${pending.club} · ${pending.areas.join(", ")}: ${pending.rows.length} BAS-platser inlästa. Spara kartan via Ladda ner när du är klar.`;
+      summary.textContent = `${pending.club} · ${pending.areas.join(", ")}: ${pending.rows.length} BAS-platser inlästa. Spara kartan via Ladda ner när du är klar.${skippedNotice(pending)}`;
       clearPending();
     } catch (error) { summary.textContent = error.message; }
   }
