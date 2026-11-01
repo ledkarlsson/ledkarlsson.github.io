@@ -483,6 +483,9 @@ export function createDrawioController(callbacks) {
         }
       });
     });
+
+    // configure=1 sends a one-shot handshake: listen before starting the editor.
+    drawioElements.frame.src = drawioElements.frame.dataset.src;
   }
 
   return {

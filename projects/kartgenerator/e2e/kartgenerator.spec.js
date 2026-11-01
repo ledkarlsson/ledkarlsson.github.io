@@ -21,27 +21,10 @@ async function mockExternalScripts(page) {
         <pre id="editor-config"></pre>
         <pre id="last-load-options"></pre>
         <script>
-          let configureInterval = null;
-
-          if (new URL(window.location.href).searchParams.get("configure") === "1") {
-            configureInterval = setInterval(() => {
-              if (document.querySelector("#editor-config").textContent) {
-                clearInterval(configureInterval);
-                return;
-              }
-
-              window.parent.postMessage(JSON.stringify({ event: "configure" }), "*");
-            }, 50);
-          }
-
           window.addEventListener("message", (event) => {
             const message = JSON.parse(event.data);
 
             if (message.action === "configure") {
-              if (configureInterval) {
-                clearInterval(configureInterval);
-              }
-
               document.querySelector("#editor-config").textContent = JSON.stringify(message.config);
               window.parent.postMessage(JSON.stringify({ event: "init" }), "*");
             }
@@ -58,6 +41,9 @@ async function mockExternalScripts(page) {
               }), "*");
             }
           });
+          if (new URL(window.location.href).searchParams.get("configure") === "1") {
+            window.parent.postMessage(JSON.stringify({ event: "configure" }), "*");
+          }
         </script>`
     });
   });
