@@ -54,9 +54,9 @@ export function createCleanDrawioXml(xml) {
       removeNewPlacePlaceholder(cell);
     }
 
-    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code") ||
+    const placeCode = (cell.hasAttribute("data-bas-area") ? cell.getAttribute("data-place-code") : null) || getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code") ||
       (cell.hasAttribute("data-bas-place") ? drawioLabelToText(cell.getAttribute("value")) : null);
-    if (placeCode && cell.hasAttribute("data-bas-place")) cell.setAttribute("data-bas-place", placeCode);
+    if (placeCode && cell.hasAttribute("data-bas-place") && !cell.hasAttribute("data-bas-area")) cell.setAttribute("data-bas-place", placeCode);
     const shouldRemoveDuplicateMapPlaceHighlight = Boolean(placeCode) && hasDuplicateMapPlaceHighlight(cell);
     const shouldRemoveMapPlaceMissingInExcelHighlight = Boolean(placeCode) && hasMapPlaceMissingInExcelHighlight(cell);
 
@@ -372,7 +372,15 @@ export function createGeneratedDrawioXml(xml, rows, options) {
       return;
     }
 
-    const row = rowsByPlace.get(normalizePlaceCode(label));
+    const key = options.basSource ? cell.getAttribute("data-bas-place") || label : label;
+    let row = rowsByPlace.get(normalizePlaceCode(key));
+    if (options.basSource && cell.hasAttribute("data-bas-area") && row) {
+      const area = cell.getAttribute("data-bas-area");
+      const place = cell.getAttribute("data-bas-name");
+      const expectedKey = options.basSource.areas?.length > 1 ? area + " / " + place : place;
+      if (normalizePlaceCode(row[3]) !== normalizePlaceCode(area) ||
+          normalizePlaceCode(row[options.placeColumnIndex]) !== normalizePlaceCode(expectedKey)) row = null;
+    }
 
     cell.setAttribute("data-place-code", label);
 

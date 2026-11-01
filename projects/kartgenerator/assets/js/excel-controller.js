@@ -375,9 +375,9 @@ export function createExcelController(callbacks) {
     state.rawExcelRows = rows;
     state.excelRows = rows;
     state.parsedOmradePlatsColumnIndex = 0;
-    renderSelectedExcelFile({ fileName: "BAS · " + payload.area, elements: excelElements,
+    renderSelectedExcelFile({ fileName: "BAS · " + payload.areas.join(", "), elements: excelElements,
       exampleElements: excelExampleElements, columnsPanel: columnsElements.panel, tablePanel: selectedTableElements.panel });
-    updateColumns(columns, "BAS · " + payload.area);
+    updateColumns(columns, "BAS · " + payload.areas.join(", "));
   }
 
   async function loadFile(file) {
