@@ -70,6 +70,11 @@ export function createCleanDrawioXml(xml) {
       removeMapPlaceMissingInExcelHighlight(cell);
     }
 
+    const vacantStyle = cell.getAttribute("data-bas-vacant-style");
+    if (vacantStyle !== null) {
+      cell.setAttribute("style", vacantStyle);
+      cell.removeAttribute("data-bas-vacant-style");
+    }
     if (placeCode) {
       cell.setAttribute("value", placeCode);
       cell.removeAttribute("data-place-code");
@@ -392,9 +397,16 @@ export function createGeneratedDrawioXml(xml, rows, options) {
       cell.setAttribute("value", [label, "Tvetydig BAS-plats", ...conflicts.map(item => item.area + " / " + item.place)].map(escape).join("<br>"));
       markBasConflict(cell);
     } else if (row) {
-      const generatedLabel = options.isEmptyRow(row) ? "" : makeDrawioLabel(row, options.labelOptions);
+      const empty = options.isEmptyRow(row);
+      const generatedLabel = empty ? "" : makeDrawioLabel(row, options.labelOptions);
       const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-      cell.setAttribute("value", generatedLabel || `${safeLabel}<br>${options.basSource ? "Ingen båt/medlem visad" : "Ledig plats"}`);
+      if (options.basSource && empty) {
+        cell.setAttribute("value", safeLabel + "<br>Ledig");
+        if (!cell.hasAttribute("data-bas-vacant-style")) cell.setAttribute("data-bas-vacant-style", cell.getAttribute("style") || "");
+        cell.setAttribute("style", [...getCellStyleWithoutColor(cell), "fillColor=#dbeafe", "strokeColor=#2563eb", ""].join(";"));
+      } else {
+        cell.setAttribute("value", generatedLabel || (options.basSource ? safeLabel : safeLabel + "<br>Ledig plats"));
+      }
     } else if (label) {
       const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
       cell.setAttribute("value", `${safeLabel}<br>${options.basSource ? "Saknas i BAS-urvalet" : "Ledig plats"}`);
