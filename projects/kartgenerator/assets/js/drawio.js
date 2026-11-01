@@ -1,6 +1,8 @@
+import { readBasCellConflicts } from "./bas-map-conflicts.js";
 import { drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartgenerator-utils.js";
 
 function getPlaceLabelFromCell(cell) {
+    if (readBasCellConflicts(cell).length) return "";
     if (cell.hasAttribute("data-bas-place")) return cell.getAttribute("data-bas-place");
     const text = drawioLabelToText(cell.getAttribute("value"));
     const [firstLine] = text

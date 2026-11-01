@@ -26,5 +26,18 @@ describe('BAS import into existing map workflow', () => {
     controller.reparseRows(true);
     expect(state.excelRows[0][0]).toBe('71-73');
     controller.clearFile();expect(state.basSource).toBeNull();
+    // Regression: importing BAS first and then opening a map with ambiguous
+    // numbers must retain the dataset and allow the diagnostics to visualize it.
+    state.sourceDrawioXml='';
+    const multi={...payload,version:3,areas:['Varvsområde 1','Varvsområde 2'],rows:[
+      {...payload.rows[0],area:'Varvsområde 1',place:'103/SSR'},
+      {...payload.rows[0],area:'Varvsområde 2',place:'103 (annan)'}
+    ]};
+    controller.importBas(multi);
+    state.sourceDrawioXml='<mxGraphModel><root><mxCell id="1" vertex="1" value="103"/></root></mxGraphModel>';
+    controller.reparseRows(true);
+    expect(state.basSource).not.toBeNull();expect(state.excelRows).toHaveLength(2);
+    expect(state.sourceDrawioXml).toContain('data-bas-conflicts');
+    controller.clearFile();
   });
 });

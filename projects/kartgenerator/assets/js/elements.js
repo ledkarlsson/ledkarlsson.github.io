@@ -137,3 +137,8 @@ export const duplicateMapPlacesElements = {
   wrap: document.querySelector("#duplicate-map-places-wrap"),
   table: document.querySelector("#duplicate-map-places-table")
 };
+
+export const basConflictsElements = {
+  panel: document.querySelector("#bas-conflicts-panel"),
+  list: document.querySelector("#bas-conflicts-list")
+};

@@ -1,3 +1,4 @@
+import { readBasCellConflicts, markBasConflict, clearBasConflictHighlight } from "./bas-map-conflicts.js";
 import { basPlaceName, drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartgenerator-utils.js";
 
 export const newPlacePlaceholder = "ny plats";
@@ -54,6 +55,7 @@ export function createCleanDrawioXml(xml) {
       removeNewPlacePlaceholder(cell);
     }
 
+    clearBasConflictHighlight(cell);
     const placeCode = (cell.hasAttribute("data-bas-area") ? cell.getAttribute("data-place-code") : null) || getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code") ||
       (cell.hasAttribute("data-bas-place") ? drawioLabelToText(cell.getAttribute("value")) : null);
     if (placeCode && cell.hasAttribute("data-bas-place") && !cell.hasAttribute("data-bas-area")) cell.setAttribute("data-bas-place", placeCode);
@@ -384,7 +386,12 @@ export function createGeneratedDrawioXml(xml, rows, options) {
 
     cell.setAttribute("data-place-code", label);
 
-    if (row) {
+    const conflicts = options.basSource ? readBasCellConflicts(cell) : [];
+    if (conflicts.length) {
+      const escape = text => String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+      cell.setAttribute("value", [label, "Tvetydig BAS-plats", ...conflicts.map(item => item.area + " / " + item.place)].map(escape).join("<br>"));
+      markBasConflict(cell);
+    } else if (row) {
       const generatedLabel = options.isEmptyRow(row) ? "" : makeDrawioLabel(row, options.labelOptions);
       const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
       cell.setAttribute("value", generatedLabel || `${safeLabel}<br>${options.basSource ? "Ingen båt/medlem visad" : "Ledig plats"}`);

@@ -1,3 +1,4 @@
+import { getBasMapConflicts } from "./bas-map-conflicts.js";
 import { getMapPlaceLabels, getMapPlaces } from "./drawio.js";
 import { getPlaceCodeFromCellLabel } from "./drawio-model.js";
 import { normalizePlaceCode } from "./kartgenerator-utils.js";
@@ -115,6 +116,9 @@ export function getPeopleMissingFromMapRows(xml, rows, { placeColumnIndex, first
   }
 
   const mapPlaces = getMapPlaceLabels(xml);
+  // These rows have a box, but its BAS assignment needs correction. Do not
+  // suggest creating duplicate boxes for them in the missing-places list.
+  for (const conflict of getBasMapConflicts(xml)) for (const candidate of conflict.candidates) mapPlaces.add(normalizePlaceCode(candidate.key));
 
   return rows
     .map((row) => ({

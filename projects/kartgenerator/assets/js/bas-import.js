@@ -87,10 +87,12 @@ export function prepareBasMap(xml, payload) {
   }
   parsed.querySelectorAll("mxCell[vertex='1']").forEach(cell => {
     const label = drawioLabelToText(cell.getAttribute("value"));
+    const wasConflict = cell.hasAttribute("data-bas-conflicts");
+    cell.removeAttribute("data-bas-conflicts");
     let savedArea = cell.getAttribute("data-bas-area");
     let savedName = cell.getAttribute("data-bas-name");
     let savedLabel = cell.getAttribute("data-bas-label");
-    if (!savedArea && cell.hasAttribute("data-bas-place") && previousAreas.length === 1) {
+    if (!wasConflict && !savedArea && cell.hasAttribute("data-bas-place") && previousAreas.length === 1) {
       savedArea = previousAreas[0]; savedName = cell.getAttribute("data-bas-place"); savedLabel = savedName;
     }
     let row;
@@ -112,7 +114,12 @@ export function prepareBasMap(xml, payload) {
         for (const name of ["area", "name", "label"]) cell.removeAttribute(`data-bas-${name}`);
         return;
       }
-      if (matches.length > 1) throw new Error(`Platsen ”${label}” finns i flera områden. Ange område i kartans ruta, exempelvis ”${qualified(matches[0])}”.`);
+      if (matches.length > 1) {
+        cell.setAttribute("data-bas-place", labelKey(label));
+        cell.setAttribute("data-bas-conflicts", JSON.stringify(matches.map(match => ({area:match.area,place:match.place,key:keyOf(match,payload)}))));
+        for (const name of ["area", "name", "label"]) cell.removeAttribute(`data-bas-${name}`);
+        return;
+      }
       row = matches[0];
     }
     if (row) {

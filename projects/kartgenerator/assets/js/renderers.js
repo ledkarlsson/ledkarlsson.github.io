@@ -561,3 +561,21 @@ export function renderDuplicateMapPlacesTable({ rows, hasSource, elements }) {
   meta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns på flera ställen i kartan. Dessa platser markeras med blått i kartan.`;
   wrap.hidden = false;
 }
+
+export function renderBasMapConflicts({ rows, elements }) {
+  if (!elements.panel || !elements.list) return;
+  elements.panel.hidden = rows.length === 0;
+  elements.list.replaceChildren(...rows.map(row => {
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    title.textContent = "Plats " + row.place;
+    const candidates = document.createElement("ul");
+    for (const candidate of row.candidates) {
+      const entry = document.createElement("li");
+      entry.textContent = candidate.area + " / " + candidate.place;
+      candidates.append(entry);
+    }
+    item.append(title, candidates);
+    return item;
+  }));
+}

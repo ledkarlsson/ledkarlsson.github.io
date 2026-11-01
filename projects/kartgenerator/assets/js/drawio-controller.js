@@ -1,3 +1,4 @@
+import { highlightBasMapConflicts } from "./bas-map-conflicts.js";
 import { prepareBasMap } from "./bas-import.js";
 import {
   drawioEditorConfig,
@@ -70,10 +71,10 @@ export function createDrawioController(callbacks) {
       new Set(state.mapPlacesMissingInExcelRows.map((row) => row.normalizedPlace))
     );
 
-    return createDrawioXmlWithHighlightedDuplicatePlaces(
+    return highlightBasMapConflicts(createDrawioXmlWithHighlightedDuplicatePlaces(
       highlightedMapPlacesMissingInExcelXml,
       new Set(state.duplicateMapPlaceRows.map((row) => row.normalizedPlace))
-    );
+    ));
   }
 
   function showCleanMap() {

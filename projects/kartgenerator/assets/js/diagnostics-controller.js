@@ -1,3 +1,6 @@
+import { getBasMapConflicts } from "./bas-map-conflicts.js";
+import { basConflictsElements } from "./elements.js";
+import { renderBasMapConflicts } from "./renderers.js";
 import {
   getDuplicateMapPlaceRows,
   getMapPlacesMissingInExcelRows,
@@ -121,6 +124,7 @@ export function createDiagnosticsController(callbacks) {
   }
 
   function updateMapPlacesMissingInExcelList() {
+    renderBasMapConflicts({ rows: state.basSource ? getBasMapConflicts(state.sourceDrawioXml) : [], elements: basConflictsElements });
     if (!state.sourceDrawioXml || state.parsedOmradePlatsColumnIndex === null || state.excelRows.length === 0) {
       state.mapPlacesMissingInExcelRows = [];
       renderMapPlacesMissingInExcel();

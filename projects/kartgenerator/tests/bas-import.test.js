@@ -103,9 +103,9 @@ describe('multiple BAS areas', () => {
     expect(()=>validateBasPayload({...data,areas:['Brygga A','Brygga B','C']})).toThrow();
     expect(()=>validateBasPayload({...data,areas:['Brygga A','brygga a']})).toThrow();
   });
-  it('rejects ambiguous bare labels before changing the map; qualified labels select the right person', () => {
+  it('marks ambiguous bare labels; qualified labels select the right person', () => {
     const data=multi();
-    expect(()=>prepareBasMap(map('12'),data)).toThrow(/flera områden/);
+    expect(prepareBasMap(map('12'),data)).toContain('data-bas-conflicts');
     const bound=prepareBasMap(map('Brygga A / 12','Brygga B / 12'),data);
     expect([...getMapPlaceLabels(bound)]).toEqual(['BRYGGA A / 12','BRYGGA B / 12']);
     const generated=generate(bound,data);
@@ -181,7 +181,7 @@ describe('BAS place comments', () => {
   it('keeps area qualification while ignoring comments and rejects ambiguous bare numbers', () => {
     const data=validateBasPayload({version:2,club:'Testklubb',areas:['Brygga A','Brygga B'],capturedAt:payload().capturedAt,rows:[row('112/SSR'),{...row('112 (annan)'),area:'Brygga B',firstName:'Other'}]});
     expect(basRowsToTable(data).rows.map(row=>row[0])).toEqual(['Brygga A / 112','Brygga B / 112']);
-    expect(()=>prepareBasMap(map('112'),data)).toThrow(/flera områden/);
+    expect(prepareBasMap(map('112'),data)).toContain('data-bas-conflicts');
     const generated=generate(prepareBasMap(map('Brygga B / 112 (kommentar)'),data),data);
     expect(generated).toContain('Other Person');expect(generated).not.toContain('Test Person');
     const slashArea=validateBasPayload({...payload(),area:'Brygga A/B (yttre)',rows:[{...row('112/SSR'),area:'Brygga A/B (yttre)'}]});
