@@ -15,6 +15,12 @@ export function normalizeColumnName(columnName) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+// BAS treats everything after the first slash in a place name as a comment.
+// Apply to the place component only, never to an area-qualified matching key.
+export function basPlaceName(value) {
+  return String(value ?? "").split("/")[0].trim();
+}
+
 export function normalizePlaceCode(value) {
   return String(value || "").trim().toUpperCase();
 }

@@ -1,10 +1,10 @@
-import { drawioLabelToText, normalizePlaceCode } from "./kartgenerator-utils.js";
+import { basPlaceName, drawioLabelToText, normalizePlaceCode } from "./kartgenerator-utils.js";
 
 const fields = ["area", "place", "category", "firstName", "lastName", "boat", "width", "length", "boatWidth", "boatLength"];
 const areasOf = payload => payload.version === 1 ? [payload.area] : payload.areas;
-const qualified = row => `${row.area} / ${row.place}`;
-const keyOf = (row, payload) => areasOf(payload).length > 1 ? qualified(row) : row.place;
-const identity = row => JSON.stringify([normalizePlaceCode(row.area), normalizePlaceCode(row.place)]);
+const qualified = row => `${row.area} / ${basPlaceName(row.place)}`;
+const keyOf = (row, payload) => areasOf(payload).length > 1 ? qualified(row) : basPlaceName(row.place);
+const identity = row => JSON.stringify([normalizePlaceCode(row.area), normalizePlaceCode(basPlaceName(row.place))]);
 
 export function validateBasPayload(input) {
   const text = (value, max = 500) => typeof value === "string" && value.length <= max && !/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(value);
@@ -17,9 +17,9 @@ export function validateBasPayload(input) {
   if (new Set(areas.map(normalizePlaceCode)).size !== areas.length) throw new Error("Dubbla BAS-områden.");
   const seen = new Set();
   const rows = input.rows.map(row => {
-    if (!row || !fields.every(key => text(row[key])) || !areas.includes(row.area.trim()) || !row.place.trim()) throw new Error("BAS-underlaget måste innehålla valda områden och fullständiga platsrader.");
+    if (!row || !fields.every(key => text(row[key])) || !areas.includes(row.area.trim()) || !basPlaceName(row.place)) throw new Error("BAS-underlaget måste innehålla valda områden och fullständiga platsrader.");
     const key = identity(row);
-    if (seen.has(key)) throw new Error("Flera BAS-rader har samma platsnamn inom ett område. Begränsa urvalet före import.");
+    if (seen.has(key)) throw new Error("Flera BAS-rader har samma platsnamn före / inom ett område. Begränsa urvalet före import.");
     seen.add(key);
     return Object.fromEntries(fields.map(key => [key, row[key].trim()]));
   });
@@ -34,7 +34,7 @@ export function basRowsToTable(payload) {
     columns: names.map((name, index) => ({ name, index })),
     rows: payload.rows.map(row => {
       const values = [keyOf(row, payload), row.firstName, row.lastName, row.area, row.category, row.boat, row.width, row.length, row.boatWidth, row.boatLength];
-      values.rawOmradePlats = qualified(row);
+      values.rawOmradePlats = `${row.area} / ${row.place}`;
       return values;
     })
   };
@@ -58,9 +58,22 @@ export function prepareBasMap(xml, payload) {
   model.setAttribute("data-bas-scope", JSON.stringify([payload.club, areas]));
   const rowsByIdentity = new Map(payload.rows.map(row => [identity(row), row]));
   const candidates = new Map();
-  for (const row of payload.rows) for (const name of new Set([row.place, qualified(row)])) {
+  for (const row of payload.rows) for (const name of new Set([basPlaceName(row.place), qualified(row)])) {
     const key = normalizePlaceCode(name);
     candidates.set(key, [...(candidates.get(key) ?? []), row]);
+  }
+  // Recognize the area separator before stripping a place comment. Longest
+  // area first also supports area names that themselves contain a slash.
+  const labelAreas = [...new Set([...areas, ...previousAreas])].sort((a,b) => b.length - a.length);
+  function labelKey(label) {
+    const normalized = normalizePlaceCode(label);
+    for (const area of labelAreas) {
+      const prefix = normalizePlaceCode(area);
+      if (!normalized.startsWith(prefix)) continue;
+      const remainder = label.slice(area.length).trimStart();
+      if (remainder.startsWith("/")) return normalizePlaceCode(qualified({area,place:remainder.slice(1)}));
+    }
+    return normalizePlaceCode(basPlaceName(label));
   }
   parsed.querySelectorAll("mxCell[vertex='1']").forEach(cell => {
     const label = drawioLabelToText(cell.getAttribute("value"));
@@ -81,7 +94,7 @@ export function prepareBasMap(xml, payload) {
         return; // Never assign an absent saved place to another area's number.
       }
     } else {
-      const matches = [...new Set(candidates.get(normalizePlaceCode(label)) ?? [])];
+      const matches = [...new Set(candidates.get(labelKey(label)) ?? [])];
       if (matches.length > 1) throw new Error(`Platsen ”${label}” finns i flera områden. Ange område i kartans ruta, exempelvis ”${qualified(matches[0])}”.`);
       row = matches[0];
     }

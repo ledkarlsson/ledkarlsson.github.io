@@ -1,4 +1,4 @@
-import { drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartgenerator-utils.js";
+import { basPlaceName, drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartgenerator-utils.js";
 
 export const newPlacePlaceholder = "ny plats";
 export const newPlaceBoxStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;";
@@ -376,7 +376,7 @@ export function createGeneratedDrawioXml(xml, rows, options) {
     let row = rowsByPlace.get(normalizePlaceCode(key));
     if (options.basSource && cell.hasAttribute("data-bas-area") && row) {
       const area = cell.getAttribute("data-bas-area");
-      const place = cell.getAttribute("data-bas-name");
+      const place = basPlaceName(cell.getAttribute("data-bas-name"));
       const expectedKey = options.basSource.areas?.length > 1 ? area + " / " + place : place;
       if (normalizePlaceCode(row[3]) !== normalizePlaceCode(area) ||
           normalizePlaceCode(row[options.placeColumnIndex]) !== normalizePlaceCode(expectedKey)) row = null;

@@ -14,7 +14,9 @@ describe("BAS import contract", () => {
     const input = payload(); input.cookie = "secret"; input.rows[0].email = "secret";
     const safe = validateBasPayload(input);
     expect(JSON.stringify(safe)).not.toContain("secret");
-    expect(basRowsToTable(safe).rows[0][0]).toBe("71-73/1");
+    expect(safe.rows[0].place).toBe("71-73/1");
+    expect(basRowsToTable(safe).rows[0][0]).toBe("71-73");
+    expect(basRowsToTable(safe).rows[0].rawOmradePlats).toBe("Brygga A / 71-73/1");
   });
   it("rejects mixed areas, duplicates, invalid dates, oversized values and empty payloads", () => {
     const cases = [null, {}, { ...payload(), rows: [] }, {...payload(),capturedAt:'invalid'}, {...payload(),rows:[row(),row()]}, {...payload(),rows:[{...row(),area:'B'}]}, {...payload(),rows:[{...row(),firstName:'a'.repeat(501)}]}];
@@ -28,7 +30,7 @@ describe("BAS import contract", () => {
   });
   it("maps slash names, preserves them through cleaning, and labels missing data honestly", () => {
     const bound = prepareBasMap(xml,payload());
-    expect(getMapPlaceLabels(bound).has('71-73/1')).toBe(true);
+    expect(getMapPlaceLabels(bound).has('71-73')).toBe(true);
     const generated = createGeneratedDrawioXml(bound,basRowsToTable(payload()).rows,{placeColumnIndex:0,isEmptyRow:()=>false,labelOptions,basSource:payload()});
     const doc = new DOMParser().parseFromString(generated,'application/xml');
     expect(doc.querySelector('[id="1"]').getAttribute('value')).toContain('Test Person');
@@ -86,7 +88,7 @@ it("preserves a manual rename in a clean BAS map", () => {
   doc.querySelector('[id="1"]').setAttribute('value','71-73/2');
   const clean = createCleanDrawioXml(new XMLSerializer().serializeToString(doc));
   expect(clean).toContain('value="71-73/2"');
-  expect(prepareBasMap(clean,{...payload(),rows:[row('71-73/2')]})).toContain('data-bas-place="71-73/2"');
+  expect(prepareBasMap(clean,{...payload(),rows:[row('71-73/2')]})).toContain('data-bas-place="71-73"');
 });
 
 describe('multiple BAS areas', () => {
@@ -149,4 +151,44 @@ it('does not map a removed saved place to a literal area-like name in the same a
   const generated = createGeneratedDrawioXml(prepareBasMap(bound,replacement),basRowsToTable(replacement).rows,{placeColumnIndex:0,isEmptyRow:()=>false,labelOptions,basSource:replacement});
   expect(generated).not.toContain('Test Person');
   expect(generated).toContain('Saknas i BAS-urvalet');
+});
+
+describe('BAS slash comments', () => {
+  const map = label => `<mxGraphModel><root><mxCell vertex="1" value="${label}"/></root></mxGraphModel>`;
+  const generate = (xml,data) => createGeneratedDrawioXml(xml,basRowsToTable(data).rows,{placeColumnIndex:0,isEmptyRow:()=>false,labelOptions,basSource:data});
+  it('matches 112/SSR to 112 and preserves the original source name', () => {
+    const data=validateBasPayload({...payload(),rows:[row(' 112 / SSR/extra ')]});
+    expect(data.rows[0].place).toBe('112 / SSR/extra');
+    const table=basRowsToTable(data);
+    expect(table.rows[0][0]).toBe('112');
+    expect(table.rows[0].rawOmradePlats).toBe('Brygga A / 112 / SSR/extra');
+    for (const label of ['112','112/äldre kommentar','Brygga A / 112','Brygga A / 112/äldre']) {
+      const bound=prepareBasMap(map(label),data);
+      expect(getMapPlaceLabels(bound).has('112')).toBe(true);
+      expect(generate(bound,data)).toContain('Test Person');
+      expect(generate(prepareBasMap(createCleanDrawioXml(generate(bound,data)),data),data)).toContain('Test Person');
+    }
+  });
+  it('retains a saved binding when only the comment changes, including old map metadata', () => {
+    const data=validateBasPayload({...payload(),rows:[row('112/NY')]});
+    const old=map('112/SSR').replace('<mxGraphModel>','<mxGraphModel data-bas-scope="[&quot;Testklubb&quot;,&quot;Brygga A&quot;]">').replace('vertex="1"','vertex="1" data-bas-place="112/SSR"');
+    const migrated=prepareBasMap(old,data);
+    expect(migrated).toContain('data-bas-name="112/NY"');
+    expect(generate(migrated,data)).toContain('Test Person');
+    const updated=validateBasPayload({...payload(),rows:[row('112/ÄNDRAD')]});
+    expect(generate(prepareBasMap(migrated,updated),updated)).toContain('Test Person');
+  });
+  it('keeps area qualification while ignoring comments and rejects ambiguous bare numbers', () => {
+    const data=validateBasPayload({version:2,club:'Testklubb',areas:['Brygga A','Brygga B'],capturedAt:payload().capturedAt,rows:[row('112/SSR'),{...row('112/annan'),area:'Brygga B',firstName:'Other'}]});
+    expect(basRowsToTable(data).rows.map(row=>row[0])).toEqual(['Brygga A / 112','Brygga B / 112']);
+    expect(()=>prepareBasMap(map('112'),data)).toThrow(/flera områden/);
+    const generated=generate(prepareBasMap(map('Brygga B / 112/kommentar'),data),data);
+    expect(generated).toContain('Other Person');expect(generated).not.toContain('Test Person');
+    const slashArea=validateBasPayload({...payload(),area:'Brygga A/B',rows:[{...row('112/SSR'),area:'Brygga A/B'}]});
+    expect(generate(prepareBasMap(map('Brygga A/B / 112'),slashArea),slashArea)).toContain('Test Person');
+  });
+  it('rejects duplicate normalized places and names containing only a comment', () => {
+    expect(()=>validateBasPayload({...payload(),rows:[row('112/SSR'),row(' 112 / annat ')]})).toThrow(/samma platsnamn före/);
+    expect(()=>validateBasPayload({...payload(),rows:[row('/SSR')]})).toThrow();
+  });
 });
