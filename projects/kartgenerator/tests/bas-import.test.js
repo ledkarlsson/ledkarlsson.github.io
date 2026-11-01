@@ -153,16 +153,16 @@ it('does not map a removed saved place to a literal area-like name in the same a
   expect(generated).toContain('Saknas i BAS-urvalet');
 });
 
-describe('BAS slash comments', () => {
+describe('BAS place comments', () => {
   const map = label => `<mxGraphModel><root><mxCell vertex="1" value="${label}"/></root></mxGraphModel>`;
   const generate = (xml,data) => createGeneratedDrawioXml(xml,basRowsToTable(data).rows,{placeColumnIndex:0,isEmptyRow:()=>false,labelOptions,basSource:data});
-  it('matches 112/SSR to 112 and preserves the original source name', () => {
-    const data=validateBasPayload({...payload(),rows:[row(' 112 / SSR/extra ')]});
-    expect(data.rows[0].place).toBe('112 / SSR/extra');
+  it.each([' 112 / SSR/extra ', '112(SSR)', '112 (SSR/extra)', '112/SSR (extra)', '112 (ofullständig'])('matches %s to 112 and preserves the original source name', (sourceName) => {
+    const data=validateBasPayload({...payload(),rows:[row(sourceName)]});
+    expect(data.rows[0].place).toBe(sourceName.trim());
     const table=basRowsToTable(data);
     expect(table.rows[0][0]).toBe('112');
-    expect(table.rows[0].rawOmradePlats).toBe('Brygga A / 112 / SSR/extra');
-    for (const label of ['112','112/äldre kommentar','Brygga A / 112','Brygga A / 112/äldre']) {
+    expect(table.rows[0].rawOmradePlats).toBe(`Brygga A / ${sourceName.trim()}`);
+    for (const label of ['112','112/äldre kommentar','112 (äldre)','Brygga A / 112','Brygga A / 112/äldre','Brygga A / 112 (äldre)']) {
       const bound=prepareBasMap(map(label),data);
       expect(getMapPlaceLabels(bound).has('112')).toBe(true);
       expect(generate(bound,data)).toContain('Test Person');
@@ -175,20 +175,20 @@ describe('BAS slash comments', () => {
     const migrated=prepareBasMap(old,data);
     expect(migrated).toContain('data-bas-name="112/NY"');
     expect(generate(migrated,data)).toContain('Test Person');
-    const updated=validateBasPayload({...payload(),rows:[row('112/ÄNDRAD')]});
+    const updated=validateBasPayload({...payload(),rows:[row('112 (ÄNDRAD)')]});
     expect(generate(prepareBasMap(migrated,updated),updated)).toContain('Test Person');
   });
   it('keeps area qualification while ignoring comments and rejects ambiguous bare numbers', () => {
-    const data=validateBasPayload({version:2,club:'Testklubb',areas:['Brygga A','Brygga B'],capturedAt:payload().capturedAt,rows:[row('112/SSR'),{...row('112/annan'),area:'Brygga B',firstName:'Other'}]});
+    const data=validateBasPayload({version:2,club:'Testklubb',areas:['Brygga A','Brygga B'],capturedAt:payload().capturedAt,rows:[row('112/SSR'),{...row('112 (annan)'),area:'Brygga B',firstName:'Other'}]});
     expect(basRowsToTable(data).rows.map(row=>row[0])).toEqual(['Brygga A / 112','Brygga B / 112']);
     expect(()=>prepareBasMap(map('112'),data)).toThrow(/flera områden/);
-    const generated=generate(prepareBasMap(map('Brygga B / 112/kommentar'),data),data);
+    const generated=generate(prepareBasMap(map('Brygga B / 112 (kommentar)'),data),data);
     expect(generated).toContain('Other Person');expect(generated).not.toContain('Test Person');
-    const slashArea=validateBasPayload({...payload(),area:'Brygga A/B',rows:[{...row('112/SSR'),area:'Brygga A/B'}]});
-    expect(generate(prepareBasMap(map('Brygga A/B / 112'),slashArea),slashArea)).toContain('Test Person');
+    const slashArea=validateBasPayload({...payload(),area:'Brygga A/B (yttre)',rows:[{...row('112/SSR'),area:'Brygga A/B (yttre)'}]});
+    expect(generate(prepareBasMap(map('Brygga A/B (yttre) / 112 (SSR)'),slashArea),slashArea)).toContain('Test Person');
   });
   it('rejects duplicate normalized places and names containing only a comment', () => {
-    expect(()=>validateBasPayload({...payload(),rows:[row('112/SSR'),row(' 112 / annat ')]})).toThrow(/samma platsnamn före/);
-    expect(()=>validateBasPayload({...payload(),rows:[row('/SSR')]})).toThrow();
+    expect(()=>validateBasPayload({...payload(),rows:[row('112/SSR'),row(' 112 (annat) ')]})).toThrow(/samma platsnamn före/);
+    expect(()=>validateBasPayload({...payload(),rows:[row('(SSR)')]})).toThrow();
   });
 });

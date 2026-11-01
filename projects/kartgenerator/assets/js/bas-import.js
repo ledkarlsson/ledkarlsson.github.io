@@ -19,7 +19,7 @@ export function validateBasPayload(input) {
   const rows = input.rows.map(row => {
     if (!row || !fields.every(key => text(row[key])) || !areas.includes(row.area.trim()) || !basPlaceName(row.place)) throw new Error("BAS-underlaget måste innehålla valda områden och fullständiga platsrader.");
     const key = identity(row);
-    if (seen.has(key)) throw new Error("Flera BAS-rader har samma platsnamn före / inom ett område. Begränsa urvalet före import.");
+    if (seen.has(key)) throw new Error("Flera BAS-rader har samma platsnamn före / eller ( inom ett område. Begränsa urvalet före import.");
     seen.add(key);
     return Object.fromEntries(fields.map(key => [key, row[key].trim()]));
   });
