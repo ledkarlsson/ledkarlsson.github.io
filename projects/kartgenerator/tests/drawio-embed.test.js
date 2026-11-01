@@ -130,14 +130,14 @@ describe("handleDrawioMessage", () => {
       { event: "export", data: "data:image/png;base64,abc" }
     ].forEach((message) => {
       expect(handleDrawioMessage({
-        origin: "https://app.diagrams.net",
+        origin: "https://embed.diagrams.net",
         source: frame.contentWindow,
         data: JSON.stringify(message)
       }, handlers)).toBe(true);
     });
 
     expect(calls).toEqual([
-      ["configure", "https://app.diagrams.net"],
+      ["configure", "https://embed.diagrams.net"],
       ["init", "<pending />"],
       ["save", "<saved />"],
       ["export", "data:image/png;base64,abc"]

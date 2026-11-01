@@ -1,3 +1,4 @@
+import { prepareBasMap } from "./bas-import.js";
 import {
   drawioEditorConfig,
   handleDrawioMessage,
@@ -347,7 +348,9 @@ export function createDrawioController(callbacks) {
     }
 
     try {
+      if (state.basSource) setSourceDrawioXml(prepareBasMap(state.sourceDrawioXml, state.basSource));
       const generatedXml = createGeneratedDrawioXml(state.sourceDrawioXml, visibleRows, {
+        basSource: state.basSource,
         placeColumnIndex: state.parsedOmradePlatsColumnIndex,
         isEmptyRow: callbacks.isEmptyExcelPlaceRow,
         labelOptions: callbacks.getDrawioLabelOptions()

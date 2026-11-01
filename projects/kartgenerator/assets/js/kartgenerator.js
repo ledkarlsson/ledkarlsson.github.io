@@ -1,4 +1,5 @@
 ﻿
+import { bindBasReceiver } from "./bas-import.js";
 import { createDrawioController } from "./drawio-controller.js"
 import { createDiagnosticsController } from "./diagnostics-controller.js"
 import { createDownloadController } from "./download.js"
@@ -104,6 +105,7 @@ drawioController.bindEvents({
   generatedPng: downloadController.downloadGeneratedPng
 });
 excelController.bindEvents();
+bindBasReceiver({ onApply: excelController.importBas });
 exampleController.bindEvents();
 downloadController.bindEvents();
 

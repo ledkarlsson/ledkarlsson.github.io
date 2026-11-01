@@ -1,3 +1,4 @@
+import { basRowsToTable, prepareBasMap, validateBasPayload } from "./bas-import.js";
 import { getMapPlaceLabels } from "./drawio.js";
 import {
   getDuplicatePlaceInfo,
@@ -10,7 +11,7 @@ import {
   resetDiagnosticsState,
   resetExcelState,
   resetSelectedTableSort,
-  state
+  state, setSourceDrawioXml
 } from "./state.js";
 import {
   renderClearedExcelFile,
@@ -37,7 +38,9 @@ const excelTypes = [".xls", ".xlsx"];
 const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 
 export function createExcelController(callbacks) {
+  let dataRevision = 0;
   function clearColumns(message) {
+    dataRevision++;
     renderClearedExcelState({ message, elements: clearedExcelElements });
     resetExcelState();
     resetDiagnosticsState();
@@ -168,6 +171,16 @@ export function createExcelController(callbacks) {
   }
 
   function reparseRows(shouldDetectParseSource = false) {
+    if (state.basSource) {
+      try { setSourceDrawioXml(prepareBasMap(state.sourceDrawioXml, state.basSource)); }
+      catch (error) {
+        clearColumns(error.message);
+        document.getElementById("bas-import-summary").textContent = error.message;
+        return;
+      }
+      updateSelectedTable();
+      return;
+    }
     if (state.excelColumns.length === 0 || state.rawExcelRows.length === 0) {
       return;
     }
@@ -177,7 +190,7 @@ export function createExcelController(callbacks) {
   }
 
   function updateParseControlsVisibility() {
-    const availableSources = state.parsedOmradePlatsColumnIndex !== null
+    const availableSources = !state.basSource && state.parsedOmradePlatsColumnIndex !== null
       && state.selectedColumnIndexes.includes(state.parsedOmradePlatsColumnIndex)
       && state.rawExcelRows.length > 0
       ? getAvailableParseSources(state.rawExcelRows, state.parsedOmradePlatsColumnIndex)
@@ -199,6 +212,7 @@ export function createExcelController(callbacks) {
   }
 
   function isEmptyExcelPlaceRow(row) {
+    if (state.basSource) return !row[1] && !row[2] && !row[5];
     return isEmptyExcelPlaceRowByIndexes(row, {
       placeColumnIndex: state.parsedOmradePlatsColumnIndex,
       firstNameColumnIndex: getColumnIndexByName("fornamn"),
@@ -351,14 +365,32 @@ export function createExcelController(callbacks) {
     updateSelectedTable();
   }
 
+  function importBas(input) {
+    const payload = validateBasPayload(input);
+    const xml = prepareBasMap(state.sourceDrawioXml, payload);
+    const { columns, rows } = basRowsToTable(payload);
+    clearColumns("Läser BAS-data…");
+    state.basSource = payload;
+    setSourceDrawioXml(xml);
+    state.rawExcelRows = rows;
+    state.excelRows = rows;
+    state.parsedOmradePlatsColumnIndex = 0;
+    renderSelectedExcelFile({ fileName: "BAS · " + payload.area, elements: excelElements,
+      exampleElements: excelExampleElements, columnsPanel: columnsElements.panel, tablePanel: selectedTableElements.panel });
+    updateColumns(columns, "BAS · " + payload.area);
+  }
+
   async function loadFile(file) {
+    const revision = dataRevision;
     try {
       const { columns, rows, sheetName } = await readExcelFile(file);
+      if (revision !== dataRevision) return;
 
       state.rawExcelRows = rows;
       state.excelRows = parseRows(columns, rows);
       updateColumns(columns, sheetName);
     } catch (error) {
+      if (revision !== dataRevision) return;
       if (error instanceof ExcelReadError && error.code === "unavailable") {
         renderExcelReadError({
           message: "Excel-läsaren kunde inte laddas. Kontrollera internetanslutningen och uppdatera sidan.",
@@ -475,6 +507,7 @@ export function createExcelController(callbacks) {
 
   return {
     bindEvents,
+    importBas,
     clearFile,
     getColumnIndexByName,
     getDrawioLabelOptions,

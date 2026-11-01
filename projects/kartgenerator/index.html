@@ -22,7 +22,7 @@
       <h1 id="project-title">kartgenerator</h1>
       <p class="last-updated" id="last-updated" hidden>Senast uppdaterad: <time id="last-updated-date"></time></p>
       <p>
-        En kartgenerator som kan generera kartor från Excel-data, relevant för båtklubbar.
+        En kartgenerator för båtklubbar med data från BAS via Koppla eller en Excel-rapport.
         <br><br>
         För att komma igång, klicka på Exempel-Excel och Exempelkarta nedan. Du kan ändra i kartan direkt i panelen.
         När du är nöjd behöver du ladda ner kartan till din dator via knappen "Ladda ner"; ändringar sparas inte
@@ -57,6 +57,14 @@
             <button class="clear-button" id="clear-excel" type="button" hidden>Rensa</button>
           </div>
         </div>
+        <section class="bas-import" aria-labelledby="bas-import-title">
+          <h3 id="bas-import-title">Hämta direkt med Koppla</h3>
+          <p>Öppna BAS Platshantering → Platser och läs listan via Chrome-tillägget Koppla. Välj ett område i tillägget och skicka hit.</p>
+          <p id="bas-import-summary" role="status">Väntar på BAS-data. Excel-import fungerar också som tidigare.</p>
+          <p>BAS ändras inte. När du använder datan ersätts tidigare inlästa rader. Kontrollera att kartan hör till valt område. Namn och andra valda kartuppgifter skickas till den inbäddade diagrams.net-editorn när kartan visas.</p>
+          <button type="button" class="button" id="bas-import-apply" hidden>Använd BAS-data</button>
+          <button type="button" class="button secondary" id="bas-import-discard" hidden>Kasta underlaget</button>
+        </section>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
           <span class="upload-title">Ladda upp Excel-fil</span>
           <span class="upload-help">Dra och släpp en .xlsx eller .xls fil här, eller klicka för att välja</span>
@@ -64,7 +72,7 @@
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
         <section class="columns-panel" id="columns-panel" aria-labelledby="columns-title" hidden>
-          <h2 id="columns-title">Excel-kolumner</h2>
+          <h2 id="columns-title">Kolumner</h2>
           <p class="columns-meta" id="columns-meta">Ladda upp en Excel-fil för att visa kolumnerna.</p>
           <ul class="columns-list" id="columns-list"></ul>
           <p class="selected-columns" id="selected-columns" hidden></p>
@@ -102,7 +110,7 @@
         </section>
         <section class="table-panel map-places-missing-in-excel-panel" id="map-places-missing-in-excel-panel" aria-labelledby="map-places-missing-in-excel-title"
           hidden>
-          <h2 id="map-places-missing-in-excel-title">Finns i kartan men saknas i Excel</h2>
+          <h2 id="map-places-missing-in-excel-title">Finns i kartan men saknas i underlaget</h2>
           <p class="table-meta" id="map-places-missing-in-excel-meta">Ladda upp Excel och karta för att se platser som saknas i Excel.
           </p>
           <div class="table-wrap map-places-missing-in-excel-wrap" id="map-places-missing-in-excel-wrap" hidden>

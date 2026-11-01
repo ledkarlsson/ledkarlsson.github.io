@@ -1,5 +1,6 @@
 export function createInitialKartgeneratorState() {
   return {
+    basSource: null,
     selectedColumnIndexes: [],
     excelColumns: [],
     excelRows: [],
@@ -31,6 +32,7 @@ export function createInitialKartgeneratorState() {
 export const state = createInitialKartgeneratorState();
 
 export function resetExcelState(targetState = state) {
+  targetState.basSource = null;
   targetState.selectedColumnIndexes = [];
   targetState.excelColumns = [];
   targetState.excelRows = [];

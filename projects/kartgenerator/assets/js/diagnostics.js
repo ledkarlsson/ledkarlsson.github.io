@@ -76,7 +76,7 @@ export function getDuplicateMapPlaceRows(xml) {
   const placesByCode = new Map();
 
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
-    const place = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const place = cell.getAttribute("data-bas-place") || getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
     const normalizedPlace = normalizePlaceCode(place);
 
     if (!normalizedPlace) {

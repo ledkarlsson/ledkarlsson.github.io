@@ -848,3 +848,7 @@
     }
 
 
+
+.bas-import { margin: 12px 0 18px; padding: 16px; border: 1px solid #cbd8c7; border-radius: 12px; background: #f6f8f3; }
+.bas-import h3 { margin: 0 0 8px; }
+.bas-import p { font-size: 13px; line-height: 1.5; }

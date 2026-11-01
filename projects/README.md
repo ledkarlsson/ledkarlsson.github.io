@@ -40,3 +40,16 @@ The tests mirror this split:
 The kartgenerator is now feature-complete enough that the main risk is no longer missing functionality, but that future changes become harder than they need to be. Its main responsibilities have therefore been carved out into focused modules, and older diagnostic names have been replaced with directional concepts such as `peopleMissingFromMap` and `mapPlacesMissingInExcel`.
 
 The current test strategy is good and should stay. A useful next step would be to move more pure behavior out of the browser-facing file and add focused unit tests for those modules, while keeping the Playwright tests as end-to-end coverage for the full user workflows.
+
+
+## BAS via Koppla
+
+Kartgeneratorn tar även emot en ögonblicksbild från Chrome-tillägget Koppla 0.2. Publicera webbändringarna före användning och ladda om tillägget. Öppna BAS Platshantering → Platser, läs listan i tilläggets BAS-flik och välj ett område. Mottagna rader ersätter tidigare data först efter **Använd BAS-data** i kartgeneratorn.
+
+- `bas-import.js` validerar och begränsar datan, förbereder tabellrader och binder kartans XML till klubb + område. Platsnamn bevaras i sin helhet. Inga BAS-cookies tas emot.
+- Protokollet använder synkrona DOM-händelser: `koppla:bas:request` med `requestId`, `operation: ping | stage`, `payload`; svar på `koppla:bas:reply` med samma id och `ok`. Detta är en importfunktion, ingen autentiseringsgräns mot sidans egen JavaScript.
+- Underlaget är version 1: `club`, `area`, `capturedAt` och `rows`. Rader har `area, place, category, firstName, lastName, boat, width, length, boatWidth, boatLength`. Högst 5 000 rader i ett område, inga dubbla normaliserade platsnamn.
+- BAS ändras inte. Valda kartuppgifter blir tillgängliga för den befintliga inbäddade diagrams.net-editorn. Inkommande kartmeddelanden kontrolleras mot exakt editorursprung och fönster.
+- XML sparar områdesbindning och platsnamn, inte verifierade stabila BAS-ID:n. En karta för en annan klubb eller ett annat område kan inte tyst återanvändas.
+- BAS- och Excel-import använder samma tabell- och genereringsflöde. En äldre pågående Excel-läsning får inte skriva över en ny BAS-import.
+- Testerna använder syntetiska data. Lokal UI-kontroll med Kopplas `npm run preview` och `/map/` provar mottagning, godkännande och kartetiketter; fixture-koden ska inte publiceras.

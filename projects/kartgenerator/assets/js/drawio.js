@@ -1,6 +1,7 @@
 import { drawioLabelToText, isPlaceBoxLabel, normalizePlaceCode } from "./kartgenerator-utils.js";
 
 function getPlaceLabelFromCell(cell) {
+    if (cell.hasAttribute("data-bas-place")) return cell.getAttribute("data-bas-place");
     const text = drawioLabelToText(cell.getAttribute("value"));
     const [firstLine] = text
         .split(/\r?\n/)

@@ -750,7 +750,7 @@ describe("renderMapPlacesMissingInExcelTable", () => {
 
     expect(elements.panel.hidden).toBe(false);
     expect(elements.wrap.hidden).toBe(true);
-    expect(elements.meta.textContent).toBe("Alla platser i kartan finns i Excel.");
+    expect(elements.meta.textContent).toBe("Alla platser i kartan finns i underlaget.");
   });
 
   it("renders missing Excel places and wires the sort button", () => {
@@ -768,7 +768,7 @@ describe("renderMapPlacesMissingInExcelTable", () => {
 
     expect(elements.panel.hidden).toBe(false);
     expect(elements.wrap.hidden).toBe(false);
-    expect(elements.meta.textContent).toBe("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
+    expect(elements.meta.textContent).toBe("1 plats finns i kartan men saknas i underlaget. Dessa platser markeras med gult i kartan.");
     expect(elements.table.textContent).toContain("Plats v");
     expect(elements.table.textContent).toContain("57");
 

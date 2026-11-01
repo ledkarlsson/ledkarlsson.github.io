@@ -10,7 +10,7 @@ export const drawioEditorConfig = {
   `
 };
 
-export function postDrawioMessage(frame, message, targetOrigin = "*") {
+export function postDrawioMessage(frame, message, targetOrigin = "https://embed.diagrams.net") {
   frame.contentWindow.postMessage(JSON.stringify(message), targetOrigin);
 }
 
@@ -58,7 +58,7 @@ export function exportDrawioPng(frame, xml) {
 }
 
 export function handleDrawioMessage(event, { frame, pendingXml, onConfigure, onInit, onSave, onExport }) {
-  if (!String(event.origin).includes("diagrams.net")) {
+  if (event.origin !== "https://embed.diagrams.net") {
     return false;
   }
 

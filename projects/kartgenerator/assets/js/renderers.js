@@ -469,7 +469,7 @@ export function renderMapPlacesMissingInExcelTable({ rows, hasRequiredInput, sor
   panel.hidden = false;
 
   if (rows.length === 0) {
-    meta.textContent = "Alla platser i kartan finns i Excel.";
+    meta.textContent = "Alla platser i kartan finns i underlaget.";
     wrap.hidden = true;
     return;
   }
@@ -504,7 +504,7 @@ export function renderMapPlacesMissingInExcelTable({ rows, hasRequiredInput, sor
 
   tbody.append(fragment);
   table.append(thead, tbody);
-  meta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.`;
+  meta.textContent = `${rows.length} plats${rows.length === 1 ? "" : "er"} finns i kartan men saknas i underlaget. Dessa platser markeras med gult i kartan.`;
   wrap.hidden = false;
 }
 

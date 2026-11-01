@@ -54,7 +54,9 @@ export function createCleanDrawioXml(xml) {
       removeNewPlacePlaceholder(cell);
     }
 
-    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code");
+    const placeCode = getPlaceCodeFromCellLabel(cell.getAttribute("value")) || cell.getAttribute("data-place-code") ||
+      (cell.hasAttribute("data-bas-place") ? drawioLabelToText(cell.getAttribute("value")) : null);
+    if (placeCode && cell.hasAttribute("data-bas-place")) cell.setAttribute("data-bas-place", placeCode);
     const shouldRemoveDuplicateMapPlaceHighlight = Boolean(placeCode) && hasDuplicateMapPlaceHighlight(cell);
     const shouldRemoveMapPlaceMissingInExcelHighlight = Boolean(placeCode) && hasMapPlaceMissingInExcelHighlight(cell);
 
@@ -341,7 +343,7 @@ export function makeDrawioLabel(row, options) {
       : String(value).trim());
   });
 
-  return lines.join("<br>");
+  return lines.map(line => String(line).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;")).join("<br>");
 }
 
 export function createGeneratedDrawioXml(xml, rows, options) {
@@ -366,7 +368,7 @@ export function createGeneratedDrawioXml(xml, rows, options) {
   documentXml.querySelectorAll("mxCell[vertex='1']").forEach((cell) => {
     const label = drawioLabelToText(cell.getAttribute("value"));
 
-    if (!isPlaceBoxLabel(label)) {
+    if (!isPlaceBoxLabel(label) && !cell.hasAttribute("data-bas-place")) {
       return;
     }
 
@@ -376,9 +378,11 @@ export function createGeneratedDrawioXml(xml, rows, options) {
 
     if (row) {
       const generatedLabel = options.isEmptyRow(row) ? "" : makeDrawioLabel(row, options.labelOptions);
-      cell.setAttribute("value", generatedLabel || `${label}<br>Ledig plats`);
+      const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      cell.setAttribute("value", generatedLabel || `${safeLabel}<br>${options.basSource ? "Ingen båt/medlem visad" : "Ledig plats"}`);
     } else if (label) {
-      cell.setAttribute("value", `${label}<br>Ledig plats`);
+      const safeLabel = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      cell.setAttribute("value", `${safeLabel}<br>${options.basSource ? "Saknas i BAS-urvalet" : "Ledig plats"}`);
       markCellAsMapPlaceMissingInExcel(cell);
     }
   });
