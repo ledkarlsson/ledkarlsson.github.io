@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "BAS till kartgeneratorn",
-  "version": "0.4.0",
+  "name": "BAS-verktyg",
+  "version": "0.4.1",
   "description": "Läs BAS-platser till kartgeneratorn.",
   "minimum_chrome_version": "120",
   "permissions": [
@@ -16,7 +16,7 @@
     "https://ledkarlsson.github.io/*"
   ],
   "action": {
-    "default_title": "BAS till kartgeneratorn",
+    "default_title": "BAS-verktyg",
     "default_popup": "popup.html"
   },
   "incognito": "not_allowed",

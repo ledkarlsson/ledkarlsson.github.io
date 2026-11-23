@@ -1,4 +1,4 @@
-# Chrome-tillägg för BAS
+# BAS-verktyg
 
 Öppna `chrome://extensions`, aktivera **Utvecklarläge** och välj **Läs in okomprimerat**. Välj mappen `projects/kartgenerator/extension`. Använd den publicerade kartgeneratorn för överföring.
 

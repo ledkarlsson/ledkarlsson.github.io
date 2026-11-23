@@ -8,7 +8,7 @@
     return { ok: false, error: { message: "Detta är en lokal demo. Inga externa sidor öppnas." } };
   } } };
   document.addEventListener("DOMContentLoaded", () => {
-    document.title = "BAS till kartgeneratorn · lokal demo med testdata";
+    document.title = "BAS-verktyg · lokal demo med testdata";
     document.querySelector(".version").textContent = "DEMO · TESTDATA";
   });
 })();

@@ -45,7 +45,7 @@ The current test strategy is good and should stay. A useful next step would be t
 
 ## BAS via Koppla
 
-Kartgeneratorn tar även emot en ögonblicksbild från [Chrome-tillägget BAS till kartgeneratorn](kartgenerator/extension/README.md). Publicera webbändringarna före användning och ladda om tillägget. Öppna BAS Platshantering → Platser, läs listan i tillägget och välj ett eller flera områden (snabbval eller mönster som `Brygga*`, `Varvsplats*`). Mottagna rader ersätter tidigare data först efter **Använd BAS-data** i kartgeneratorn.
+Kartgeneratorn tar även emot en ögonblicksbild från [Chrome-tillägget BAS-verktyg](kartgenerator/extension/README.md). Publicera webbändringarna före användning och ladda om tillägget. Öppna BAS Platshantering → Platser, läs listan i tillägget och välj ett eller flera områden (snabbval eller mönster som `Brygga*`, `Varvsplats*`). Mottagna rader ersätter tidigare data först efter **Använd BAS-data** i kartgeneratorn.
 
 - `bas-import.js` validerar och begränsar datan, förbereder tabellrader och binder kartans XML till klubb + område. Originalnamnet bevaras i underlaget, men allt från första `/` eller `(` i platsnamnet ignoreras i matchningen: `112/SSR` och `112 (SSR)` matchar `112`. Områdesdelen i `Brygga A / 112` påverkas inte. Tillägget listar och utesluter samtliga rader med samma platsnyckel inom ett område; unika rader importeras. Inga BAS-cookies tas emot.
 - Protokollet använder synkrona DOM-händelser: `koppla:bas:request` med `requestId`, `operation: ping | stage`, `payload`; svar på `koppla:bas:reply` med samma id och `ok`. Detta är en importfunktion, ingen autentiseringsgräns mot sidans egen JavaScript.
