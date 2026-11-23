@@ -4,7 +4,7 @@ const conflictScenario = ['bas-conflict','bas-vacant'].includes(scenario);
 const vacantScenario = scenario === 'bas-vacant';
 const button = document.createElement('button');
 button.type = 'button'; button.className = 'button'; button.textContent = 'DEMO: Ta emot BAS-testdata';
-document.getElementById('bas-import-title').after(button);
+document.getElementById('bas-import-summary').after(button);
 const mapButton = document.createElement('button');
 mapButton.type='button'; mapButton.className='button'; mapButton.textContent='DEMO: Ladda testkarta';
 button.after(mapButton);

@@ -24,7 +24,7 @@ import {
   renderSelectedColumnsStatus,
   renderSelectedDataTable,
   renderSelectedExcelFile
-} from "./renderers.js";
+} from "./renderers.js?v=bas-import-box";
 import {
   clearedExcelElements,
   columnsElements,
@@ -39,12 +39,10 @@ const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 
 export function createExcelController(callbacks) {
   let dataRevision = 0;
-  const basImportPanel = document.getElementById("bas-import");
   const basImportSummary = document.getElementById("bas-import-summary");
 
   function clearColumns(message) {
     dataRevision++;
-    basImportPanel.hidden = false;
     basImportSummary.textContent = "";
     renderClearedExcelState({ message, elements: clearedExcelElements });
     resetExcelState();
@@ -384,7 +382,6 @@ export function createExcelController(callbacks) {
     renderSelectedExcelFile({ fileName: title, elements: excelElements,
       exampleElements: excelExampleElements, columnsPanel: columnsElements.panel, tablePanel: selectedTableElements.panel });
     updateColumns(columns, title);
-    basImportPanel.hidden = true;
   }
 
   async function loadFile(file) {

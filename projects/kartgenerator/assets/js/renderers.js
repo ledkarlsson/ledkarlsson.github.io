@@ -108,7 +108,7 @@ export function renderSelectedExcelFile({ fileName, elements, exampleElements, c
 
 export function renderClearedExcelFile({ elements, exampleElements }) {
   elements.upload.value = "";
-  elements.panelTitle.textContent = "Excel-data från BAS-rapport";
+  elements.panelTitle.textContent = "Data från BAS";
   elements.clearButton.hidden = true;
   exampleElements.menu.hidden = false;
   elements.uploadZone.hidden = false;

@@ -288,7 +288,7 @@ describe("upload renderers", () => {
     expect(elements.fileStatus.textContent).toBe("Kunde inte läsa.");
 
     renderClearedExcelFile({ elements, exampleElements });
-    expect(elements.panelTitle.textContent).toBe("Excel-data från BAS-rapport");
+    expect(elements.panelTitle.textContent).toBe("Data från BAS");
     expect(elements.clearButton.hidden).toBe(true);
     expect(exampleElements.menu.hidden).toBe(false);
     expect(elements.fileStatus.textContent).toBe("");

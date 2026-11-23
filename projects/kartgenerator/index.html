@@ -38,7 +38,7 @@
       <div class="excel-panel">
         <div class="panel-header">
           <div class="panel-title-row">
-            <h2 class="panel-title" id="excel-panel-title">Excel-data från BAS-rapport</h2>
+            <h2 class="panel-title" id="excel-panel-title">Data från BAS</h2>
             <button class="help-button" type="button" data-help-target="excel-help"
               aria-label="Hjälp för Excel-data">?</button>
           </div>
@@ -54,13 +54,10 @@
             <button class="clear-button" id="clear-excel" type="button" hidden>Rensa</button>
           </div>
         </div>
-        <section class="bas-import" id="bas-import" aria-labelledby="bas-import-title">
-          <h3 id="bas-import-title">Hämta direkt med Chrome-tillägget BAS-verktyg</h3>
-        </section>
         <div id="bas-import-summary" role="status"></div>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
-          <span class="upload-title">Ladda upp Excel-fil</span>
-          <span class="upload-help">Dra och släpp en .xlsx eller .xls fil här, eller klicka för att välja</span>
+          <span class="upload-title">Ladda upp en Excel-fil eller hämta direkt med Chrome-tillägget BAS-verktyg</span>
+          <span class="upload-help">Dra och släpp en Excel-fil här eller klicka för att välja den. Med tillägget kan du skicka valda områden från BAS direkt till kartan.</span>
           <span class="file-status" id="file-status"></span>
           <input class="file-input" id="excel-upload" type="file" accept=".xlsx,.xls" />
         </label>
@@ -249,7 +246,7 @@
     </form>
   </dialog>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/kartgenerator.js?v=bas-info-panel"></script>
+  <script type="module" src="assets/js/kartgenerator.js?v=bas-import-box"></script>
 </body>
 
 </html>

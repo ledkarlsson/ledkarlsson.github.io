@@ -80,7 +80,8 @@ test("visar kartgeneratorns arbetsyta", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "kartgenerator" })).toBeVisible();
     await expect(page.locator(".last-updated")).toContainText(/Senast uppdaterad: \d{1,2} [a-zåäö]+ \d{4}/i);
     await expect(page.locator(".last-updated time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
-    await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp Excel-fil");
+    await expect(page.locator("#excel-panel-title")).toHaveText("Data från BAS");
+    await expect(page.locator("#upload-zone .upload-title")).toHaveText("Ladda upp en Excel-fil eller hämta direkt med Chrome-tillägget BAS-verktyg");
     await expect(page.locator("#excel-example-menu")).toBeVisible();
     await expect(page.locator("#excel-example-button")).toHaveText("Exempel-Excel");
     await expect(page.locator("#drawio-frame")).toHaveAttribute("src", /configure=1/);

@@ -3,7 +3,7 @@ import { bindBasReceiver } from "./bas-import.js?v=bas-info-panel";
 import { createDrawioController } from "./drawio-controller.js?v=bas-info-default"
 import { createDiagnosticsController } from "./diagnostics-controller.js"
 import { createDownloadController } from "./download.js"
-import { createExcelController } from "./excel-controller.js?v=bas-info-panel"
+import { createExcelController } from "./excel-controller.js?v=bas-import-box"
 import { createExampleController } from "./example.js"
 import { state } from "./state.js"
 import { renderLastUpdatedDate } from "./renderers.js"
