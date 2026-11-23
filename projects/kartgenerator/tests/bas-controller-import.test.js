@@ -16,6 +16,7 @@ describe('BAS import into existing map workflow', () => {
     controller.importBas(payload);
     expect(state.excelRows[0][0]).toBe('71-73');
     expect(state.excelRows[0].rawOmradePlats).toBe('A / 71-73/1');
+    expect(document.getElementById('upload-zone').hidden).toBe(true);
     expect(document.getElementById('table-panel').hidden).toBe(false);
     expect(document.getElementById('parse-controls').classList.contains('is-visible')).toBe(false);
     finishExcel({columns:[{index:0,name:'Old'}],rows:[['STALE']],sheetName:'Old'});

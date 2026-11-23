@@ -1,5 +1,5 @@
 ﻿
-import { bindBasReceiver } from "./bas-import.js";
+import { bindBasReceiver } from "./bas-import.js?v=bas-direct-import";
 import { createDrawioController } from "./drawio-controller.js"
 import { createDiagnosticsController } from "./diagnostics-controller.js"
 import { createDownloadController } from "./download.js"
