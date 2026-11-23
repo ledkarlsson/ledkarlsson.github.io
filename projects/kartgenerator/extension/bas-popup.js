@@ -75,4 +75,5 @@ el("bas-send").addEventListener("click", () => run(async () => {
   preview = null;
   el("bas-review").hidden = true;
   notice(`Skickat till kartgeneratorn: ${result.count} BAS-platser.${result.warning ? `\n\n${result.warning}` : ""}`);
+  window.close();
 }));
