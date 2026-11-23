@@ -17,6 +17,8 @@ describe('BAS import into existing map workflow', () => {
     expect(state.excelRows[0][0]).toBe('71-73');
     expect(state.excelRows[0].rawOmradePlats).toBe('A / 71-73/1');
     expect(document.getElementById('upload-zone').hidden).toBe(true);
+    expect(document.getElementById('excel-panel-title').textContent).toBe('BAS-info');
+    expect(document.getElementById('bas-import').hidden).toBe(true);
     expect(document.getElementById('table-panel').hidden).toBe(false);
     expect(document.getElementById('parse-controls').classList.contains('is-visible')).toBe(false);
     finishExcel({columns:[{index:0,name:'Old'}],rows:[['STALE']],sheetName:'Old'});
@@ -27,6 +29,7 @@ describe('BAS import into existing map workflow', () => {
     controller.reparseRows(true);
     expect(state.excelRows[0][0]).toBe('71-73');
     controller.clearFile();expect(state.basSource).toBeNull();
+    expect(document.getElementById('bas-import').hidden).toBe(false);
     // Regression: importing BAS first and then opening a map with ambiguous
     // numbers must retain the dataset and allow the diagnostics to visualize it.
     state.sourceDrawioXml='';

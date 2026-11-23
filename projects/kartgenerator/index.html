@@ -54,10 +54,10 @@
             <button class="clear-button" id="clear-excel" type="button" hidden>Rensa</button>
           </div>
         </div>
-        <section class="bas-import" aria-labelledby="bas-import-title">
+        <section class="bas-import" id="bas-import" aria-labelledby="bas-import-title">
           <h3 id="bas-import-title">Hämta direkt med Koppla</h3>
-          <p id="bas-import-summary" role="status">Väntar på BAS-data.</p>
         </section>
+        <div id="bas-import-summary" role="status"></div>
         <label class="upload-zone" id="upload-zone" for="excel-upload">
           <span class="upload-title">Ladda upp Excel-fil</span>
           <span class="upload-help">Dra och släpp en .xlsx eller .xls fil här, eller klicka för att välja</span>
@@ -249,7 +249,7 @@
     </form>
   </dialog>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/kartgenerator.js?v=bas-info-default"></script>
+  <script type="module" src="assets/js/kartgenerator.js?v=bas-info-panel"></script>
 </body>
 
 </html>

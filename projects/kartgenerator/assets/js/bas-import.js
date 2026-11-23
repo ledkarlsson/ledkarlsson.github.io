@@ -146,7 +146,7 @@ export function bindBasReceiver({ document: doc = document, onApply }) {
       if (detail.operation === "stage") {
         const data = validateBasPayload(detail.payload);
         onApply(data);
-        summary.textContent = `${data.club} · ${data.areas.join(", ")}: ${data.rows.length} BAS-platser inlästa.${skippedNotice(data)}`;
+        summary.textContent = `${data.rows.length} BAS-platser inlästa.${skippedNotice(data)}`;
         ok = true;
       }
     } catch {

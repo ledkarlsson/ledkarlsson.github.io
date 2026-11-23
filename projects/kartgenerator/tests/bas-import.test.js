@@ -75,9 +75,11 @@ describe("BAS receiver", () => {
     expect(request(payload()).ok).toBe(false);
     expect(document.getElementById('bas-import-summary').textContent).toContain('kunde inte läsas in');
   });
-  it("renders payload labels as text, never executable markup", () => {
-    setup();request({...payload(),club:'<img src=x onerror=alert(1)>'});
-    expect(document.querySelector('img')).toBeNull();expect(document.body.textContent).toContain('<img');
+  it("shows a short import status without club or area labels", () => {
+    setup();
+    request({...payload(), club: '<img src=x onerror=alert(1)>'});
+    expect(document.querySelector('img')).toBeNull();
+    expect(document.getElementById('bas-import-summary').textContent).toBe('1 BAS-platser inlästa.');
   });
 });
 

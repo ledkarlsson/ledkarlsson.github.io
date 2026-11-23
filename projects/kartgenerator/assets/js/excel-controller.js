@@ -39,8 +39,13 @@ const parseSourceValues = ["varvsomrade", "brygga", "vinterplats"];
 
 export function createExcelController(callbacks) {
   let dataRevision = 0;
+  const basImportPanel = document.getElementById("bas-import");
+  const basImportSummary = document.getElementById("bas-import-summary");
+
   function clearColumns(message) {
     dataRevision++;
+    basImportPanel.hidden = false;
+    basImportSummary.textContent = "";
     renderClearedExcelState({ message, elements: clearedExcelElements });
     resetExcelState();
     resetDiagnosticsState();
@@ -175,7 +180,7 @@ export function createExcelController(callbacks) {
       try { setSourceDrawioXml(prepareBasMap(state.sourceDrawioXml, state.basSource)); }
       catch (error) {
         clearColumns(error.message);
-        document.getElementById("bas-import-summary").textContent = error.message;
+        basImportSummary.textContent = error.message;
         return;
       }
       updateSelectedTable();
@@ -375,9 +380,11 @@ export function createExcelController(callbacks) {
     state.rawExcelRows = rows;
     state.excelRows = rows;
     state.parsedOmradePlatsColumnIndex = 0;
-    renderSelectedExcelFile({ fileName: "BAS · " + payload.areas.join(", "), elements: excelElements,
+    const title = "BAS-info";
+    renderSelectedExcelFile({ fileName: title, elements: excelElements,
       exampleElements: excelExampleElements, columnsPanel: columnsElements.panel, tablePanel: selectedTableElements.panel });
-    updateColumns(columns, "BAS · " + payload.areas.join(", "));
+    updateColumns(columns, title);
+    basImportPanel.hidden = true;
   }
 
   async function loadFile(file) {

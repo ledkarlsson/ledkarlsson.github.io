@@ -1,9 +1,9 @@
 ﻿
-import { bindBasReceiver } from "./bas-import.js?v=bas-direct-import";
+import { bindBasReceiver } from "./bas-import.js?v=bas-info-panel";
 import { createDrawioController } from "./drawio-controller.js?v=bas-info-default"
 import { createDiagnosticsController } from "./diagnostics-controller.js"
 import { createDownloadController } from "./download.js"
-import { createExcelController } from "./excel-controller.js"
+import { createExcelController } from "./excel-controller.js?v=bas-info-panel"
 import { createExampleController } from "./example.js"
 import { state } from "./state.js"
 import { renderLastUpdatedDate } from "./renderers.js"
