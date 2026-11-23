@@ -43,9 +43,9 @@ The kartgenerator is now feature-complete enough that the main risk is no longer
 The current test strategy is good and should stay. A useful next step would be to move more pure behavior out of the browser-facing file and add focused unit tests for those modules, while keeping the Playwright tests as end-to-end coverage for the full user workflows.
 
 
-## BAS via Koppla
+## BAS via Chrome-tillägget BAS-verktyg
 
-Kartgeneratorn tar även emot en ögonblicksbild från [Chrome-tillägget BAS-verktyg](kartgenerator/extension/README.md). Publicera webbändringarna före användning och ladda om tillägget. Öppna BAS Platshantering → Platser, läs listan i tillägget och välj ett eller flera områden (snabbval eller mönster som `Brygga*`, `Varvsplats*`). Mottagna rader ersätter tidigare data först efter **Använd BAS-data** i kartgeneratorn.
+Kartgeneratorn tar även emot en ögonblicksbild från [Chrome-tillägget BAS-verktyg](kartgenerator/extension/README.md). Publicera webbändringarna före användning och ladda om tillägget. Öppna BAS Platshantering → Platser, läs listan i tillägget och välj ett eller flera områden (snabbval eller mönster som `Brygga*`, `Varvsplats*`). När du skickar urvalet ersätter det tidigare inlästa rader direkt.
 
 - `bas-import.js` validerar och begränsar datan, förbereder tabellrader och binder kartans XML till klubb + område. Originalnamnet bevaras i underlaget, men allt från första `/` eller `(` i platsnamnet ignoreras i matchningen: `112/SSR` och `112 (SSR)` matchar `112`. Områdesdelen i `Brygga A / 112` påverkas inte. Tillägget listar och utesluter samtliga rader med samma platsnyckel inom ett område; unika rader importeras. Inga BAS-cookies tas emot.
 - Protokollet använder synkrona DOM-händelser: `koppla:bas:request` med `requestId`, `operation: ping | stage`, `payload`; svar på `koppla:bas:reply` med samma id och `ok`. Detta är en importfunktion, ingen autentiseringsgräns mot sidans egen JavaScript.
@@ -54,4 +54,4 @@ Kartgeneratorn tar även emot en ögonblicksbild från [Chrome-tillägget BAS-ve
 - BAS ändras inte. Valda kartuppgifter blir tillgängliga för den befintliga inbäddade diagrams.net-editorn. Inkommande kartmeddelanden kontrolleras mot exakt editorursprung och fönster.
 - XML sparar områdesbindning och platsnamn, inte verifierade stabila BAS-ID:n. En karta kan utökas eller begränsas till ett överlappande områdesurval inom samma klubb. Sparade rutor behåller område och plats även när en rad saknas; ett lika nummer i ett annat område tar inte över. Annan klubb eller helt andra områden avvisas.
 - BAS- och Excel-import använder samma tabell- och genereringsflöde. En äldre pågående Excel-läsning får inte skriva över en ny BAS-import.
-- Testerna använder syntetiska data. Lokal UI-kontroll med `node projects/kartgenerator/scripts/preview-bas.mjs` och `/map/` provar mottagning, godkännande och kartetiketter; fixture-koden ska inte publiceras.
+- Testerna använder syntetiska data. Lokal UI-kontroll med `node projects/kartgenerator/scripts/preview-bas.mjs` och `/map/` provar direktimport och kartetiketter; fixture-koden ska inte publiceras.
