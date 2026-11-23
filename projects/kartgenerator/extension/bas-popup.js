@@ -74,5 +74,5 @@ el("bas-send").addEventListener("click", () => run(async () => {
   }
   preview = null;
   el("bas-review").hidden = true;
-  notice(`${result.count} rader väntar i kartgeneratorn. Gå dit och välj Använd BAS-data för att ersätta tidigare inläst data.${result.warning ? `\n\n${result.warning}` : ""}`);
+  notice(`Skickat till kartgeneratorn: ${result.count} BAS-platser.${result.warning ? `\n\n${result.warning}` : ""}`);
 }));

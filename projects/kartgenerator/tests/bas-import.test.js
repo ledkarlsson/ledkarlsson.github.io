@@ -48,7 +48,7 @@ describe("BAS receiver", () => {
   let dispose;
   afterEach(()=>{dispose?.();document.body.replaceChildren();});
   function setup() {
-    document.body.innerHTML='<p id="bas-import-summary"></p><button id="bas-import-apply" hidden>Use</button><button id="bas-import-discard" hidden>Discard</button>';
+    document.body.innerHTML='<p id="bas-import-summary"></p>';
     const onApply=vi.fn();dispose=bindBasReceiver({onApply});return onApply;
   }
   function request(data,operation='stage') {
@@ -56,20 +56,24 @@ describe("BAS receiver", () => {
     document.dispatchEvent(new CustomEvent('koppla:bas:request',{detail:{requestId:'test',operation,payload:data}}));
     document.removeEventListener('koppla:bas:reply',listen);return reply;
   }
-  it("acknowledges readiness and stages without replacing data until the user applies", () => {
-    const onApply=setup();expect(request(null,'ping').ok).toBe(true);
-    expect(request(payload()).ok).toBe(true);expect(onApply).not.toHaveBeenCalled();
-    expect(document.getElementById('bas-import-apply').hidden).toBe(false);
-    document.getElementById('bas-import-apply').click();expect(onApply).toHaveBeenCalledOnce();
-    document.getElementById('bas-import-apply').click();expect(onApply).toHaveBeenCalledOnce();
+  it("acknowledges readiness and imports valid data immediately", () => {
+    const onApply = setup();
+    expect(request(null, 'ping').ok).toBe(true);
+    expect(onApply).not.toHaveBeenCalled();
+    expect(request(payload()).ok).toBe(true);
+    expect(onApply).toHaveBeenCalledOnce();
+    expect(document.getElementById('bas-import-summary').textContent).toContain('BAS-platser inlästa');
   });
-  it("rejects bad payloads without losing a pending valid import", () => {
-    const onApply=setup();request(payload());expect(request({cookie:'secret'}).ok).toBe(false);
-    document.getElementById('bas-import-apply').click();expect(onApply).toHaveBeenCalledOnce();
+  it("rejects invalid payloads without applying them", () => {
+    const onApply = setup();
+    expect(request({cookie: 'secret'}).ok).toBe(false);
+    expect(onApply).not.toHaveBeenCalled();
   });
-  it("discard keeps the current data and drops the pending snapshot", () => {
-    const onApply=setup();request(payload());document.getElementById('bas-import-discard').click();
-    document.getElementById('bas-import-apply').click();expect(onApply).not.toHaveBeenCalled();
+  it("reports failure when the controller cannot apply the import", () => {
+    const onApply = setup();
+    onApply.mockImplementation(() => { throw new Error('Import failed'); });
+    expect(request(payload()).ok).toBe(false);
+    expect(document.getElementById('bas-import-summary').textContent).toContain('kunde inte läsas in');
   });
   it("renders payload labels as text, never executable markup", () => {
     setup();request({...payload(),club:'<img src=x onerror=alert(1)>'});
@@ -227,13 +231,11 @@ describe('skipped duplicate BAS places', () => {
       expect(()=>validateBasPayload({...input,skippedPlaces})).toThrow();
     }
   });
-  it('shows skipped places both before and after applying the remaining data', () => {
-    document.body.innerHTML='<p id="bas-import-summary"></p><button id="bas-import-apply" hidden>Use</button><button id="bas-import-discard" hidden>Discard</button>';
+  it('shows skipped places after importing the remaining data', () => {
+    document.body.innerHTML='<p id="bas-import-summary"></p>';
     const onApply=vi.fn();const dispose=bindBasReceiver({onApply});
     try {
       document.dispatchEvent(new CustomEvent('koppla:bas:request',{detail:{requestId:'skip',operation:'stage',payload:data()}}));
-      expect(document.getElementById('bas-import-summary').textContent).toContain('Överhoppade dubblettplatser: Brygga A / 112');
-      document.getElementById('bas-import-apply').click();
       expect(onApply).toHaveBeenCalledOnce();
       expect(onApply.mock.calls[0][0].rows).toHaveLength(1);
       expect(document.getElementById('bas-import-summary').textContent).toContain('Överhoppade dubblettplatser: Brygga A / 112');

@@ -27,7 +27,7 @@ for (const count of [0, 1]) test(`popup keeps skipped-place details visible when
     assert.ok(notice.textContent.includes(warning));
     assert.equal(notice.querySelector('img'),null);
     assert.equal(doc.getElementById('bas-review').hidden,count > 0);
-    assert.ok(notice.textContent.includes(count ? '1 rader väntar i kartgeneratorn' : 'Inget har skickats'));
+    assert.ok(notice.textContent.includes(count ? 'Skickat till kartgeneratorn: 1 BAS-platser' : 'Inget har skickats'));
     if (!count) assert.equal(doc.getElementById('bas-send').disabled,false);
   } finally {
     globalThis.document = previousDocument; globalThis.chrome = previousChrome;

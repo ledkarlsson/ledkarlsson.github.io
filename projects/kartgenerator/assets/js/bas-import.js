@@ -136,9 +136,6 @@ export function prepareBasMap(xml, payload) {
 
 export function bindBasReceiver({ document: doc = document, onApply }) {
   const summary = doc.getElementById("bas-import-summary");
-  const apply = doc.getElementById("bas-import-apply");
-  const discard = doc.getElementById("bas-import-discard");
-  let pending = null;
   const skippedNotice = data => data.skippedPlaces.length ? " Överhoppade dubblettplatser: " + data.skippedPlaces.map(qualified).join(", ") + "." : "";
   function receive(event) {
     const detail = event.detail;
@@ -147,32 +144,16 @@ export function bindBasReceiver({ document: doc = document, onApply }) {
     try {
       if (detail.operation === "ping") ok = true;
       if (detail.operation === "stage") {
-        pending = validateBasPayload(detail.payload);
-        summary.textContent = `${pending.club} · ${pending.areas.join(", ")} · ${pending.rows.length} platser · hämtat ${new Date(pending.capturedAt).toLocaleString("sv-SE")}. Granska områdena innan du ersätter tidigare inläst data.${skippedNotice(pending)}`;
-        apply.hidden = false;
-        discard.hidden = false;
+        const data = validateBasPayload(detail.payload);
+        onApply(data);
+        summary.textContent = `${data.club} · ${data.areas.join(", ")}: ${data.rows.length} BAS-platser inlästa.${skippedNotice(data)}`;
         ok = true;
       }
-    } catch { /* Invalid messages cannot replace current data or leak their contents. */ }
+    } catch {
+      summary.textContent = "BAS-data kunde inte läsas in.";
+    }
     doc.dispatchEvent(new CustomEvent("koppla:bas:reply", { detail: { requestId: detail.requestId, ok } }));
   }
-  function clearPending() { pending = null; apply.hidden = true; discard.hidden = true; }
-  function applyPending() {
-    if (!pending) return;
-    try {
-      onApply(pending);
-      summary.textContent = `${pending.club} · ${pending.areas.join(", ")}: ${pending.rows.length} BAS-platser inlästa. Spara kartan via Ladda ner när du är klar.${skippedNotice(pending)}`;
-      clearPending();
-    } catch (error) { summary.textContent = error.message; }
-  }
-  function discardPending() { clearPending(); summary.textContent = "BAS-underlaget har kastats. Tidigare inläst data är kvar."; }
   doc.addEventListener("koppla:bas:request", receive);
-  apply.addEventListener("click", applyPending);
-  discard.addEventListener("click", discardPending);
-  return () => {
-    clearPending();
-    doc.removeEventListener("koppla:bas:request", receive);
-    apply.removeEventListener("click", applyPending);
-    discard.removeEventListener("click", discardPending);
-  };
+  return () => doc.removeEventListener("koppla:bas:request", receive);
 }

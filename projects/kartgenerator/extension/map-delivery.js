@@ -1,4 +1,4 @@
-// Runs in the destination's MAIN world. The website stages the data for review.
+// Runs in the destination's MAIN world and hands the data to the website.
 export function deliverBasPlaces(payload = null) {
   if (location.origin !== "https://ledkarlsson.github.io" || !["/projects/kartgenerator/", "/projects/kartgenerator/index.html"].includes(location.pathname)) return { ok: false, code: "MAP_PAGE" };
   const requestId = crypto.randomUUID();
