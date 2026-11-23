@@ -8,7 +8,7 @@
 2. Öppna en flik med [kartgeneratorn](https://ledkarlsson.github.io/projects/kartgenerator/).
 3. Välj **Läs platslistan från BAS** i tillägget. Första gången frågar Chrome om åtkomst till BAS och kartgeneratorns värd.
 4. Kontrollera klubbnamnet, välj ett eller flera områden och tryck **Ladda valda platser i kartgeneratorn**. Snabbknapparna väljer alla bryggor, varvsplatser eller områden. Egna mönster som `Brygga*, Varvsplats*, Varvsområde*` matchar områdesnamn utan hänsyn till stora/små bokstäver; `*` står för valfri text. Kryssrutorna kan finjusteras.
-5. Kartgeneratorn läser in de skickade platserna direkt och ersätter tidigare inlästa Excel-/BAS-rader. Ladda en karta för valda områden och välj **Visa BAS-info**. Spara kartan via **Ladda ner**.
+5. Kartgeneratorn läser in de skickade platserna direkt och ersätter tidigare inlästa Excel-/BAS-rader. Ladda en karta för valda områden så visas BAS-info automatiskt. Spara kartan via **Ladda ner**.
 
 ### Omfattning och begränsningar
 

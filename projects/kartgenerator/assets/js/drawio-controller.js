@@ -356,9 +356,9 @@ export function createDrawioController(callbacks) {
         isEmptyRow: callbacks.isEmptyExcelPlaceRow,
         labelOptions: callbacks.getDrawioLabelOptions()
       });
-      const { hadGeneratedDrawioXml } = setGeneratedDrawioXml(generatedXml);
+      setGeneratedDrawioXml(generatedXml);
 
-      if (!hadGeneratedDrawioXml && !state.hasManualDrawioMode) {
+      if (!state.hasManualDrawioMode) {
         setCurrentDrawioMode("generated");
       }
 
@@ -390,7 +390,7 @@ export function createDrawioController(callbacks) {
 
       setSourceDrawioXml(createCleanDrawioXml(xml));
       setCurrentDrawioMode("clean");
-      setManualDrawioMode(true);
+      setManualDrawioMode(false);
       callbacks.updateDuplicateMapPlacesList();
       loadViewer(getCleanXmlForDisplay());
 

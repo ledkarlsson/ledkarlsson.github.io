@@ -162,15 +162,18 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(page.locator("#selected-table tbody tr")).toHaveCount(4);
   });
 
-  await test.step("Kontrollera platser som saknas i Excel", async () => {
+  await test.step("Kontrollera platser som saknas i underlaget", async () => {
     await expect(page.locator("#map-places-missing-in-excel-panel")).toBeVisible();
-    await expect(page.locator("#map-places-missing-in-excel-title")).toHaveText("Finns i kartan men saknas i Excel");
-    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+    await expect(page.locator("#map-places-missing-in-excel-title")).toHaveText("Finns i kartan men saknas i underlaget");
+    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i underlaget.");
     await expect(page.locator("#map-places-missing-in-excel-wrap")).toBeHidden();
   });
 
   await test.step("Kontrollera kartvisning och nedladdningslägen", async () => {
     await expect(page.locator("#drawio-viewer")).toBeVisible();
+    await expect(page.locator("#generated-options")).toBeVisible();
+    await expect(page.locator("#show-generated-map")).toBeDisabled();
+    await page.locator("#show-clean-map").click();
     await expect(page.locator("#generated-options")).toBeHidden();
     await expect(page.locator("#show-clean-map")).toBeDisabled();
     await expect(page.locator("#show-generated-map")).toBeEnabled();
@@ -187,7 +190,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     await expect(frame.locator("#loaded-xml")).toContainText("ny plats");
     await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#f8cecc");
     await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#b85450");
-    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i underlaget.");
 
     const newPlaceXml = await frame.locator("#loaded-xml").textContent();
     const renamedPlaceXml = newPlaceXml.replace(/value="ny plats"/, 'value="57"');
@@ -202,7 +205,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
     expect(renamedPlaceXml).toContain('value="57"');
     expect(renamedPlaceXml).not.toContain('value="ny plats"');
 
-    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
+    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("1 plats finns i kartan men saknas i underlaget. Dessa platser markeras med gult i kartan.");
     await expect(page.locator("#map-places-missing-in-excel-wrap")).toBeVisible();
     await expect(page.locator("#map-places-missing-in-excel-table")).toContainText("57");
     await expect(frame.locator("#loaded-xml")).toContainText("57");
@@ -221,7 +224,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
       }), "*");
     }, renamedExistingPlaceXml);
 
-    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i underlaget.");
     await expect(frame.locator("#loaded-xml")).toContainText("75");
     await expect(frame.locator("#loaded-xml")).not.toContainText("fillColor=#fff2cc");
     await expect(frame.locator("#loaded-xml")).not.toContainText("strokeColor=#d6b656");
@@ -235,7 +238,7 @@ test("genererar karta från nedladdade exempelfiler och visar saknad BAS-rad", a
       }), "*");
     }, renamedMissingPlaceXml);
 
-    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("1 plats finns i kartan men saknas i Excel. Dessa platser markeras med gult i kartan.");
+    await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("1 plats finns i kartan men saknas i underlaget. Dessa platser markeras med gult i kartan.");
     await expect(frame.locator("#loaded-xml")).toContainText("57");
     await expect(frame.locator("#loaded-xml")).toContainText("fillColor=#fff2cc");
     await expect(frame.locator("#loaded-xml")).toContainText("strokeColor=#d6b656");
@@ -411,6 +414,7 @@ test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", 
   await expect(page.locator("input[name='omrade-plats-source'][value='varvsomrade']")).toBeVisible();
   await expect(page.locator("input[name='omrade-plats-source'][value='brygga']")).toBeVisible();
   await expect(page.locator("input[name='omrade-plats-source'][value='vinterplats']")).toBeVisible();
+  await page.locator("#show-clean-map").click();
 
   await page.locator("input[name='omrade-plats-source'][value='varvsomrade']").check();
   await expect(page.locator("#duplicate-place-warning")).toHaveText("Varning: flera medlemmar har samma plats: 54.");
@@ -438,7 +442,7 @@ test("tolkar mixad brygga, varv och vinterplats vid filuppladdning från disk", 
   }, highlightedWinterMap);
 
   await page.locator("input[name='omrade-plats-source'][value='brygga']").check();
-  await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i Excel.");
+  await expect(page.locator("#map-places-missing-in-excel-meta")).toHaveText("Alla platser i kartan finns i underlaget.");
   await expect(frame.locator("#loaded-xml")).not.toContainText("fillColor=#fff2cc");
   await expect(frame.locator("#loaded-xml")).not.toContainText("strokeColor=#d6b656");
 
