@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run --configLoader runner",
+    "test:bas-extension": "node --test projects/kartgenerator/extension-tests/*.test.js",
     "test:watch": "vitest --configLoader runner",
     "test:coverage": "vitest run --coverage --configLoader runner",
     "test:coverage:watch": "vitest --coverage --configLoader runner",

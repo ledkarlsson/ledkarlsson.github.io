@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BAS till kartgeneratorn</title>
+  <link rel="stylesheet" href="popup.css">
+  <script type="module" src="bas-popup.js"></script>
+</head>
+<body>
+  <header class="brandbar">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">↔</span>BAS till kartgeneratorn</div>
+    <span class="version">0.4</span>
+  </header>
+  <main>
+    <section id="bas-panel">
+      <h1>BAS till kartgeneratorn</h1>
+      <p class="intro">Hämta platser från din öppna BAS-lista. Välj ett eller flera områden och granska datan i kartgeneratorn.</p>
+      <div class="bas-links"><button class="secondary-button" id="bas-open">Öppna BAS platser ↗</button><button class="secondary-button" id="map-open">Öppna kartgeneratorn ↗</button></div>
+      <p class="auto-note">Låt hela sökresultatet ladda i BAS. Filtren i BAS styr vilka områden och platser som finns att välja här.</p>
+      <button class="primary-button" id="bas-read">Läs platslistan från BAS</button>
+      <div id="bas-notice" role="status" aria-live="polite" hidden></div>
+      <section id="bas-review" hidden>
+        <p id="bas-summary"></p>
+        <div class="bas-presets"><button class="secondary-button" id="bas-piers">Alla bryggor</button><button class="secondary-button" id="bas-yards">Alla varvsplatser</button><button class="secondary-button" id="bas-all">Alla områden</button><button class="secondary-button" id="bas-none">Rensa val</button></div>
+        <label for="bas-pattern">Välj områden med mönster</label>
+        <input id="bas-pattern" placeholder="Brygga*, Varvsområde*" maxlength="500">
+        <button class="secondary-button" id="bas-match">Välj matchande områden</button>
+        <p class="intro">* matchar valfri text. Separera flera mönster med komma. Du kan också kryssa i områden var för sig.</p>
+        <div id="bas-areas" role="group" aria-label="Områden att överföra"></div>
+        <p id="bas-selection-summary" aria-live="polite"></p>
+        <p class="intro">Område, hela platsnamnet, för- och efternamn, båtmodell samt platsens och båtens bredd/längd skickas till kartgeneratorns öppna flik.</p>
+        <p class="auto-note">Kartgeneratorn använder diagrams.net för kartvisning. Valda uppgifter på kartan blir tillgängliga för den inbäddade editorn när du använder datan.</p>
+        <button class="primary-button" id="bas-send" disabled>Ladda valda platser i kartgeneratorn →</button>
+        <p class="destination">ledkarlsson.github.io/projects/kartgenerator/</p>
+      </section>
+      <footer>BAS ändras inte. Inga BAS-cookies exporteras. Förhandsgranskningen finns bara tillfälligt i minnet; läs igen om den gått ut.</footer>
+    </section>
+  </main>
+</body>
+</html>

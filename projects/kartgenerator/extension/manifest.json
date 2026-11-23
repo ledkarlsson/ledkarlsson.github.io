@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "BAS till kartgeneratorn",
+  "version": "0.4.0",
+  "description": "Läs BAS-platser till kartgeneratorn.",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "optional_host_permissions": [
+    "https://bas.batunionen.se/*",
+    "https://ledkarlsson.github.io/*"
+  ],
+  "action": {
+    "default_title": "BAS till kartgeneratorn",
+    "default_popup": "popup.html"
+  },
+  "incognito": "not_allowed",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'"
+  }
+}
